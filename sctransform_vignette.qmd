@@ -1,0 +1,181 @@
+---
+title: "Seurat SCTransform Normalization Tutorial"
+subtitle: "Source: `sctransform_vignette.qmd`"
+author: "Steve Rozen (sr110@duke.edu, steverozen@pm.me)"
+date: last-modified
+date-format: "YYYY-MM-DD HH:mm"
+format:
+  html:
+    page-layout: full
+    include-in-header:
+      text: |
+        <style>
+          .quarto-container, .page-columns, .main-container {
+            max-width: 100% !important;
+          }
+        </style>
+---
+
+## Introduction
+
+This document follows the [Seurat SCTransform vignette](https://satijalab.org/seurat/articles/sctransform_vignette),
+which demonstrates an improved normalization workflow using
+[sctransform](https://github.com/satijalab/sctransform).
+SCTransform replaces the three separate steps of `NormalizeData()`,
+`ScaleData()`, and `FindVariableFeatures()` with a single regularized
+negative binomial regression that removes technical variation while preserving
+biological heterogeneity. It uses the same PBMC 3K dataset from 10X Genomics.
+
+## Setup
+
+```{r}
+#| label: setup
+#| message: false
+library(Seurat)
+library(ggplot2)
+library(sctransform)
+```
+
+## Load Data
+
+```{r}
+#| label: load-data
+#| warning: false
+# Suppress warning about underscores in feature names (10X format uses them)
+pbmc_data <- Read10X(data.dir = "filtered_gene_bc_matrices/hg19/")
+pbmc <- CreateSeuratObject(counts = pbmc_data)
+pbmc
+```
+
+## Quality Control
+
+Calculate the percentage of mitochondrial reads per cell.
+
+```{r}
+#| label: qc-mito
+pbmc <- PercentageFeatureSet(pbmc, pattern = "^MT-", col.name = "percent.mt")
+```
+
+## SCTransform Normalization
+
+`SCTransform()` replaces `NormalizeData()`, `ScaleData()`, and
+`FindVariableFeatures()` in a single command. Here we also regress out
+mitochondrial percentage to reduce its influence on clustering.
+
+```{r}
+#| label: sctransform
+#| message: false
+#| warning: false
+pbmc <- SCTransform(pbmc, vars.to.regress = "percent.mt", verbose = FALSE)
+```
+
+## Dimensionality Reduction
+
+SCTransform's improved variance stabilization allows using more PCs than the
+standard log-normalize workflow. Here we use 30 PCs.
+
+### PCA
+
+```{r}
+#| label: run-pca
+#| message: false
+pbmc <- RunPCA(pbmc, verbose = FALSE)
+```
+
+### UMAP
+
+```{r}
+#| label: run-umap
+#| message: false
+#| warning: false
+# Suppress UMAP method change message (using R-native UWOT, which is correct)
+pbmc <- RunUMAP(pbmc, dims = 1:30, verbose = FALSE)
+```
+
+## Clustering
+
+```{r}
+#| label: clustering
+#| message: false
+pbmc <- FindNeighbors(pbmc, dims = 1:30, verbose = FALSE)
+pbmc <- FindClusters(pbmc, verbose = FALSE)
+```
+
+## UMAP Visualization
+
+```{r}
+#| label: umap-clusters
+#| fig-width: 8
+#| fig-height: 6
+DimPlot(pbmc, label = TRUE)
+```
+
+## Marker Gene Visualization
+
+### Violin plots
+
+```{r}
+#| label: marker-violin
+#| fig-width: 10
+#| fig-height: 8
+#| warning: false
+# Suppress "data layer" warning (expected with SCT assay)
+VlnPlot(
+  pbmc,
+  features = c("CD8A", "GZMK", "CCL5", "S100A4",
+               "ANXA1", "CCR7", "ISG15", "CD3D"),
+  pt.size = 0.2, ncol = 2
+)
+```
+
+### Feature plots -- T cell and CD4 markers
+
+```{r}
+#| label: feature-plot-1
+#| fig-width: 10
+#| fig-height: 8
+FeaturePlot(
+  pbmc,
+  features = c("CD8A", "GZMK", "CCL5", "S100A4", "ANXA1", "CCR7"),
+  pt.size = 0.2, ncol = 2
+)
+```
+
+### Feature plots -- T cell, B cell, and NK markers
+
+```{r}
+#| label: feature-plot-2
+#| fig-width: 10
+#| fig-height: 8
+FeaturePlot(
+  pbmc,
+  features = c("CD3D", "ISG15", "TCL1A", "FCER2", "XCL1", "FCGR3A"),
+  pt.size = 0.2, ncol = 2
+)
+```
+
+## Save Object
+
+```{r}
+#| label: save-object
+saveRDS(pbmc, file = "output/pbmc_sctransform.rds")
+```
+
+## References
+
+- Hao Y et al. (2024) "Dictionary learning for integrative, multimodal and scalable single-cell analysis." *Nat Biotechnol* 42:293--304. <https://doi.org/10.1038/s41587-023-01767-y>
+- Hafemeister C, Satija R (2019) "Normalization and variance stabilization of single-cell RNA-seq data using regularized negative binomial regression." *Genome Biol* 20:296. <https://doi.org/10.1186/s13059-019-1874-1>
+- Choudhary S, Satija R (2022) "Comparison and evaluation of statistical error models for scRNA-seq." *Genome Biol* 23:27. <https://doi.org/10.1186/s13059-021-02584-9>
+- McInnes L, Healy J, Melville J (2018) "UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction." *arXiv:1802.03426*. <https://doi.org/10.48550/arXiv.1802.03426>
+
+::: {.callout-note collapse="true"}
+## Session Info
+
+```{r}
+#| label: session-info
+#| echo: false
+#| comment: ""
+sessioninfo::session_info(info = "all")
+```
+
+:::

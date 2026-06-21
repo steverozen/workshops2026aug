@@ -1,0 +1,428 @@
+---
+title: "Seurat PBMC3K Guided Clustering Tutorial"
+subtitle: "Source: `pbmc3k_tutorial.qmd`"
+author: "Steve Rozen (sr110@duke.edu, steverozen@pm.me)"
+date: last-modified
+date-format: "YYYY-MM-DD HH:mm"
+format:
+  html:
+    page-layout: full
+    include-in-header:
+      text: |
+        <style>
+          .quarto-container, .page-columns, .main-container {
+            max-width: 100% !important;
+          }
+        </style>
+---
+
+## Introduction
+
+This document follows the [Seurat PBMC3K guided clustering tutorial](https://satijalab.org/seurat/articles/pbmc3k_tutorial),
+which walks through a standard single-cell RNA-seq analysis workflow on a dataset
+of Peripheral Blood Mononuclear Cells (PBMCs) from 10X Genomics.
+The dataset contains `r 2700` cells sequenced on the Illumina NextSeq 500.
+
+## Setup
+
+```{r}
+#| label: setup
+#| message: false
+library(dplyr)
+library(Seurat)
+library(patchwork)
+library(ggplot2)
+```
+
+## Load Data
+
+Read the 10X Genomics Cell Ranger output and create a Seurat object.
+Genes detected in fewer than 3 cells and cells with fewer than 200 detected
+genes are excluded.
+
+```{r}
+#| label: load-data
+#| warning: false
+# Suppress warning about underscores in feature names (10X format uses them)
+pbmc.data <- Read10X(data.dir = "filtered_gene_bc_matrices/hg19/")
+pbmc <- CreateSeuratObject(
+  counts  = pbmc.data,
+  project = "pbmc3k",
+  min.cells    = 3,
+  min.features = 200
+)
+pbmc
+```
+
+### Examine the count matrix
+
+```{r}
+#| label: examine-counts
+#| message: false
+pbmc.data[c("CD3D", "TCL1A", "MS4A1"), 1:30]
+```
+
+The `.` values in the matrix represent zeros (no molecules detected). Since
+most values in scRNA-seq are 0, Seurat uses a sparse-matrix representation
+to save memory:
+
+```{r}
+#| label: sparse-vs-dense
+dense.size  <- object.size(as.matrix(pbmc.data))
+sparse.size <- object.size(pbmc.data)
+dense.size / sparse.size
+```
+
+## Quality Control
+
+Common QC metrics include:
+
+- Number of unique genes per cell (`nFeature_RNA`)
+- Total molecules per cell (`nCount_RNA`)
+- Percentage of reads mapping to mitochondrial genes (`percent.mt`) --
+  high values indicate dying cells
+
+```{r}
+#| label: qc-metrics
+pbmc[["percent.mt"]] <- PercentageFeatureSet(pbmc, pattern = "^MT-")
+head(pbmc@meta.data, 5)
+```
+
+### QC Visualization
+
+```{r}
+#| label: qc-violin
+#| fig-width: 10
+#| fig-height: 5
+#| warning: false
+# Warning about "data" layer not found is expected before normalization
+VlnPlot(pbmc, features = c("nFeature_RNA", "nCount_RNA", "percent.mt"), ncol = 3)
+```
+
+```{r}
+#| label: qc-scatter
+#| fig-width: 10
+#| fig-height: 5
+plot1 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "percent.mt")
+plot2 <- FeatureScatter(pbmc, feature1 = "nCount_RNA", feature2 = "nFeature_RNA")
+plot1 + plot2
+```
+
+### Filter cells
+
+Retain cells with 200--2,500 unique genes and < 5% mitochondrial content.
+
+```{r}
+#| label: filter-cells
+pbmc <- subset(
+  pbmc,
+  subset = nFeature_RNA > 200 & nFeature_RNA < 2500 & percent.mt < 5
+)
+pbmc
+```
+
+## Normalization
+
+Log-normalize: divide each cell's gene counts by total expression, multiply by
+10,000, then log-transform.
+
+```{r}
+#| label: normalize
+#| message: false
+pbmc <- NormalizeData(pbmc, normalization.method = "LogNormalize", scale.factor = 10000)
+```
+
+## Identify Highly Variable Features
+
+Select the top 2,000 genes with the highest cell-to-cell variation using
+variance-stabilizing transformation (VST).
+
+```{r}
+#| label: variable-features
+#| message: false
+pbmc <- FindVariableFeatures(pbmc, selection.method = "vst", nfeatures = 2000)
+top10 <- head(VariableFeatures(pbmc), 10)
+top10
+```
+
+```{r}
+#| label: variable-features-plot
+#| fig-width: 10
+#| fig-height: 5
+#| message: false
+#| warning: false
+# Suppress repel nudge message and log-10 infinite values warning (expected for genes with zero variance)
+plot1 <- VariableFeaturePlot(pbmc)
+plot2 <- LabelPoints(plot = plot1, points = top10, repel = TRUE)
+plot1 + plot2
+```
+
+## Scale Data
+
+Shift each gene's expression so that mean = 0 across cells and scale so that
+variance = 1, preventing highly-expressed genes from dominating downstream
+analyses.
+
+```{r}
+#| label: scale-data
+#| message: false
+all.genes <- rownames(pbmc)
+pbmc <- ScaleData(pbmc, features = all.genes)
+```
+
+## Linear Dimensional Reduction (PCA)
+
+```{r}
+#| label: run-pca
+#| message: false
+pbmc <- RunPCA(pbmc, features = VariableFeatures(object = pbmc))
+```
+
+```{r}
+#| label: pca-loadings
+print(pbmc[["pca"]], dims = 1:5, nfeatures = 5)
+```
+
+```{r}
+#| label: pca-viz-loadings
+#| fig-width: 10
+#| fig-height: 5
+VizDimLoadings(pbmc, dims = 1:2, reduction = "pca")
+```
+
+```{r}
+#| label: pca-dimplot
+#| fig-width: 7
+#| fig-height: 5
+DimPlot(pbmc, reduction = "pca") + NoLegend()
+```
+
+### PCA Heatmaps
+
+```{r}
+#| label: pca-heatmap-1
+#| fig-width: 8
+#| fig-height: 6
+DimHeatmap(pbmc, dims = 1, cells = 500, balanced = TRUE)
+```
+
+```{r}
+#| label: pca-heatmap-15
+#| fig-width: 10
+#| fig-height: 18
+DimHeatmap(pbmc, dims = 1:15, cells = 500, balanced = TRUE)
+```
+
+## Determine Dimensionality
+
+```{r}
+#| label: elbow-plot
+#| fig-width: 7
+#| fig-height: 5
+ElbowPlot(pbmc)
+```
+
+The elbow appears around PC 9--10. We use 10 PCs for downstream analysis.
+
+## Cluster Cells
+
+Build a K-nearest neighbor graph in PCA space, then apply the Louvain
+algorithm with resolution 0.5.
+
+```{r}
+#| label: find-clusters
+#| message: false
+pbmc <- FindNeighbors(pbmc, dims = 1:10)
+pbmc <- FindClusters(pbmc, resolution = 0.5)
+```
+
+```{r}
+#| label: cluster-ids
+head(Idents(pbmc), 5)
+```
+
+## Non-linear Dimensional Reduction (UMAP)
+
+```{r}
+#| label: run-umap
+#| message: false
+#| warning: false
+# Suppress UMAP method change message (using R-native UWOT, which is correct)
+pbmc <- RunUMAP(pbmc, dims = 1:10)
+```
+
+```{r}
+#| label: umap-plot
+#| fig-width: 8
+#| fig-height: 6
+DimPlot(pbmc, reduction = "umap")
+```
+
+## Save Intermediate Object
+
+```{r}
+#| label: save-intermediate
+saveRDS(pbmc, file = "output/pbmc_tutorial.rds")
+```
+
+## Find Differentially Expressed Markers
+
+### Cluster 2 markers
+
+```{r}
+#| label: cluster2-markers
+cluster2.markers <- FindMarkers(pbmc, ident.1 = 2)
+head(cluster2.markers, n = 5)
+```
+
+### Cluster 5 vs. clusters 0 and 3
+
+```{r}
+#| label: cluster5-markers
+cluster5.markers <- FindMarkers(pbmc, ident.1 = 5, ident.2 = c(0, 3))
+head(cluster5.markers, n = 5)
+```
+
+### All cluster markers
+
+```{r}
+#| label: all-markers
+#| message: false
+pbmc.markers <- FindAllMarkers(pbmc, only.pos = TRUE)
+pbmc.markers %>%
+  group_by(cluster) %>%
+  dplyr::filter(avg_log2FC > 1)
+```
+
+### ROC test for cluster 0
+
+```{r}
+#| label: roc-markers
+cluster0.markers <- FindMarkers(
+  pbmc,
+  ident.1        = 0,
+  logfc.threshold = 0.25,
+  test.use       = "roc",
+  only.pos       = TRUE
+)
+head(cluster0.markers)
+```
+
+## Visualize Markers
+
+### Violin plots
+
+```{r}
+#| label: marker-violin
+#| fig-width: 10
+#| fig-height: 5
+VlnPlot(pbmc, features = c("MS4A1", "CD79A"))
+```
+
+```{r}
+#| label: marker-violin-raw
+#| fig-width: 10
+#| fig-height: 5
+# Suppress "default search for data layer" warning (expected when requesting counts layer)
+suppressWarnings(
+  print(VlnPlot(pbmc, features = c("NKG7", "PF4"), layer = "counts", log = TRUE))
+)
+```
+
+### Feature plots on UMAP
+
+```{r}
+#| label: feature-plot
+#| fig-width: 10
+#| fig-height: 10
+FeaturePlot(
+  pbmc,
+  features = c("MS4A1", "GNLY", "CD3E", "CD14",
+               "FCER1A", "FCGR3A", "LYZ", "PPBP", "CD8A")
+)
+```
+
+### Marker heatmap
+
+```{r}
+#| label: marker-heatmap
+#| fig-width: 10
+#| fig-height: 10
+pbmc.markers %>%
+  group_by(cluster) %>%
+  dplyr::filter(avg_log2FC > 1) %>%
+  slice_head(n = 10) %>%
+  ungroup() -> top10_markers
+
+DoHeatmap(pbmc, features = top10_markers$gene) + NoLegend()
+```
+
+## Assign Cell Type Identity
+
+Map clusters to cell types based on canonical markers.
+
+```{r}
+#| label: assign-cell-types
+new.cluster.ids <- c(
+  "Naive CD4 T", "CD14+ Mono", "Memory CD4 T", "B",
+  "CD8 T", "FCGR3A+ Mono", "NK", "DC", "Platelet"
+)
+names(new.cluster.ids) <- levels(pbmc)
+pbmc <- RenameIdents(pbmc, new.cluster.ids)
+```
+
+```{r}
+#| label: umap-labeled
+#| fig-width: 10
+#| fig-height: 7
+DimPlot(pbmc, reduction = "umap", label = TRUE, pt.size = 0.5) + NoLegend()
+```
+
+## Publication-Quality Figure
+
+```{r}
+#| label: pub-umap
+#| fig-width: 12
+#| fig-height: 7
+base_size <- 14
+
+plot <- DimPlot(pbmc, reduction = "umap", label = TRUE,
+                label.size = 0.7 * base_size / ggplot2::.pt) +
+  xlab("UMAP 1") + ylab("UMAP 2") +
+  theme(
+    axis.title  = element_text(size = rel(1.3)),
+    legend.text = element_text(size = rel(1.3))
+  ) +
+  guides(colour = guide_legend(override.aes = list(size = 10)))
+plot
+
+ggsave(
+  filename = "output/images/pbmc3k_umap.jpg",
+  height = 7, width = 12,
+  plot = plot, quality = 50
+)
+```
+
+## Save Final Object
+
+```{r}
+#| label: save-final
+saveRDS(pbmc, file = "output/pbmc3k_final.rds")
+```
+
+## References
+
+- Hao Y et al. (2024) "Dictionary learning for integrative, multimodal and scalable single-cell analysis." *Nat Biotechnol* 42:293--304. <https://doi.org/10.1038/s41587-023-01767-y>
+- McInnes L, Healy J, Melville J (2018) "UMAP: Uniform Manifold Approximation and Projection for Dimension Reduction." *arXiv:1802.03426*. <https://doi.org/10.48550/arXiv.1802.03426>
+
+::: {.callout-note collapse="true"}
+## Session Info
+
+```{r}
+#| label: session-info
+#| echo: false
+#| comment: ""
+sessioninfo::session_info(info = "all")
+```
+
+:::
