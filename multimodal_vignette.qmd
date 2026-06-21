@@ -1,0 +1,246 @@
+---
+title: "CITE-seq / multimodal vignette"
+format: html
+---
+
+Adapted from <https://satijalab.org/seurat/articles/multimodal_vignette>.
+
+```{r}
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+```
+
+The CITE-seq UMI matrices (RNA and ADT, GSE100866) are shipped with this
+repository. If they are missing, the cell below will download them.
+
+```{r}
+#| eval: false
+# Run once, change `eval: true` if you need to re-download.
+curl::curl_download(
+  "https://github.com/steverozen/cite_and_atac_wkshp/raw/refs/heads/main/GSE100866_CBMC_8K_13AB_10X-ADT_umi.csv.gz",
+  destfile = here::here("GSE100866_CBMC_8K_13AB_10X-ADT_umi.csv.gz")
+)
+curl::curl_download(
+  "https://github.com/steverozen/cite_and_atac_wkshp/raw/refs/heads/main/GSE100866_CBMC_8K_13AB_10X-RNA_umi.csv.gz",
+  destfile = here::here("GSE100866_CBMC_8K_13AB_10X-RNA_umi.csv.gz")
+)
+```
+
+This next cell may take a minute or two.
+
+```{r}
+# Load in the RNA UMI matrix.
+#
+# Note that this dataset also contains ~5% of mouse cells, which we can use as
+# negative controls for the protein measurements. For this reason, the gene
+# expression matrix has HUMAN_ or MOUSE_ appended to the beginning of each
+# gene.
+cbmc.rna <- as.sparse(read.csv(
+  file = here::here("GSE100866_CBMC_8K_13AB_10X-RNA_umi.csv.gz"),
+  sep = ",", header = TRUE, row.names = 1
+))
+
+# To make life a bit easier going forward, we discard all but the top 100 most
+# highly expressed mouse genes, and remove the HUMAN_ prefix from the human
+# genes.
+cbmc.rna <- CollapseSpeciesExpressionMatrix(cbmc.rna) # Seurat function
+
+# Load in the ADT UMI matrix (ADT = antibody derived tags).
+cbmc.adt <- as.sparse(read.csv(
+  file = here::here("GSE100866_CBMC_8K_13AB_10X-ADT_umi.csv.gz"),
+  sep = ",", header = TRUE, row.names = 1
+))
+
+# Since measurements were made in the same cells, the two matrices have
+# identical column names.
+all.equal(colnames(cbmc.rna), colnames(cbmc.adt))
+```
+
+### Setup a Seurat object, add the RNA and protein data
+
+```{r}
+# Create a Seurat object based on the scRNA-seq data.
+cbmc <- CreateSeuratObject(counts = cbmc.rna)
+
+# By default, the cbmc object contains an assay storing RNA measurements.
+Assays(cbmc)
+```
+
+```{r}
+# Create a new assay to store ADT information.
+adt_assay <- CreateAssay5Object(counts = cbmc.adt)
+
+# Add this assay to the previously created Seurat object.
+cbmc[["ADT"]] <- adt_assay
+
+# Validate that the object now contains multiple assays.
+Assays(cbmc)
+```
+
+```{r}
+# Extract a list of features measured in the ADT assay.
+rownames(cbmc[["ADT"]])
+```
+
+```{r}
+# List the current default assay.
+DefaultAssay(cbmc)
+```
+
+```{r}
+# Switch the default to ADT.
+DefaultAssay(cbmc) <- "ADT"
+DefaultAssay(cbmc)
+```
+
+```{r}
+# All operations below are performed on the RNA assay. Set and verify that the
+# default assay is RNA.
+DefaultAssay(cbmc) <- "RNA"
+DefaultAssay(cbmc)
+```
+
+## Important: for production, use sctransform for the first 3 steps below
+
+```{r}
+# Perform visualization and clustering steps.
+cbmc <- NormalizeData(cbmc)
+cbmc <- FindVariableFeatures(cbmc)
+cbmc <- ScaleData(cbmc)
+cbmc <- RunPCA(cbmc, verbose = FALSE)
+cbmc <- FindNeighbors(cbmc, dims = 1:30) ### Go to slides explaining cluster
+cbmc <- FindClusters(cbmc, resolution = 0.8, verbose = FALSE)
+cbmc <- RunUMAP(cbmc, dims = 1:30)
+DimPlot(cbmc, label = TRUE)
+```
+
+```{r}
+# Normalize ADT data.
+DefaultAssay(cbmc) <- "ADT"
+cbmc <- NormalizeData(cbmc, normalization.method = "CLR", margin = 2)
+DefaultAssay(cbmc) <- "RNA"
+
+# The following command is an alternative but returns the same result.
+cbmc <- NormalizeData(cbmc, normalization.method = "CLR", margin = 2, assay = "ADT")
+
+# Visualize CD19 levels for RNA and protein. By setting the default assay we
+# can visualize one or the other.
+DefaultAssay(cbmc) <- "ADT"
+p1 <- FeaturePlot(cbmc, "CD19", cols = c("lightgrey", "darkgreen")) + ggtitle("CD19 protein")
+DefaultAssay(cbmc) <- "RNA"
+p2 <- FeaturePlot(cbmc, "CD19") + ggtitle("CD19 RNA")
+
+# Place plots side-by-side.
+p1 | p2
+```
+
+```{r}
+# Alternately, we can use specific assay keys to specify a specific modality.
+# Here we ask what the RNA key is.
+Key(cbmc[["RNA"]])
+```
+
+```{r}
+# Here we ask what the ADT key is.
+Key(cbmc[["ADT"]])
+```
+
+```{r}
+# Including the key in the feature name overrides the default assay, e.g.
+# prepending "adt_" to "CD19".
+p1 <- FeaturePlot(cbmc, "adt_CD19", cols = c("lightgrey", "darkgreen")) + ggtitle("CD19 protein")
+p2 <- FeaturePlot(cbmc, "rna_CD19") + ggtitle("CD19 RNA")
+p1 | p2
+```
+
+```{r}
+# As CD19 is a B cell marker, we can identify cluster 6 as expressing CD19 on
+# the surface.
+VlnPlot(cbmc, "adt_CD19")
+```
+
+```{r}
+# We can also identify alternative protein and RNA markers for this cluster
+# through differential expression.
+adt_markers <- FindMarkers(cbmc, ident.1 = 6, assay = "ADT")
+rna_markers <- FindMarkers(cbmc, ident.1 = 6, assay = "RNA")
+
+head(adt_markers)
+```
+
+```{r}
+head(rna_markers)
+```
+
+### Additional visualizations of multimodal data
+
+```{r}
+# Draw ADT scatter plots (like biaxial plots for FACS). Note that you can even
+# 'gate' cells if desired by using HoverLocator and FeatureLocator.
+FeatureScatter(cbmc, feature1 = "adt_CD19", feature2 = "adt_CD3")
+```
+
+```{r}
+# View relationship between protein and RNA.
+FeatureScatter(cbmc, feature1 = "adt_CD3", feature2 = "rna_CD3E")
+```
+
+```{r}
+FeatureScatter(cbmc, feature1 = "adt_CD4", feature2 = "adt_CD8")
+```
+
+```{r}
+# Raw (non-normalized) ADT counts. The values are quite high, particularly
+# compared to RNA. This is due to the significantly higher protein copy
+# number in cells, which reduces 'drop-out' in ADT data.
+FeatureScatter(cbmc, feature1 = "adt_CD4", feature2 = "adt_CD8", slot = "counts")
+```
+
+### Loading data from 10X multi-modal experiments
+
+```{r}
+#| eval: false
+# Download once, ~49 MB. Change to eval: true if you need to download.
+download.file(
+  "https://cf.10xgenomics.com/samples/cell-exp/3.0.0/pbmc_10k_protein_v3/pbmc_10k_protein_v3_filtered_feature_bc_matrix.tar.gz",
+  destfile = here::here("pbmc_10k_protein_v3_filtered_feature_bc_matrix.tar.gz")
+)
+```
+
+```{r}
+if (!dir.exists(here::here("filtered_feature_bc_matrix"))) {
+  untar(
+    here::here("pbmc_10k_protein_v3_filtered_feature_bc_matrix.tar.gz"),
+    exdir = here::here()
+  )
+}
+```
+
+```{r}
+# Read10X returns a named list with "Gene Expression" and "Antibody Capture".
+pbmc10k.data <- Read10X(data.dir = here::here("filtered_feature_bc_matrix"))
+
+rownames(x = pbmc10k.data[["Antibody Capture"]]) <- gsub(
+  pattern = "_[control_]*TotalSeqB", replacement = "",
+  x = rownames(x = pbmc10k.data[["Antibody Capture"]])
+)
+
+pbmc10k <- CreateSeuratObject(
+  counts = pbmc10k.data[["Gene Expression"]], min.cells = 3, min.features = 200
+)
+pbmc10k <- NormalizeData(pbmc10k)
+pbmc10k[["ADT"]] <- CreateAssayObject(
+  pbmc10k.data[["Antibody Capture"]][, colnames(x = pbmc10k)]
+)
+pbmc10k <- NormalizeData(pbmc10k, assay = "ADT", normalization.method = "CLR")
+
+plot1 <- FeatureScatter(pbmc10k, feature1 = "adt_CD19", feature2 = "adt_CD3", pt.size = 1)
+plot2 <- FeatureScatter(pbmc10k, feature1 = "adt_CD4", feature2 = "adt_CD8a", pt.size = 1)
+plot3 <- FeatureScatter(pbmc10k, feature1 = "adt_CD3", feature2 = "CD3E", pt.size = 1)
+(plot1 + plot2 + plot3) & NoLegend()
+```
+
+```{r}
+sessionInfo()
+```

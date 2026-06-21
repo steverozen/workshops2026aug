@@ -1,0 +1,459 @@
+---
+title: "scATAC-seq vignette (Signac PBMC)"
+format: html
+---
+
+Adapted from <https://stuartlab.org/signac/articles/pbmc_vignette.html>.
+
+```{r}
+library(Signac)
+library(Seurat)
+library(GenomicRanges)
+library(ggplot2)
+library(patchwork)
+library(GenomeInfoDb) # for standardChromosomes()
+library(biovizBase)   # required indirectly by Signac plotting
+library(AnnotationHub)
+```
+
+### Checkpoint files
+
+Several steps below (`CreateChromatinAssay`, `NucleosomeSignal`,
+`TSSEnrichment`, `GeneActivity`, `FindTransferAnchors` / `TransferData`)
+each take many minutes. We save the `pbmc` Seurat object to `.rds`
+checkpoint files at three points so that subsequent runs, including
+live lecture demos, load the cached object instead of recomputing.
+
+To force recomputation, delete the corresponding `.rds` file under
+`gitignore/`.
+
+```{r}
+ck_dir <- here::here("gitignore")
+dir.create(ck_dir, showWarnings = FALSE)
+ck_qc      <- file.path(ck_dir, "pbmc_atac_ck1_qc.rds")       # post-QC, pre-subset
+ck_dimred  <- file.path(ck_dir, "pbmc_atac_ck2_dimred.rds")   # post-UMAP + GeneActivity
+ck_labeled <- file.path(ck_dir, "pbmc_atac_ck3_labeled.rds")  # post-label-transfer + relabel
+```
+
+The large 10x Genomics ATAC files (h5 peak matrix, fragments.tsv.gz +
+index, ~3 GB total) and the reference scRNA-seq object (`pbmc_10k_v3.rds`)
+are not shipped with this repository. If missing, fetch them with:
+
+```{r}
+#| eval: false
+# Run once. ~3 GB total.
+base_url <- "https://cf.10xgenomics.com/samples/cell-atac/2.1.0/10k_pbmc_ATACv2_nextgem_Chromium_Controller/"
+for (f in c(
+  "10k_pbmc_ATACv2_nextgem_Chromium_Controller_filtered_peak_bc_matrix.h5",
+  "10k_pbmc_ATACv2_nextgem_Chromium_Controller_singlecell.csv",
+  "10k_pbmc_ATACv2_nextgem_Chromium_Controller_fragments.tsv.gz",
+  "10k_pbmc_ATACv2_nextgem_Chromium_Controller_fragments.tsv.gz.tbi"
+)) {
+  curl::curl_download(paste0(base_url, f), destfile = file.path(ck_dir, f))
+}
+# Pre-processed scRNA-seq Seurat object used for label transfer.
+curl::curl_download(
+  "https://signac-objects.s3.amazonaws.com/pbmc_10k_v3.rds",
+  destfile = file.path(ck_dir, "pbmc_10k_v3.rds")
+)
+```
+
+### Build the Signac object and compute QC metrics
+
+This block builds the Seurat/Signac object from the 10x outputs, keeps
+standard chromosomes only, attaches Ensembl 98 gene annotations, and
+computes the nucleosome signal, TSS enrichment, % reads in peaks, and
+blacklist ratio per cell. The resulting object is cached to `ck_qc`.
+
+```{r}
+if (file.exists(ck_qc)) {
+  pbmc <- readRDS(ck_qc)
+  message("Loaded pbmc from ", ck_qc)
+} else {
+  counts <- Read10X_h5(
+    filename = here::here(
+      "gitignore/10k_pbmc_ATACv2_nextgem_Chromium_Controller_filtered_peak_bc_matrix.h5"
+    )
+  )
+
+  metadata <- read.csv(
+    file = here::here("10k_pbmc_ATACv2_nextgem_Chromium_Controller_singlecell.csv"),
+    header = TRUE,
+    row.names = 1
+  )
+
+  chrom_assay <- CreateChromatinAssay(
+    counts = counts,
+    sep = c(":", "-"),
+    fragments = here::here(
+      "gitignore/10k_pbmc_ATACv2_nextgem_Chromium_Controller_fragments.tsv.gz"
+    ),
+    min.cells = 10,
+    min.features = 200
+  )
+
+  pbmc <- CreateSeuratObject(
+    counts = chrom_assay,
+    assay = "peaks",
+    meta.data = metadata
+  )
+
+  # Keep only standard chromosomes.
+  peaks.keep <- seqnames(granges(pbmc)) %in% standardChromosomes(granges(pbmc))
+  pbmc <- pbmc[as.vector(peaks.keep), ]
+
+  # Pull Ensembl 98 EnsDb (Homo sapiens) and the ENCODE hg38 blacklist
+  # from AnnotationHub. `AH75011` is the accession for the Ensembl 98
+  # EnsDb (a SQLite-backed Ensembl annotation database mapped to GRCh38).
+  ah <- AnnotationHub()
+  ensdb_v98 <- ah[["AH75011"]]
+  blacklist_regions <- ah[["AH107305"]] # ENCODE blacklist for hg38
+
+  annotations <- GetGRangesFromEnsDb(ensdb = ensdb_v98)
+  seqlevels(annotations) <- paste0("chr", seqlevels(annotations))
+  genome(annotations) <- "hg38"
+  Annotation(pbmc) <- annotations
+
+  pbmc <- NucleosomeSignal(object = pbmc)
+  pbmc <- TSSEnrichment(object = pbmc)
+  pbmc$pct_reads_in_peaks <- pbmc$peak_region_fragments / pbmc$passed_filters * 100
+  pbmc$blacklist_ratio <- FractionCountsInRegion(
+    object = pbmc, assay = "peaks", regions = blacklist_regions
+  )
+
+  saveRDS(pbmc, ck_qc)
+  message("Saved checkpoint ", ck_qc)
+}
+
+pbmc
+```
+
+```{r}
+pbmc[["peaks"]]
+```
+
+```{r}
+granges(pbmc)
+```
+
+### QC plots
+
+```{r}
+DensityScatter(pbmc, x = "nCount_peaks", y = "TSS.enrichment", log_x = TRUE, quantiles = TRUE)
+```
+
+```{r}
+pbmc$nucleosome_group <- ifelse(pbmc$nucleosome_signal > 4, "NS > 4", "NS < 4")
+FragmentHistogram(object = pbmc, group.by = "nucleosome_group")
+```
+
+```{r}
+VlnPlot(
+  object = pbmc,
+  features = c("nCount_peaks", "TSS.enrichment", "blacklist_ratio", "nucleosome_signal", "pct_reads_in_peaks"),
+  pt.size = 0.1,
+  ncol = 5
+)
+```
+
+### Filter low-quality cells, normalize, dim-reduce, build gene-activity assay
+
+Cached to `ck_dimred`.
+
+```{r}
+if (file.exists(ck_dimred)) {
+  pbmc <- readRDS(ck_dimred)
+  message("Loaded pbmc from ", ck_dimred)
+} else {
+  pbmc <- subset(
+    x = pbmc,
+    subset = nCount_peaks > 9000 &
+      nCount_peaks < 100000 &
+      pct_reads_in_peaks > 40 &
+      blacklist_ratio < 0.01 &
+      nucleosome_signal < 4 &
+      TSS.enrichment > 4
+  )
+
+  pbmc <- RunTFIDF(pbmc)
+  pbmc <- FindTopFeatures(pbmc, min.cutoff = "q0")
+  pbmc <- RunSVD(pbmc)
+
+  pbmc <- RunUMAP(object = pbmc, reduction = "lsi", dims = 2:30)
+  pbmc <- FindNeighbors(object = pbmc, reduction = "lsi", dims = 2:30)
+  pbmc <- FindClusters(object = pbmc, verbose = FALSE, algorithm = 3)
+
+  gene.activities <- GeneActivity(pbmc)
+  pbmc[["RNA"]] <- CreateAssayObject(counts = gene.activities)
+  pbmc <- NormalizeData(
+    object = pbmc, assay = "RNA",
+    normalization.method = "LogNormalize",
+    scale.factor = median(pbmc$nCount_RNA)
+  )
+
+  saveRDS(pbmc, ck_dimred)
+  message("Saved checkpoint ", ck_dimred)
+}
+
+pbmc
+```
+
+```{r}
+DepthCor(pbmc)
+```
+
+```{r}
+DimPlot(object = pbmc, label = TRUE) + NoLegend()
+```
+
+```{r}
+DefaultAssay(pbmc) <- "RNA"
+
+FeaturePlot(
+  object = pbmc,
+  features = c("MS4A1", "CD3D", "LEF1", "NKG7", "TREM1", "LYZ"),
+  pt.size = 0.1,
+  max.cutoff = "q95",
+  ncol = 3
+)
+```
+
+### Integrate with scRNA-seq via label transfer
+
+Cached to `ck_labeled` (the relabeled `pbmc`). The reference `pbmc_rna` is
+loaded fresh because it is a separate object.
+
+```{r}
+pbmc_rna <- readRDS(here::here("gitignore/pbmc_10k_v3.rds"))
+pbmc_rna <- UpdateSeuratObject(pbmc_rna)
+```
+
+```{r}
+if (file.exists(ck_labeled)) {
+  pbmc <- readRDS(ck_labeled)
+  message("Loaded pbmc from ", ck_labeled)
+} else {
+  transfer.anchors <- FindTransferAnchors(
+    reference = pbmc_rna,
+    query = pbmc,
+    reduction = "cca"
+  )
+
+  predicted.labels <- TransferData(
+    anchorset = transfer.anchors,
+    refdata = pbmc_rna$celltype,
+    weight.reduction = pbmc[["lsi"]],
+    dims = 2:30
+  )
+
+  pbmc <- AddMetaData(object = pbmc, metadata = predicted.labels)
+
+  saveRDS(pbmc, ck_labeled)
+  message("Saved checkpoint ", ck_labeled)
+}
+```
+
+```{r}
+plot1 <- DimPlot(
+  object = pbmc_rna, group.by = "celltype",
+  label = TRUE, repel = TRUE
+) + NoLegend() + ggtitle("scRNA-seq")
+
+plot2 <- DimPlot(
+  object = pbmc, group.by = "predicted.id",
+  label = TRUE, repel = TRUE
+) + NoLegend() + ggtitle("scATAC-seq")
+
+plot1 + plot2
+```
+
+#### How confident are the predicted labels?
+
+```{r}
+VlnPlot(pbmc, "prediction.score.max", group.by = "predicted.id")
+```
+
+Cells called as platelets are suspect, since platelets are anucleate and
+should not have an ATAC signal. The block below pulls every
+`prediction.score.*` column for these cells and orders them by mean score.
+
+```{r}
+metadata_attributes <- colnames(pbmc[[]])
+prediction_score_attributes <- grep("^prediction.score.", metadata_attributes, value = TRUE)
+prediction_score_attributes <- setdiff(prediction_score_attributes, "prediction.score.max")
+
+predicted_platelets <- which(pbmc$predicted.id == "Platelet")
+platelet_scores <- pbmc[[]][predicted_platelets, prediction_score_attributes]
+
+ordered_columns <- names(sort(colMeans(platelet_scores, na.rm = TRUE), decreasing = TRUE))
+ordered_platelet_scores_df <- platelet_scores[, ordered_columns]
+
+print(ordered_platelet_scores_df)
+```
+
+```{r}
+predicted_id_counts <- table(pbmc$predicted.id)
+
+# Keep only predicted.id values with more than 20 cells.
+major_predicted_ids <- names(predicted_id_counts[predicted_id_counts > 20])
+pbmc <- pbmc[, pbmc$predicted.id %in% major_predicted_ids]
+
+# Set cell identities to the per-cell predicted labels.
+Idents(pbmc) <- pbmc$predicted.id
+
+# Replace each cluster label with its most likely predicted label.
+for (i in levels(pbmc)) {
+  cells_to_reid <- WhichCells(pbmc, idents = i)
+  newid <- names(which.max(table(pbmc$predicted.id[cells_to_reid])))
+  Idents(pbmc, cells = cells_to_reid) <- newid
+}
+```
+
+### Find differentially accessible peaks between cell types
+
+`presto` greatly accelerates `FindMarkers`. Install it once if needed:
+
+```{r}
+#| eval: false
+if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
+remotes::install_github("immunogenomics/presto", upgrade = "never")
+```
+
+```{r}
+DefaultAssay(pbmc) <- "peaks"
+
+# wilcox is the default option for test.use.
+da_peaks <- FindMarkers(
+  object = pbmc,
+  ident.1 = "CD4 Naive",
+  ident.2 = "CD14+ Monocytes",
+  test.use = "wilcox",
+  min.pct = 0.1
+)
+
+head(da_peaks)
+```
+
+```{r}
+# Logistic regression with total fragment count as a latent variable.
+lr_da_peaks <- FindMarkers(
+  object = pbmc,
+  ident.1 = "CD4 Naive",
+  ident.2 = "CD14+ Monocytes",
+  test.use = "LR",
+  latent.vars = "nCount_peaks",
+  min.pct = 0.1
+)
+head(lr_da_peaks)
+```
+
+```{r}
+plot1 <- VlnPlot(
+  object = pbmc,
+  features = rownames(da_peaks)[1],
+  pt.size = 0.1,
+  idents = c("CD4 Naive", "CD14+ Monocytes")
+)
+plot2 <- FeaturePlot(
+  object = pbmc,
+  features = rownames(da_peaks)[1],
+  pt.size = 0.1
+)
+
+plot1 | plot2
+```
+
+```{r}
+open_cd4naive <- rownames(da_peaks[da_peaks$avg_log2FC > 3, ])
+open_cd14mono <- rownames(da_peaks[da_peaks$avg_log2FC < -3, ])
+
+closest_genes_cd4naive <- ClosestFeature(pbmc, regions = open_cd4naive)
+closest_genes_cd14mono <- ClosestFeature(pbmc, regions = open_cd14mono)
+```
+
+```{r}
+head(closest_genes_cd4naive)
+```
+
+```{r}
+head(closest_genes_cd14mono)
+```
+
+#### GO enrichment of nearest genes
+
+```{r}
+library(clusterProfiler)
+library(org.Hs.eg.db)
+library(enrichplot)
+```
+
+```{r}
+cd4naive_ego <- enrichGO(
+  gene = closest_genes_cd4naive$gene_id,
+  keyType = "ENSEMBL",
+  OrgDb = org.Hs.eg.db,
+  ont = "BP",
+  pAdjustMethod = "BH",
+  pvalueCutoff = 0.05,
+  qvalueCutoff = 0.05,
+  readable = TRUE
+)
+
+barplot(cd4naive_ego, showCategory = 20)
+```
+
+```{r}
+cd14mono_ego <- enrichGO(
+  gene = closest_genes_cd14mono$gene_id,
+  keyType = "ENSEMBL",
+  OrgDb = org.Hs.eg.db,
+  ont = "BP",
+  pAdjustMethod = "BH",
+  pvalueCutoff = 0.05,
+  qvalueCutoff = 0.05,
+  readable = TRUE
+)
+
+barplot(cd14mono_ego, showCategory = 20)
+```
+
+#### Plotting genomic regions
+
+```{r}
+pbmc <- SortIdents(pbmc)
+```
+
+```{r}
+regions_highlight <- subsetByOverlaps(
+  StringToGRanges(open_cd4naive),
+  LookupGeneCoords(pbmc, "CD4")
+)
+
+CoveragePlot(
+  object = pbmc,
+  region = "CD4",
+  region.highlight = regions_highlight,
+  extend.upstream = 1000,
+  extend.downstream = 1000
+)
+```
+
+```{r}
+regions_highlight <- subsetByOverlaps(
+  StringToGRanges(open_cd14mono),
+  LookupGeneCoords(pbmc, "LYZ")
+)
+
+CoveragePlot(
+  object = pbmc,
+  region = "LYZ",
+  region.highlight = regions_highlight,
+  extend.upstream = 1000,
+  extend.downstream = 5000
+)
+```
+
+```{r}
+sessionInfo()
+```
+
