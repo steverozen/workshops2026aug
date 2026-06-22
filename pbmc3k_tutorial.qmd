@@ -32,6 +32,16 @@ library(dplyr)
 library(Seurat)
 library(patchwork)
 library(ggplot2)
+
+save_rds_in_dir <- function(object, file, ...) {
+  dir.create(dirname(file), recursive = TRUE, showWarnings = FALSE)
+  saveRDS(object, file = file, ...)
+}
+
+ggsave_in_dir <- function(filename, ...) {
+  dir.create(dirname(filename), recursive = TRUE, showWarnings = FALSE)
+  ggplot2::ggsave(filename = filename, ...)
+}
 ```
 
 ## Load Data
@@ -263,9 +273,7 @@ DimPlot(pbmc, reduction = "umap")
 ```{r}
 #| label: save-intermediate
 
-filepath <- "output/pbmc_tutorial.rds"
-dir.create(dirname(filepath), recursive = TRUE, showWarnings = FALSE)
-saveRDS(pbmc, file = filepath)
+save_rds_in_dir(pbmc, file = "output/pbmc_tutorial.rds")
 ```
 
 ## Find Differentially Expressed Markers
@@ -399,7 +407,7 @@ plot <- DimPlot(pbmc, reduction = "umap", label = TRUE,
   guides(colour = guide_legend(override.aes = list(size = 10)))
 plot
 
-ggsave(
+ggsave_in_dir(
   filename = "output/images/pbmc3k_umap.jpg",
   height = 7, width = 12,
   plot = plot, quality = 50
@@ -410,7 +418,7 @@ ggsave(
 
 ```{r}
 #| label: save-final
-saveRDS(pbmc, file = "output/pbmc3k_final.rds")
+save_rds_in_dir(pbmc, file = "output/pbmc3k_final.rds")
 ```
 
 ## References
