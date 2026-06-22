@@ -262,7 +262,10 @@ DimPlot(pbmc, reduction = "umap")
 
 ```{r}
 #| label: save-intermediate
-saveRDS(pbmc, file = "output/pbmc_tutorial.rds")
+
+filepath <- "output/pbmc_tutorial.rds"
+dir.create(dirname(filepath), recursive = TRUE, showWarnings = FALSE)
+saveRDS(pbmc, file = filepath)
 ```
 
 ## Find Differentially Expressed Markers
