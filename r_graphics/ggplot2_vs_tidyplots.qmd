@@ -1,0 +1,436 @@
+---
+title: "ggplot2 vs. tidyplots: the same scRNA-seq figures, two grammars"
+subtitle: "A side-by-side teaching handout"
+author: "Bioinformatics & Research Computing"
+format:
+  html:
+    toc: true
+    toc-depth: 2
+    code-fold: false
+    fig-width: 4.5
+    fig-height: 3.5
+    theme: cosmo
+execute:
+  warning: false
+  message: false
+  echo: true
+---
+
+## What this handout shows
+
+Both packages sit on top of the **grammar of graphics**, but they ask you to
+think differently:
+
+| | **ggplot2** | **tidyplots** |
+|---|---|---|
+| Mental model | map data → aesthetics, then stack *geoms* and *stats* | pipe a data frame in, then `add_*()` named components |
+| Verb style | `geom_*()`, `stat_*()`, `scale_*()`, `theme_*()` | `add_<statistic>_<representation>()` |
+| Defaults | general-purpose grey theme | publication-styled (small fonts, clean axes) out of the box |
+| Stats / significance | bring a helper (`ggsignif`, `ggpubr`, `stat_summary`) | built in: `add_mean_bar()`, `add_sem_errorbar()`, `add_test_*()` |
+| Faceting | `facet_wrap()` / `facet_grid()` | `split_plot(by = ...)` |
+| Escape hatch | — *is* the escape hatch | `add(ggplot2::geom_*())` drops back to raw ggplot2 |
+
+**Teaching point:** tidyplots is a gentle, statistics-first on-ramp that stays
+ggplot2-compatible — students learn a tidy `add_*()` vocabulary but never get
+trapped, because any tidyplot can absorb raw ggplot2 layers.
+
+## Setup
+
+```{r}
+#| label: setup
+library(tidyverse)   # ggplot2, dplyr, tidyr, purrr
+library(tidyplots)   # install.packages("tidyplots")
+
+# Only needed to make the *ggplot2* version match tidyplots' built-ins.
+# The fact that these are extra installs is itself part of the lesson.
+library(ggbeeswarm)  # geom_quasirandom()  -> beeswarm points
+library(ggsignif)    # geom_signif()        -> significance brackets
+```
+
+## A tiny synthetic scRNA-seq dataset
+
+We simulate log-normalized expression for four marker genes across three cell
+types and two conditions. `IL2` is wired to be **induced by stimulation in T
+cells** so we have a real effect to test.
+
+```{r}
+#| label: simulate
+set.seed(42)
+
+cell_types <- c("T cell", "B cell", "Monocyte")
+conditions <- c("Control", "Stimulated")
+genes      <- c("CD3D", "MS4A1", "LYZ", "IL2")
+
+# biologically-flavored mean expression on a log-normalized scale
+mean_expr <- function(gene, cell_type, condition) {
+  base <- dplyr::case_when(
+    gene == "CD3D"  & cell_type == "T cell"   ~ 3.0,   # T-cell marker
+    gene == "MS4A1" & cell_type == "B cell"   ~ 3.2,   # B-cell marker
+    gene == "LYZ"   & cell_type == "Monocyte" ~ 3.5,   # monocyte marker
+    gene == "IL2"   & cell_type == "T cell"   ~ 1.0,   # low at baseline
+    TRUE ~ 0.3
+  )
+  bump <- ifelse(gene == "IL2" & cell_type == "T cell" &
+                   condition == "Stimulated", 1.6, 0)  # the effect
+  base + bump
+}
+
+n_cells <- 40
+sc <- tidyr::expand_grid(
+  cell_type = cell_types,
+  condition = conditions,
+  gene      = genes,
+  cell      = seq_len(n_cells)
+) |>
+  dplyr::mutate(
+    cell_id    = paste(cell_type, condition, cell, sep = "_"),
+    mu         = purrr::pmap_dbl(list(gene, cell_type, condition), mean_expr),
+    expression = pmax(0, rnorm(dplyr::n(), mean = mu, sd = 0.8))
+  )
+
+dplyr::glimpse(sc)
+```
+
+## Plot 1 — Expression by condition, with points + mean ± SEM + test
+
+The headline contrast. tidyplots gives you beeswarm points, a mean bar, SEM
+error bars, *and* a significance test in five readable verbs. ggplot2 needs
+`stat_summary()` plus two extra packages to match it.
+
+```{r}
+#| label: prep-il2
+il2 <- sc |> dplyr::filter(gene == "IL2", cell_type == "T cell")
+```
+
+#### ggplot2
+
+```{r}
+#| label: p1-ggplot2
+#| fig-cap: "ggplot2: stat_summary + ggbeeswarm + ggsignif"
+ggplot(                                  # start the plot
+  il2,                                   # the data frame to plot
+  aes(                                   # aes() maps data columns to visual roles
+    x = condition,                       # condition on the x axis
+    y = expression                       # expression on the y axis
+  )
+) +                                      # + adds the next layer
+  stat_summary(                          # compute a summary statistic per x group and draw it
+    aes(fill = condition),               # fill (bar interior color) varies by condition
+    fun = mean,                          # the statistic to compute is the mean of y
+    geom = "col",                        # draw the result as a column (bar)
+    width = 0.6,                         # bar width (1 = bars touch)
+    alpha = 0.4,                         # 40% opacity, so points behind show through
+    color = NA                           # no outline around the bars
+  ) +
+  stat_summary(                          # a second summary layer, for the error bars
+    fun.data = mean_se,                  # compute the mean and its +/- standard-error range
+    geom = "errorbar",                   # draw that range as an error bar
+    width = 0.2                          # width of the little horizontal caps
+  ) +
+  ggbeeswarm::geom_quasirandom(          # draw the individual cells as beeswarm points (spread sideways so they do not overlap)
+    aes(color = condition),              # point color varies by condition
+    width = 0.25,                        # how far points are allowed to spread sideways
+    size = 1                             # point size
+  ) +
+  ggsignif::geom_signif(                 # draw a significance bracket and run the test
+    comparisons = list(                  # which x groups to compare
+      c("Control", "Stimulated")         # compare Control vs Stimulated
+    ),
+    map_signif_level = TRUE              # show stars (*, **, ***) instead of the raw p-value
+  ) +
+  labs(                                  # set the labels
+    x = NULL,                            # remove the x-axis title
+    y = "IL2 expression",                # y-axis title
+    title = "IL2 in T cells"             # plot title
+  ) +
+  theme_classic(                         # a clean built-in look (white background, axis lines, no grid)
+    base_size = 11                       # base font size in points
+  ) +
+  theme(                                 # override individual style elements
+    legend.position = "none"             # hide the legend (the x axis already labels the conditions)
+  )
+```
+
+#### tidyplots
+
+```{r}
+#| label: p1-tidyplots
+#| fig-cap: "tidyplots: five add_*() verbs, stats included"
+il2 |>
+  tidyplot(x = condition, y = expression, color = condition) |>
+  add_mean_bar(alpha = 0.4) |>
+  add_sem_errorbar() |>
+  add_data_points_beeswarm() |>
+  add_test_asterisks() |>
+  add_title("IL2 in T cells") |>
+  adjust_legend_position("none")
+```
+
+**What to notice**
+
+- The statistic and its visual form are *named together* in tidyplots
+  (`add_mean_bar`, `add_sem_errorbar`), versus ggplot2's `stat_summary(fun = ..., geom = ...)`.
+- Significance testing is one verb in tidyplots; in ggplot2 it's an add-on package.
+- ggplot2 wins when you need an unusual `stat_summary` (e.g. a custom function) —
+  full control, more typing.
+
+## Plot 2 — Marker-gene violins across cell types (faceting)
+
+```{r}
+#| label: prep-markers
+markers <- sc |> dplyr::filter(gene %in% c("CD3D", "MS4A1", "LYZ"))
+```
+
+#### ggplot2
+
+```{r}
+#| label: p2-ggplot2
+#| fig-width: 7
+#| fig-height: 3
+#| fig-cap: "ggplot2: geom_violin + geom_boxplot + facet_wrap"
+ggplot(
+  markers,                               # the data frame to plot
+  aes(
+    x = cell_type,                       # cell_type on the x axis
+    y = expression,                      # expression on the y axis
+    fill = cell_type                     # fill color varies by cell_type
+  )
+) +
+  geom_violin(                           # draw a violin (a mirrored density of the distribution)
+    scale = "width",                     # give every violin the same maximum width, so shapes are comparable across groups of different size
+    color = NA,                          # no outline
+    alpha = 0.7                          # 70% opacity
+  ) +
+  geom_boxplot(                          # overlay a narrow box-and-whisker on each violin
+    width = 0.12,                        # make the box narrow so the violin stays visible
+    outlier.size = 0.4,                  # draw outlier points small
+    alpha = 0.9                          # nearly opaque
+  ) +
+  facet_wrap(                            # split the plot into one small panel per gene
+    ~ gene,                              # the variable to split panels by
+    scales = "free_y"                    # let each panel have its own y-axis range
+  ) +
+  labs(
+    x = NULL,                            # remove the x-axis title
+    y = "Expression"                     # y-axis title
+  ) +
+  theme_bw(                              # the black-and-white theme (white panel, grey gridlines, border)
+    base_size = 11                       # base font size in points
+  ) +
+  theme(
+    legend.position = "none",            # hide the legend
+    axis.text.x = element_text(          # style the x-axis tick labels
+      angle = 30,                        # rotate them 30 degrees
+      hjust = 1                          # right-justify so long labels do not overlap
+    )
+  )
+```
+
+#### tidyplots
+
+```{r}
+#| label: p2-tidyplots
+#| fig-width: 7
+#| fig-height: 3
+#| fig-cap: "tidyplots: add_violin + add_boxplot + split_plot"
+markers |>
+  tidyplot(x = cell_type, y = expression, color = cell_type) |>
+  add_violin() |>
+  add_boxplot(width = 0.15) |>
+  adjust_legend_position("none") |>
+  split_plot(by = gene)
+```
+
+**What to notice**
+
+- `facet_wrap()` keeps everything in one ggplot object; `split_plot()` returns a
+  set of independent tidyplots stitched together — handy when each panel needs
+  different adjustments later.
+- Same layered idea, near-identical line count here. Faceting is where the two
+  packages feel most similar.
+
+## Plot 3 (bonus) — Mean-expression heatmap
+
+Both need a `group_by() |> summarise()` first; the plotting line is where they diverge.
+
+```{r}
+#| label: prep-heat
+heat <- sc |>
+  dplyr::group_by(gene, cell_type) |>
+  dplyr::summarise(mean_expr = mean(expression), .groups = "drop")
+```
+
+#### ggplot2
+
+```{r}
+#| label: p3-ggplot2
+#| fig-width: 4
+#| fig-height: 3
+ggplot(
+  heat,                                  # the data frame to plot
+  aes(
+    x = cell_type,                       # cell_type on the x axis
+    y = gene,                            # gene on the y axis
+    fill = mean_expr                     # the continuous mean_expr drives the fill color
+  )
+) +
+  geom_tile() +                          # draw one rectangle per x/y combination (the heatmap cells), colored by fill
+  scale_fill_viridis_c() +               # apply the viridis color scale for a continuous (_c) fill; viridis is perceptually uniform and colorblind-friendly
+  labs(
+    x = NULL,                            # remove the x-axis title
+    y = NULL,                            # remove the y-axis title
+    fill = "Mean"                        # title for the color legend
+  ) +
+  theme_minimal(                         # a light theme with no axis lines and faint gridlines
+    base_size = 11                       # base font size in points
+  )
+```
+
+#### tidyplots
+
+```{r}
+#| label: p3-tidyplots
+#| fig-width: 4
+#| fig-height: 3
+heat |>
+  tidyplot(x = cell_type, y = gene, color = mean_expr) |>
+  add_heatmap()
+```
+
+**What to notice**
+
+- tidyplots maps the continuous fill through `color =` and `add_heatmap()` brings
+  a sensible diverging/continuous scale for free; ggplot2 leaves the palette
+  choice (here `scale_fill_viridis_c()`) explicitly to you.
+
+## Plot 4 — The dot plot: where both grammars hit their ceiling
+
+The Seurat `DotPlot` / Scanpy `sc.pl.dotplot` grid is the one canonical scRNA-seq
+figure that neither package draws from raw data. Each dot encodes **two** derived
+statistics at once:
+
+- **size** = % of cells in the group expressing the gene (`mean(expr > 0)`)
+- **color** = mean expression, **z-scored within each gene** across groups
+
+Every earlier figure mapped to *one mark plus at most one computed statistic*.
+This one needs a genuine precompute — two summaries *and* a per-gene
+normalization — before anything reaches the canvas.
+
+```{r}
+#| label: prep-dot
+dot <- sc |>
+  dplyr::group_by(gene, cell_type) |>
+  dplyr::summarise(
+    pct_expr = mean(expression > 0) * 100,   # % of cells expressing
+    avg_expr = mean(expression),             # mean expression
+    .groups  = "drop"
+  ) |>
+  dplyr::group_by(gene) |>
+  dplyr::mutate(avg_scaled = as.numeric(scale(avg_expr))) |>  # z-score per gene
+  dplyr::ungroup()
+
+dot
+```
+
+#### ggplot2
+
+Natural here, but fully manual: you wire up the two scales yourself. Note the
+naming trap — `geom_dotplot()` is a Wilkinson dot *histogram*, unrelated to this.
+
+```{r}
+#| label: p4-ggplot2
+#| fig-width: 4.5
+#| fig-height: 3.5
+#| fig-cap: "ggplot2: geom_point with size + color mapped to two statistics"
+ggplot(
+  dot,                                   # the data frame to plot
+  aes(
+    x = cell_type,                       # cell_type on the x axis
+    y = gene                             # gene on the y axis
+  )
+) +
+  geom_point(                            # draw one dot per group, encoding TWO statistics at once
+    aes(
+      size = pct_expr,                   # dot area grows with % of cells expressing the gene
+      color = avg_scaled                 # dot color shows the per-gene z-scored mean expression
+    )
+  ) +
+  scale_size_area(                       # map the size value to dot AREA (not radius), the honest way to encode magnitude
+    max_size = 9,                        # area of the largest dot
+    name = "% expressing"                # legend title for the size scale
+  ) +
+  scale_color_gradient2(                 # a diverging color scale with a defined midpoint
+    low = "grey80",                      # color at the low end
+    mid = "lightsteelblue",              # color at the midpoint
+    high = "firebrick",                  # color at the high end
+    midpoint = 0,                        # 0 (the z-score mean) maps to the mid color
+    name = "Avg expr\n(z-score)"         # legend title ("\n" puts the rest on a second line)
+  ) +
+  labs(
+    x = NULL,                            # remove the x-axis title
+    y = NULL                             # remove the y-axis title
+  ) +
+  theme_bw(
+    base_size = 11                       # base font size in points
+  ) +
+  theme(
+    axis.text.x = element_text(          # style the x-axis tick labels
+      angle = 30,                        # rotate them 30 degrees
+      hjust = 1                          # right-justify so long labels do not overlap
+    ),
+    panel.grid.minor = element_blank()   # element_blank() removes an element; here it hides the minor gridlines
+  )
+```
+
+#### tidyplots
+
+There is **no** `add_*()` for two statistics on one mark, so the idiomatic move
+is to precompute (above) and drop back to raw ggplot2 through `add()`. The color
+mapping set in `tidyplot()` is inherited by the added `geom_point()`; the size
+scale you still supply yourself. In other words, for this one figure you leave
+the tidy grammar behind.
+
+```{r}
+#| label: p4-tidyplots
+#| fig-width: 4.5
+#| fig-height: 3.5
+#| fig-cap: "tidyplots: precompute, then add(ggplot2::geom_point()) — the escape hatch as necessity"
+dot |>
+  tidyplot(x = cell_type, y = gene, color = avg_scaled) |>
+  add(                                   # add() drops a raw ggplot2 layer into a tidyplot
+    ggplot2::geom_point(                 # draw the dots (the color avg_scaled is inherited from tidyplot() above)
+      ggplot2::aes(size = pct_expr)      # map the second statistic to dot size
+    )
+  ) |>
+  add(                                   # add the same area-based size scale used in the pure-ggplot2 version
+    ggplot2::scale_size_area(
+      max_size = 9,                      # area of the largest dot
+      name = "% expressing"              # legend title for the size scale
+    )
+  ) |>
+  adjust_size(                           # set the plotting-area size (a tidyplots verb)
+    width = 55,                          # width in millimetres
+    height = 45                          # height in millimetres
+  )
+```
+
+**What to notice**
+
+- The interesting work is in dplyr, not the plotting verb: neither library
+  computes "% expressing" or a per-gene z-score for you.
+- ggplot2 handles it cleanly once the table exists — two scales, by hand.
+- tidyplots' `add_<statistic>_<representation>()` model assumes one statistic per
+  mark, so a two-statistic dot has no native verb. `add()` stops being a
+  curiosity and becomes the only way through.
+- **The teaching line:** high-level grammars are wonderful until a figure encodes
+  multiple derived quantities — and the DotPlot is the canonical scRNA-seq case
+  where that happens.
+
+## Discussion prompts for students
+
+- When is ggplot2's explicitness an advantage rather than overhead?
+- Rewrite Plot 1's ggplot2 version *without* `ggbeeswarm`/`ggsignif`. What do you lose?
+- Use `add(ggplot2::geom_*())` to bolt a custom ggplot2 layer onto a tidyplot —
+  confirm the escape hatch actually works.
+- In Plot 4, what would break if you z-scored `avg_expr` *globally* instead of
+  per gene? Why does the per-gene scaling matter for reading a marker dot plot?
