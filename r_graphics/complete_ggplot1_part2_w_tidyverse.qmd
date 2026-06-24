@@ -448,9 +448,13 @@ tf |>
 ### Facet grid (two variables)
 
 `facet_grid(cyl ~ class)` lays one variable across rows and another across
-columns. tidyplots' `split_plot()` is built for splitting by a single variable,
-so a true two-way grid is cleanest through the escape hatch with
-`ggplot2::facet_grid()`.
+columns. tidyplots can do this two ways. `split_plot(rows = cyl, cols = class)` is
+the native verb, but it builds each cell as a standalone plot, so it repeats the
+axis titles in every cell and draws no row/column strip labels (you cannot tell
+which row is which `cyl`). The escape hatch `ggplot2::facet_grid()` keeps the
+strips, but tidyplots' minimal theme does not render faceted panels (no axis ticks
+or tick labels appear), so we re-apply a full ggplot2 theme afterward. Using
+`theme_bw()` also matches the ggplot2 version above.
 
 #### ggplot2
 
@@ -470,7 +474,10 @@ gf + facet_grid(cyl ~ class) +
 #| fig-height: 6
 tf |>
   adjust_title("hwy vs displ") |>
-  add(ggplot2::facet_grid(cyl ~ class))   # no native two-way split verb
+  add(ggplot2::facet_grid(cyl ~ class)) |>     # rows = cyl, cols = class
+  # tidyplots' minimal theme leaves faceted panels without axes; re-apply a full
+  # ggplot2 theme (theme_bw matches the ggplot2 version) to restore ticks + labels
+  add(ggplot2::theme_bw())
 ```
 
 ## 6. Plot background, grid, and borders
@@ -540,9 +547,12 @@ tf |>
   remove_x_axis_title() |> remove_y_axis_title() |>
   remove_x_axis_labels() |> remove_y_axis_labels() |>
   remove_x_axis_ticks() |> remove_y_axis_ticks() |>
+  # tidyplots' theme draws axis LINES (not a panel border), and the remove_*()
+  # verbs above drop only ticks/labels/titles, so blank axis.line too
   adjust_theme_details(panel.grid.major = ggplot2::element_blank(),
                        panel.grid.minor = ggplot2::element_blank(),
-                       panel.border     = ggplot2::element_blank())
+                       panel.border     = ggplot2::element_blank(),
+                       axis.line        = ggplot2::element_blank())
 ```
 
 ## Takeaways
