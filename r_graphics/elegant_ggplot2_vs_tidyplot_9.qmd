@@ -1,0 +1,516 @@
+---
+title: "Elegant ggplot2 (Arranging Plots), with tidyplots equivalents"
+subtitle: "Source: `elegant_ggplot2_vs_tidyplot_9.qmd`"
+author: "Steve Rozen (sr110@duke.edu, steverozen@pm.me)"
+date: now
+date-format: "YYYY-MM-DD HH:mm"
+format:
+  html:
+    embed-resources: true
+    page-layout: full
+    toc: true
+    toc-depth: 3
+    code-fold: false
+    fig-width: 8
+    fig-height: 5
+    theme: cosmo
+    include-in-header:
+      text: |
+        <style>
+          .quarto-container, .page-columns, .main-container {
+            max-width: 100% !important;
+          }
+        </style>
+execute:
+  warning: false
+  message: false
+  echo: true
+---
+
+## About this handout
+
+This follows the *Arranging plots* chapter of Hadley Wickham, Danielle Navarro,
+and Thomas Lin Pedersen's
+[*ggplot2: Elegant Graphics for Data Analysis* (3rd edition)](https://ggplot2-book.org/arranging-plots.html).
+For each step we keep the original **ggplot2 + patchwork** code, then show the
+**tidyplots** equivalent.
+
+The headline is different from the other handouts in this series. The earlier
+chapters were about drawing one plot, where ggplot2 and tidyplots are two
+competing grammars. **Arranging several finished plots into one figure is not
+part of either grammar.** It is the job of a third package,
+[patchwork](https://patchwork.data-imaginist.com), and the good news is:
+
+- **patchwork operates on tidyplots objects unchanged.** A `tidyplot()` returns
+  an object that is still a ggplot under the hood, so `+`, `/`, `|`,
+  `plot_layout()`, `plot_annotation()`, and `inset_element()` all work on
+  tidyplots exactly as they do on ggplots.
+- So the translation in this chapter is almost a no-op: build each panel with
+  whichever grammar you like, then compose them with the **same** patchwork
+  code. The only thing that changes is how each individual panel is drawn.
+
+Two things are worth naming up front because they are tidyplots-specific:
+
+1. **tidyplots has no arranging grammar of its own.** Its only multi-panel verb
+   is `split_plot()`, which splits *one* plot into facet-like panels by a
+   grouping variable. It does **not** compose distinct, separately-built plots.
+   For that, you reach for patchwork.
+2. **Always build tidyplots panels with `width = NA, height = NA`.** tidyplots
+   otherwise locks every panel to a fixed 50 x 50 mm square, which fights
+   patchwork's alignment and leaves panels different sizes. `width = NA, height
+   = NA` lets each panel flex so patchwork can align and size them like ggplots.
+
+## Setup
+
+```{r}
+#| label: setup
+library(ggplot2)        # the book's package
+library(tidyplots)      # the package we translate each panel into
+library(patchwork)      # the arranging package (works on BOTH)
+library(dplyr)          # for the one mutate() precompute
+data("mpg", package = "ggplot2")          # 234 car models
+```
+
+## The four base plots
+
+The chapter builds four example plots and then arranges them every which way.
+Here they are in both grammars. Notice that the *arranging* code later is
+identical; only these four definitions differ.
+
+### ggplot2
+
+```{r}
+#| label: base-gg
+#| fig-width: 8
+#| fig-height: 6
+p1 <- ggplot(mpg) +
+  geom_point(aes(x = displ, y = hwy))
+
+p2 <- ggplot(mpg) +
+  geom_bar(aes(x = as.character(year), fill = drv), position = "dodge") +
+  labs(x = "year")
+
+p3 <- ggplot(mpg) +
+  geom_density(aes(x = hwy, fill = drv), colour = NA) +
+  facet_grid(rows = vars(drv))
+
+p4 <- ggplot(mpg) +
+  stat_summary(aes(x = drv, y = hwy, fill = drv), geom = "col", fun.data = mean_se) +
+  stat_summary(aes(x = drv, y = hwy), geom = "errorbar", fun.data = mean_se, width = 0.5)
+
+p1 + p2 + p3 + p4
+```
+
+### tidyplots
+
+The same four panels as tidyplots. Each carries `width = NA, height = NA` so
+patchwork can align them.
+
+- `p2` (dodged count bar) becomes `add_count_bar()`. The `color = drv` mapping
+  set in `tidyplot()` dodges the bars automatically.
+- `p3` (filled density) has **no native tidyplots verb**, so it uses the escape
+  hatch `add(ggplot2::geom_density())` plus `add(ggplot2::facet_grid())`.
+- `p4` (mean +/- SEM column) becomes `add_mean_bar()` then `add_sem_errorbar()`,
+  two verbs instead of two `stat_summary()` layers.
+
+```{r}
+#| label: base-tp
+#| fig-width: 8
+#| fig-height: 6
+mpg2 <- mpg |> mutate(year_chr = as.character(year))   # tidyplot() wants a bare column
+
+t1 <- mpg |> tidyplot(x = displ, y = hwy, width = NA, height = NA) |>
+  add_data_points()
+
+t2 <- mpg2 |> tidyplot(x = year_chr, color = drv, width = NA, height = NA) |>
+  add_count_bar()
+
+t3 <- mpg |> tidyplot(x = hwy, color = drv, width = NA, height = NA) |>
+  add(ggplot2::geom_density(ggplot2::aes(fill = drv), colour = NA)) |>
+  add(ggplot2::facet_grid(rows = vars(drv)))
+
+t4 <- mpg |> tidyplot(x = drv, y = hwy, color = drv, width = NA, height = NA) |>
+  add_mean_bar() |>
+  add_sem_errorbar()
+
+t1 + t2 + t3 + t4     # <- identical patchwork code
+```
+
+::: {.callout-note}
+## What to notice
+The composition line `t1 + t2 + t3 + t4` is byte-for-byte the same as
+`p1 + p2 + p3 + p4`. That is the whole point of this chapter: once a panel is
+built, patchwork does not care which grammar built it.
+:::
+
+## 9.1 Laying out plots side by side
+
+`+` places plots next to each other and aligns their plotting regions. With no
+layout given, patchwork uses `facet_wrap` logic (four plots become a 2 x 2 grid,
+as above).
+
+### ggplot2
+
+```{r}
+#| label: side-gg
+p1 + p2
+```
+
+### tidyplots
+
+```{r}
+#| label: side-tp
+t1 + t2
+```
+
+## 9.1.1 Taking control of the layout
+
+Every operator below is pure patchwork, so the ggplot2 and tidyplots versions
+differ only in which letters (`p` vs `t`) name the panels.
+
+### `plot_layout(ncol = ...)`
+
+::: {.panel-tabset}
+#### ggplot2
+```{r}
+#| label: layout-gg
+#| fig-width: 8
+#| fig-height: 5
+p1 + p2 + p3 + plot_layout(ncol = 2)
+```
+
+#### tidyplots
+```{r}
+#| label: layout-tp
+#| fig-width: 8
+#| fig-height: 5
+t1 + t2 + t3 + plot_layout(ncol = 2)
+```
+:::
+
+### Stacking and rows with `/` and `|`
+
+`/` stacks plots vertically, `|` places them in a row, and the two nest to build
+complex layouts.
+
+::: {.panel-tabset}
+#### ggplot2
+```{r}
+#| label: nest-gg
+#| fig-width: 9
+#| fig-height: 5
+p3 | (p2 / (p1 | p4))
+```
+
+#### tidyplots
+```{r}
+#| label: nest-tp
+#| fig-width: 9
+#| fig-height: 5
+t3 | (t2 / (t1 | t4))
+```
+:::
+
+### Free-form layouts with a `design` string
+
+A text block names where each plot goes. Letters are filled in plot order, `#`
+is empty space.
+
+::: {.panel-tabset}
+#### ggplot2
+```{r}
+#| label: design-gg
+#| fig-width: 8
+#| fig-height: 6
+layout <- "
+AAB
+C#B
+CDD
+"
+
+p1 + p2 + p3 + p4 + plot_layout(design = layout)
+```
+
+#### tidyplots
+```{r}
+#| label: design-tp
+#| fig-width: 8
+#| fig-height: 6
+t1 + t2 + t3 + t4 + plot_layout(design = layout)
+```
+:::
+
+### Collecting guides with `guides = "collect"`
+
+`guides = "collect"` pulls duplicate legends out of the panels and shows one
+shared legend.
+
+::: {.panel-tabset}
+#### ggplot2
+```{r}
+#| label: collect-gg
+#| fig-width: 8
+#| fig-height: 5
+p2 + p4 + plot_layout(ncol = 2, guides = "collect")
+```
+
+#### tidyplots
+```{r}
+#| label: collect-tp
+#| fig-width: 8
+#| fig-height: 5
+t2 + t4 + plot_layout(ncol = 2, guides = "collect")
+```
+:::
+
+::: {.callout-warning}
+## tidyplots gotcha: collection only merges *identical* legends
+patchwork merges two legends only when they are the same aesthetic with the same
+scale and title. In tidyplots the single `color =` argument maps to **different**
+underlying aesthetics depending on the geom (bar fill, boxplot outline, point
+colour). Two panels that both look "coloured by `drv`" can therefore produce two
+separate legends that will not collapse. `t2` and `t4` both use `color = drv` as
+a fill, so they collect into one legend. Mixing a filled bar with an
+outline-coloured boxplot would leave two. If a collected legend refuses to merge,
+check that every panel maps `color` to the same kind of geom.
+:::
+
+A `guide_area()` reserves a slot in the layout for the collected legend:
+
+::: {.panel-tabset}
+#### ggplot2
+```{r}
+#| label: guidearea-gg
+#| fig-width: 8
+#| fig-height: 5
+p2 + p4 + guide_area() + plot_layout(ncol = 2, guides = "collect")
+```
+
+#### tidyplots
+```{r}
+#| label: guidearea-tp
+#| fig-width: 8
+#| fig-height: 5
+t2 + t4 + guide_area() + plot_layout(ncol = 2, guides = "collect")
+```
+:::
+
+## 9.1.2 Modifying subplots
+
+A patchwork is still indexable. `[[i]]` reaches in to restyle one panel, and `&`
+applies a component to *all* panels at once.
+
+### Restyle one panel with `[[ ]]`
+
+::: {.panel-tabset}
+#### ggplot2
+```{r}
+#| label: index-gg
+#| fig-width: 8
+#| fig-height: 4
+p12 <- p1 + p2
+p12[[2]] <- p12[[2]] + theme_light()   # restyle only the second panel
+p12
+```
+
+#### tidyplots
+```{r}
+#| label: index-tp
+#| fig-width: 8
+#| fig-height: 4
+t12 <- t1 + t2
+t12[[2]] <- t12[[2]] + theme_light()   # restyle only the second panel
+t12
+```
+:::
+
+### Apply to all panels with `&`
+
+::: {.panel-tabset}
+#### ggplot2
+```{r}
+#| label: amp-gg
+#| fig-width: 8
+#| fig-height: 4
+p1 + p4 & theme_minimal()
+```
+
+#### tidyplots
+```{r}
+#| label: amp-tp
+#| fig-width: 8
+#| fig-height: 4
+t1 + t4 & theme_minimal()
+```
+:::
+
+::: {.callout-warning}
+## tidyplots gotcha: `&` overwrites the tidyplots theme
+`&` adds the component to every panel. Adding a complete ggplot2 theme such as
+`theme_minimal()` therefore **replaces** the tidyplots default styling on each
+panel (axis lines become a grid, the type face changes). That is fine when you
+want a uniform look, but if you wanted to keep the tidyplots appearance, use a
+narrower component (for example `& scale_y_continuous(limits = c(0, 45))`)
+instead of a whole theme.
+:::
+
+A shared scale across panels is the safe use of `&`:
+
+::: {.panel-tabset}
+#### ggplot2
+```{r}
+#| label: ampscale-gg
+#| fig-width: 8
+#| fig-height: 4
+p1 + p4 & scale_y_continuous(limits = c(0, 45))
+```
+
+#### tidyplots
+```{r}
+#| label: ampscale-tp
+#| fig-width: 8
+#| fig-height: 4
+t1 + t4 & scale_y_continuous(limits = c(0, 45))
+```
+:::
+
+## 9.1.3 Adding annotation
+
+`plot_annotation()` adds a title or caption for the whole assembly, and
+`tag_levels` auto-labels the panels.
+
+### Title and caption
+
+::: {.panel-tabset}
+#### ggplot2
+```{r}
+#| label: annot-gg
+#| fig-width: 8
+#| fig-height: 4
+p34 <- p3 + p4 + plot_annotation(
+  title   = "A closer look at the effect of drive train in cars",
+  caption = "Source: mpg dataset in ggplot2"
+)
+p34
+```
+
+#### tidyplots
+```{r}
+#| label: annot-tp
+#| fig-width: 8
+#| fig-height: 4
+t34 <- t3 + t4 + plot_annotation(
+  title   = "A closer look at the effect of drive train in cars",
+  caption = "Source: mpg dataset in ggplot2"
+)
+t34
+```
+:::
+
+### Auto-tagging panels
+
+::: {.panel-tabset}
+#### ggplot2
+```{r}
+#| label: tags-gg
+#| fig-width: 8
+#| fig-height: 5
+p123 <- p1 | (p2 / p3)
+p123 + plot_annotation(tag_levels = "I")
+```
+
+#### tidyplots
+```{r}
+#| label: tags-tp
+#| fig-width: 8
+#| fig-height: 5
+t123 <- t1 | (t2 / t3)
+t123 + plot_annotation(tag_levels = "I")
+```
+:::
+
+## 9.2 Arranging plots on top of each other
+
+`inset_element()` overlays one plot on another. Coordinates are normalized to the
+host panel (0 to 1). This is also pure patchwork and works on tidyplots panels.
+
+::: {.panel-tabset}
+#### ggplot2
+```{r}
+#| label: inset-gg
+#| fig-width: 7
+#| fig-height: 5
+p1 + inset_element(p2, left = 0.5, bottom = 0.45, right = 0.95, top = 0.95)
+```
+
+#### tidyplots
+```{r}
+#| label: inset-tp
+#| fig-width: 7
+#| fig-height: 5
+t1 + inset_element(t2, left = 0.5, bottom = 0.45, right = 0.95, top = 0.95)
+```
+:::
+
+A patchwork object can itself be the inset, and the inset can be tagged like any
+other panel:
+
+::: {.panel-tabset}
+#### ggplot2
+```{r}
+#| label: inset-tag-gg
+#| fig-width: 7
+#| fig-height: 5
+p12_inset <- p1 + inset_element(p2, left = 0.5, bottom = 0.5, right = 0.9, top = 0.95)
+p12_inset + plot_annotation(tag_levels = "A")
+```
+
+#### tidyplots
+```{r}
+#| label: inset-tag-tp
+#| fig-width: 7
+#| fig-height: 5
+t12_inset <- t1 + inset_element(t2, left = 0.5, bottom = 0.5, right = 0.9, top = 0.95)
+t12_inset + plot_annotation(tag_levels = "A")
+```
+:::
+
+## 9.3 Wrapping up: split_plot is not patchwork
+
+tidyplots' one native multi-panel verb, `split_plot()`, splits a **single** plot
+into panels by a grouping variable. It is tidyplots' answer to `facet_wrap()`,
+not to patchwork. Use it when one dataset should be broken out by a factor:
+
+```{r}
+#| label: splitplot-tp
+#| fig-width: 9
+#| fig-height: 4
+mpg |>
+  tidyplot(x = displ, y = hwy, width = NA, height = NA) |>
+  add_data_points() |>
+  split_plot(by = drv)        # one plot, three panels by drv (NOT a composition)
+```
+
+The distinction in one line:
+
+- **`split_plot(by = v)`** takes one plot and one variable, makes one panel per
+  level. It is faceting.
+- **patchwork (`+`, `/`, `|`, `inset_element`)** takes several already-built,
+  unrelated plots and arranges them. It is composition.
+
+For everything in this chapter you want the second one, and tidyplots panels drop
+straight into it.
+
+## Session Info {.unnumbered}
+
+::: {.callout-note collapse="true"}
+## Session Info
+
+```{r}
+#| label: session-info
+#| echo: false
+#| comment: ""
+sessioninfo::session_info(info = "all")
+```
+
+:::

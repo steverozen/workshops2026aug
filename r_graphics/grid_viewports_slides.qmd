@@ -1,0 +1,44 @@
+---
+title: "grid: viewports, grobs, and gtables"
+format:
+  pptx:
+    fig-width: 8
+    fig-height: 5
+---
+
+## Mental model
+
+| Concept       | Role                                            |
+|---------------|-------------------------------------------------|
+| **device**    | the physical page (file/window)                 |
+| **viewport**  | a coordinate region on the page                 |
+| **grob**      | a drawable thing (rect, text, points, gtable)   |
+| **gtable**    | a grob that *arranges other grobs* by pushing viewports |
+
+The chain: gtable defines a layout, pushes viewports, draws grobs into them, onto the device.
+
+## Code and its output
+
+```{r}
+#| echo: true
+#| fig-width: 8
+#| fig-height: 5
+library(grid)
+
+grid.newpage()
+
+# a viewport is a coordinate region; name it so we can re-enter it
+pushViewport(viewport(x = 0.5, y = 0.5, width = 0.6, height = 0.6,
+                      name = "inner"))
+grid.rect(gp = gpar(lty = "dashed"))        # outlines THIS viewport
+grid.text("inner viewport: x, y run 0..1 here", y = 0.92)
+grid.points(runif(20), runif(20), pch = 19, # placed in viewport coords
+            gp = gpar(col = "steelblue"))
+upViewport()                                 # back to the root viewport
+
+# re-enter the named viewport later and annotate in its coordinates
+downViewport("inner")
+grid.points(0.5, 0.5, pch = 4,
+            gp = gpar(col = "red", cex = 3, lwd = 3))
+upViewport()
+```

@@ -361,6 +361,56 @@ async function icon(Comp, color, size = 256) {
     { text: "high-level grammars are wonderful until a figure encodes multiple derived quantities — and the dot plot is the canonical scRNA-seq case where that happens.", options: { color: "C7CDE2", italic: true } },
   ], { x: 1.15, y: 6.35, w: W - 2.3, h: 0.82, fontFace: SANS, fontSize: 13.5, valign: "middle", margin: 0 });
 
+  // =================================================================
+  // SLIDE 9 — References for low-level plotting functions
+  // =================================================================
+  s = pres.addSlide();
+  s.background = { color: WHITE };
+  lightHeader(s, ic.grid, GG, "References for low-level plotting functions", "Going deeper");
+
+  function refCard(x, y, w, h, label, labelColor, tint, desc, links) {
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x, y, w, h, rectRadius: 0.09,
+      fill: { color: tint }, shadow: shadow() });
+    const pillW = 0.28 + label.length * 0.105;
+    s.addShape(pres.shapes.ROUNDED_RECTANGLE, { x: x + 0.3, y: y + 0.22, w: pillW, h: 0.42,
+      rectRadius: 0.21, fill: { color: labelColor } });
+    s.addText(label, { x: x + 0.3, y: y + 0.22, w: pillW, h: 0.42, fontFace: MONO, fontSize: 13,
+      color: WHITE, bold: true, align: "center", valign: "middle", margin: 0 });
+    s.addText(desc, { x: x + 0.3 + pillW + 0.25, y: y + 0.22, w: w - pillW - 0.85, h: 0.42,
+      fontFace: SANS, fontSize: 13.5, color: BODY, valign: "middle", margin: 0 });
+    s.addText(links.map(l => ({ text: l.label, options: {
+      hyperlink: { url: l.url }, color: GG, fontFace: SANS, fontSize: 12, underline: true,
+      breakLine: true, paraSpaceAfter: 4 } })),
+      { x: x + 0.34, y: y + 0.72, w: w - 0.68, h: h - 0.85, valign: "top", margin: 0 });
+  }
+
+  refCard(0.6, 1.5, W - 1.2, 1.95, "grid", GG, GG_TINT,
+    "Base-R low-level graphics system (Paul Murrell) underlying ggplot2, lattice, gridExtra and gridBase.",
+    [
+      { label: "Function index: stat.ethz.ch/R-manual/R-devel/library/grid/html/00Index.html",
+        url: "https://stat.ethz.ch/R-manual/R-devel/library/grid/html/00Index.html" },
+      { label: "Paul Murrell, R Graphics (3rd ed., 2018), CRC Press: stat.auckland.ac.nz/~paul/RG3e/",
+        url: "https://www.stat.auckland.ac.nz/~paul/RG3e/" },
+      { label: "Introduction to grid (PDF): stat.auckland.ac.nz/~paul/RGraphics/chapter5.pdf",
+        url: "https://www.stat.auckland.ac.nz/~paul/RGraphics/chapter5.pdf" },
+    ]);
+
+  refCard(0.6, 3.55, W - 1.2, 1.25, "gridExtra", TP, TP_TINT,
+    "Arrange multiple grid / ggplot plots on a page and draw tables (Baptiste Auguie, v2.3).",
+    [
+      { label: "CRAN: CRAN.R-project.org/package=gridExtra",
+        url: "https://CRAN.R-project.org/package=gridExtra" },
+    ]);
+
+  refCard(0.6, 4.9, W - 1.2, 1.9, "gridBase", GG, GG_TINT,
+    "Integrate base and grid graphics on one page (Paul Murrell, v0.4-7).",
+    [
+      { label: "CRAN: CRAN.R-project.org/package=gridBase",
+        url: "https://CRAN.R-project.org/package=gridBase" },
+      { label: 'Paul Murrell, "The gridBase Package", R News 3(2), 2003 (PDF): cran.r-project.org/doc/Rnews/Rnews_2003-2.pdf',
+        url: "https://cran.r-project.org/doc/Rnews/Rnews_2003-2.pdf" },
+    ]);
+
   await pres.writeFile({ fileName: "ggplot2_vs_tidyplots_slides.pptx" });
   console.log("written");
 })();

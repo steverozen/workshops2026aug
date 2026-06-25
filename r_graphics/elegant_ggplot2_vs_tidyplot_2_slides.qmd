@@ -1,0 +1,578 @@
+---
+title: "Elegant ggplot2 (First Steps), with tidyplots equivalents"
+subtitle: "Slides version of `elegant_ggplot2_vs_tidyplot_2.qmd`"
+author: "Steve Rozen (sr110@duke.edu, steverozen@pm.me)"
+date: now
+date-format: "YYYY-MM-DD HH:mm"
+format:
+  revealjs:
+    embed-resources: true
+    slide-number: true
+    incremental: false
+    code-fold: false
+    code-line-numbers: false
+    fig-width: 6
+    fig-height: 4
+    theme: simple
+    width: 1280
+    height: 800
+execute:
+  warning: false
+  message: false
+  echo: true
+---
+
+## About this deck
+
+This follows the *First steps* chapter of Wickham, Navarro, and Pedersen,
+[*ggplot2: Elegant Graphics for Data Analysis* (3rd ed.)](https://ggplot2-book.org/getting-started.html).
+
+For each step we keep the original **ggplot2** code and plot on one slide, then
+the **tidyplots** equivalent on the next.
+
+The two grammars in one line:
+
+- **ggplot2** maps columns to aesthetics inside `aes()`, then stacks `geom_*()`
+  and `scale_*()` layers with `+`.
+- **tidyplots** pipes the data frame in, then chains `add_*()`, `adjust_*()`,
+  and `remove_*()` verbs with the native pipe `|>`.
+
+## Two recurring frictions
+
+1. **No transformed expressions in mappings.** ggplot2 takes
+   `aes(y = unemploy / pop)` or `colour = factor(cyl)`. tidyplots' `tidyplot()`
+   wants bare column names, so we precompute with `mutate()` first.
+2. **No native verb for a few geoms** (frequency polygons, paths). For those
+   we use the escape hatch `add(ggplot2::...)`, which drops a raw ggplot2 layer
+   into a tidyplot.
+
+## Setup --- ggplot2
+
+```{r}
+#| label: setup-gg
+library(ggplot2)        # the book's package
+library(dplyr)          # for the mutate()/filter() precompute steps
+library(mgcv)           # for the GAM smoother example
+data("mpg", package = "ggplot2")          # 234 car models
+data("economics", package = "ggplot2")    # US economic time series
+```
+
+The `mpg` data has one row per car model, with engine displacement (`displ`),
+highway mileage (`hwy`), city mileage (`cty`), drivetrain (`drv`), and `class`.
+
+## Setup --- tidyplots
+
+```{r}
+#| label: setup-tp
+library(tidyplots)      # the package we translate each step into
+```
+
+tidyplots layers on top of the same data and the same `dplyr` precompute
+helpers loaded on the previous slide.
+
+# 1. Key components: a basic scatterplot
+
+## Basic scatterplot --- ggplot2
+
+Every plot needs data, an aesthetic mapping, and at least one geom.
+
+```{r}
+#| label: scatter-gg
+ggplot(mpg, aes(x = displ, y = hwy)) +   # data + x/y mapping
+  geom_point()                           # draw points
+```
+
+## Basic scatterplot --- tidyplots
+
+The mapping goes inside `tidyplot()`; points are `add_data_points()`.
+
+```{r}
+#| label: scatter-tp
+mpg |>
+  tidyplot(x = displ, y = hwy, width = NA, height = NA) |>
+  add_data_points()
+```
+
+# 2. Colour, size, shape
+
+## Mapping colour --- ggplot2
+
+`aes(colour = class)` puts the variable in the mapping.
+
+```{r}
+#| label: aes-gg
+ggplot(mpg, aes(displ, hwy, colour = class)) +
+  geom_point()
+```
+
+## Mapping colour --- tidyplots
+
+`color = class` goes inside `tidyplot()`.
+
+```{r}
+#| label: aes-tp
+mpg |>
+  tidyplot(x = displ, y = hwy, color = class, width = NA, height = NA) |>
+  add_data_points()
+```
+
+## Fixed colour --- ggplot2
+
+A constant colour is *not* an aesthetic, it goes *outside* `aes()`.
+
+```{r}
+#| label: fixed-gg
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point(colour = "blue")   # fixed colour, no legend
+```
+
+## Fixed colour --- tidyplots
+
+A plain argument to the geom verb, no legend.
+
+```{r}
+#| label: fixed-tp
+mpg |>
+  tidyplot(x = displ, y = hwy, width = NA, height = NA) |>
+  add_data_points(color = "blue")
+```
+
+# 3. Faceting
+
+## Faceting --- ggplot2
+
+`facet_wrap(~ class)` makes one panel per `class`, with shared scales.
+
+```{r}
+#| label: facet-gg
+#| fig-width: 7
+#| fig-height: 5
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point() +
+  facet_wrap(~ class)
+```
+
+## Faceting --- tidyplots
+
+`split_plot()` free-scales each panel; the escape hatch `facet_wrap()` keeps
+ggplot2's shared scales.
+
+```{r}
+#| label: facet-tp
+#| fig-width: 7
+#| fig-height: 5
+mpg |>
+  tidyplot(x = displ, y = hwy, width = NA, height = NA) |>
+  add_data_points() |>
+  add(ggplot2::facet_wrap(~ class))
+```
+
+# 4. Plot geoms
+
+## Smoother --- ggplot2
+
+```{r}
+#| label: smooth-gg
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point() +
+  geom_smooth()           # loess by default, with a ribbon
+```
+
+## Smoother --- tidyplots
+
+```{r}
+#| label: smooth-tp
+mpg |>
+  tidyplot(x = displ, y = hwy, width = NA, height = NA) |>
+  add_data_points() |>
+  add_curve_fit()         # loess by default, with a ribbon
+```
+
+## Wigglier loess (`span`) --- ggplot2
+
+```{r}
+#| label: span-gg
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point() +
+  geom_smooth(span = 0.2)
+```
+
+## Wigglier loess (`span`) --- tidyplots
+
+```{r}
+#| label: span-tp
+mpg |>
+  tidyplot(x = displ, y = hwy, width = NA, height = NA) |>
+  add_data_points() |>
+  add_curve_fit(span = 0.2)
+```
+
+## GAM smoother --- ggplot2
+
+```{r}
+#| label: gam-gg
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point() +
+  geom_smooth(method = "gam", formula = y ~ s(x))
+```
+
+## GAM smoother --- tidyplots
+
+```{r}
+#| label: gam-tp
+mpg |>
+  tidyplot(x = displ, y = hwy, width = NA, height = NA) |>
+  add_data_points() |>
+  add_curve_fit(method = "gam", formula = y ~ s(x))
+```
+
+## Linear fit --- ggplot2
+
+```{r}
+#| label: lm-gg
+ggplot(mpg, aes(displ, hwy)) +
+  geom_point() +
+  geom_smooth(method = "lm")
+```
+
+## Linear fit --- tidyplots
+
+```{r}
+#| label: lm-tp
+mpg |>
+  tidyplot(x = displ, y = hwy, width = NA, height = NA) |>
+  add_data_points() |>
+  add_curve_fit(method = "lm")
+```
+
+## Overplotting at discrete x --- ggplot2
+
+```{r}
+#| label: overplot-gg
+ggplot(mpg, aes(drv, hwy)) +
+  geom_point()
+```
+
+## Overplotting at discrete x --- tidyplots
+
+```{r}
+#| label: overplot-tp
+mpg |>
+  tidyplot(x = drv, y = hwy, width = NA, height = NA) |>
+  add_data_points()
+```
+
+## Jitter --- ggplot2
+
+```{r}
+#| label: jitter-gg
+ggplot(mpg, aes(drv, hwy)) + geom_jitter()
+```
+
+## Jitter --- tidyplots
+
+```{r}
+#| label: jitter-tp
+mpg |>
+  tidyplot(x = drv, y = hwy, width = NA, height = NA) |>
+  add_data_points_jitter(jitter_width = 0.8)
+```
+
+## Boxplot --- ggplot2
+
+```{r}
+#| label: box-gg
+ggplot(mpg, aes(drv, hwy)) + geom_boxplot()
+```
+
+## Boxplot --- tidyplots
+
+```{r}
+#| label: box-tp
+mpg |>
+  tidyplot(x = drv, y = hwy, width = NA, height = NA) |>
+  add_boxplot()
+```
+
+## Violin --- ggplot2
+
+```{r}
+#| label: violin-gg
+ggplot(mpg, aes(drv, hwy)) + geom_violin()
+```
+
+## Violin --- tidyplots
+
+```{r}
+#| label: violin-tp
+mpg |>
+  tidyplot(x = drv, y = hwy, width = NA, height = NA) |>
+  add_violin()
+```
+
+## Histogram --- ggplot2
+
+```{r}
+#| label: hist-gg
+ggplot(mpg, aes(hwy)) + geom_histogram()
+```
+
+## Histogram --- tidyplots
+
+```{r}
+#| label: hist-tp
+mpg |>
+  tidyplot(x = hwy, width = NA, height = NA) |>
+  add_histogram()
+```
+
+## Frequency polygon --- ggplot2
+
+```{r}
+#| label: freqpoly-gg
+ggplot(mpg, aes(hwy)) + geom_freqpoly(binwidth = 2.5)
+```
+
+## Frequency polygon --- tidyplots
+
+No native verb, use the escape hatch.
+
+```{r}
+#| label: freqpoly-tp
+mpg |>
+  tidyplot(x = hwy, width = NA, height = NA) |>
+  add(ggplot2::geom_freqpoly(binwidth = 2.5))
+```
+
+## Freqpoly by group --- ggplot2
+
+```{r}
+#| label: freqpoly-grp-gg
+ggplot(mpg, aes(displ, colour = drv)) +
+  geom_freqpoly(binwidth = 0.5)
+```
+
+## Freqpoly by group --- tidyplots
+
+```{r}
+#| label: freqpoly-grp-tp
+mpg |>
+  tidyplot(x = displ, color = drv, width = NA, height = NA) |>
+  add(ggplot2::geom_freqpoly(binwidth = 0.5))
+```
+
+## Histogram faceted by group --- ggplot2
+
+```{r}
+#| label: hist-facet-gg
+#| fig-height: 5
+ggplot(mpg, aes(displ, fill = drv)) +
+  geom_histogram(binwidth = 0.5) +
+  facet_wrap(~ drv, ncol = 1)
+```
+
+## Histogram faceted by group --- tidyplots
+
+```{r}
+#| label: hist-facet-tp
+#| fig-height: 5
+mpg |>
+  tidyplot(x = displ, color = drv, width = NA, height = NA) |>
+  add_histogram(binwidth = 0.5) |>
+  add(ggplot2::facet_wrap(~ drv, ncol = 1))
+```
+
+## Bar chart (counts) --- ggplot2
+
+```{r}
+#| label: bar-gg
+ggplot(mpg, aes(manufacturer)) + geom_bar()
+```
+
+## Bar chart (counts) --- tidyplots
+
+```{r}
+#| label: bar-tp
+mpg |>
+  tidyplot(x = manufacturer, width = NA, height = NA) |>
+  add_count_bar()
+```
+
+## Bar chart (identity) --- ggplot2
+
+```{r}
+#| label: bar-id-gg
+drugs <- data.frame(drug = c("a", "b", "c"), effect = c(4.2, 9.7, 6.1))
+ggplot(drugs, aes(drug, effect)) + geom_bar(stat = "identity")
+```
+
+## Bar chart (identity) --- tidyplots
+
+```{r}
+#| label: bar-id-tp
+drugs <- data.frame(drug = c("a", "b", "c"), effect = c(4.2, 9.7, 6.1))
+drugs |>
+  tidyplot(x = drug, y = effect, width = NA, height = NA) |>
+  add_sum_bar()
+```
+
+## Line plot --- ggplot2
+
+ggplot2 computes the y ratio inside `aes()`.
+
+```{r}
+#| label: line-gg
+ggplot(economics, aes(date, unemploy / pop)) +
+  geom_line()
+```
+
+## Line plot --- tidyplots
+
+tidyplots needs a real column, so we `mutate()` it first.
+
+```{r}
+#| label: line-tp
+economics |>
+  mutate(unemploy_rate = unemploy / pop) |>
+  tidyplot(x = date, y = unemploy_rate, width = NA, height = NA) |>
+  add_line()
+```
+
+## Path coloured by year --- ggplot2
+
+```{r}
+#| label: path-gg
+year <- function(x) as.POSIXlt(x)$year + 1900
+ggplot(economics, aes(unemploy / pop, uempmed)) +
+  geom_path(colour = "grey50") +
+  geom_point(aes(colour = year(date)))
+```
+
+## Path coloured by year --- tidyplots
+
+Both transformed columns precomputed; the path goes in via the escape hatch.
+
+```{r}
+#| label: path-tp
+economics |>
+  mutate(unemploy_rate = unemploy / pop,
+         year = as.POSIXlt(date)$year + 1900) |>
+  tidyplot(x = unemploy_rate, y = uempmed, color = year,
+           width = NA, height = NA) |>
+  add(ggplot2::geom_path(ggplot2::aes(color = NULL), colour = "grey50")) |>
+  add_data_points()
+```
+
+# 5. Modifying the axes
+
+## Axis titles --- ggplot2
+
+```{r}
+#| label: xlab-gg
+ggplot(mpg, aes(cty, hwy)) +
+  geom_point(alpha = 1 / 3) +
+  xlab("city driving (mpg)") +
+  ylab("highway driving (mpg)")
+```
+
+## Axis titles --- tidyplots
+
+```{r}
+#| label: xlab-tp
+mpg |>
+  tidyplot(x = cty, y = hwy, width = NA, height = NA) |>
+  add_data_points(alpha = 1 / 3) |>
+  adjust_x_axis_title("city driving (mpg)") |>
+  adjust_y_axis_title("highway driving (mpg)")
+```
+
+## Removing titles --- ggplot2
+
+```{r}
+#| label: nolab-gg
+ggplot(mpg, aes(cty, hwy)) +
+  geom_point(alpha = 1 / 3) +
+  xlab(NULL) + ylab(NULL)
+```
+
+## Removing titles --- tidyplots
+
+```{r}
+#| label: nolab-tp
+mpg |>
+  tidyplot(x = cty, y = hwy, width = NA, height = NA) |>
+  add_data_points(alpha = 1 / 3) |>
+  remove_x_axis_title() |>
+  remove_y_axis_title()
+```
+
+## Axis limits --- ggplot2
+
+```{r}
+#| label: lim-gg
+ggplot(mpg, aes(drv, hwy)) +
+  geom_jitter(width = 0.25) +
+  xlim("f", "r") +
+  ylim(20, 30)
+```
+
+## Axis limits --- tidyplots
+
+No category-picking limit, so we filter the data instead.
+
+```{r}
+#| label: lim-tp
+mpg |>
+  dplyr::filter(drv %in% c("f", "r")) |>
+  tidyplot(x = drv, y = hwy, width = NA, height = NA) |>
+  add_data_points_jitter() |>
+  adjust_y_axis(limits = c(20, 30))
+```
+
+# 6. Output
+
+## Saving the plot
+
+Both return an object you can store, print, and save. tidyplots returns a
+ggplot under the hood, so `ggsave()` still works, but tidyplots also ships its
+own `save_plot()` (note the argument order: the plot comes first).
+
+```{r}
+#| label: output-tp
+#| eval: false
+p <- mpg |>
+  mutate(cyl_f = factor(cyl)) |>
+  tidyplot(x = displ, y = hwy, color = cyl_f, width = NA, height = NA) |>
+  add_data_points()
+
+p                                                                 # print it
+save_plot(p, "plot.png", width = 10, height = 10, units = "cm")   # tidyplots
+ggplot2::ggsave("plot.png", p, width = 5, height = 5)             # also works
+```
+
+## Takeaways
+
+- For the everyday plots in this chapter, tidyplots has a one-to-one verb:
+  `add_data_points()`, `add_curve_fit()`, `add_boxplot()`, `add_violin()`,
+  `add_histogram()`, `add_count_bar()`, `add_line()`.
+- The grammar difference is where the mapping lives: inside `aes()` for ggplot2,
+  inside `tidyplot()` for tidyplots, with grouping always carried by `color`.
+- tidyplots will not evaluate transformed expressions in a mapping, so
+  precompute with `mutate()`.
+- It has no verb for a handful of geoms like `geom_freqpoly()` and `geom_path()`,
+  so reach for the escape hatch `add(ggplot2::...)`.
+- `split_plot()` is tidyplots' faceting verb, but it free-scales each panel.
+  Use `add(ggplot2::facet_wrap(...))` when you need ggplot2's shared scales.
+
+## References
+
+- Wickham H, Navarro D, Pedersen TL. *ggplot2: Elegant Graphics for Data
+  Analysis* (3rd edition). The source for this deck (chapter *First steps*).
+  <https://ggplot2-book.org/getting-started.html>
+- Engler JB (2025). "Tidyplots empowers life scientists with easy code-based
+  data visualization." *iMeta*, e70018.
+  [doi:10.1002/imt2.70018](https://doi.org/10.1002/imt2.70018)
+- Wood SN (2011). "Fast stable restricted maximum likelihood and marginal
+  likelihood estimation of semiparametric generalized linear models." *JRSS (B)*
+  73(1):3-36.
+  [doi:10.1111/j.1467-9868.2010.00749.x](https://doi.org/10.1111/j.1467-9868.2010.00749.x)
