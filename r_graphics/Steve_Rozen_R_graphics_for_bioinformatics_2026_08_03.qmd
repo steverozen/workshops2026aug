@@ -367,6 +367,16 @@ mpg |>
   add(ggplot2::facet_wrap(~ class))
 ```
 
+## Exercise
+
+Generate this plot.  How can you make it more intelligible?
+
+```{r}
+#| eval: false
+
+ ggplot(mpg, aes(displ, hwy, size = cyl, color = fl, shape=drv)) + geom_point()
+```
+
 # 4. Plot geoms
 
 ## Smoother --- ggplot2
@@ -445,7 +455,7 @@ mpg |>
   add_curve_fit(method = "lm")
 ```
 
-## Overplotting at discrete x --- ggplot2
+## Hidden points because of overplotting at discrete x --- ggplot2
 
 ```{r}
 #| label: overplot-gg
@@ -453,7 +463,7 @@ ggplot(mpg, aes(drv, hwy)) +
   geom_point()
 ```
 
-## Overplotting at discrete x --- tidyplots
+## Hidden points because of overplotting at discrete x --- tidyplots
 
 ```{r}
 #| label: overplot-tp
@@ -462,14 +472,14 @@ mpg |>
   add_data_points()
 ```
 
-## Jitter --- ggplot2
+## The solution: jitter --- ggplot2
 
 ```{r}
 #| label: jitter-gg
 ggplot(mpg, aes(drv, hwy)) + geom_jitter()
 ```
 
-## Jitter --- tidyplots
+## The solution: jitter --- tidyplots
 
 ```{r}
 #| label: jitter-tp
@@ -753,7 +763,7 @@ ggplot2::ggsave("plot.png", p, width = 5, height = 5)             # also works
 # 7. Arranging plots with patchwork
 
 ## Arranging plots: it's patchwork, not the grammar
-
+::: {style="font-size: 0.7em;"} 
 - Arranging finished plots into one figure is **not** part of ggplot2 or
   tidyplots. It is the job of [patchwork](https://patchwork.data-imaginist.com).
 - A `tidyplot()` returns a ggplot under the hood, so `+`, `/`, `|`,
@@ -763,7 +773,7 @@ ggplot2::ggsave("plot.png", p, width = 5, height = 5)             # also works
   many panels), not composition. For composition, reach for patchwork.
 - Always build tidyplots panels with `width = NA, height = NA`, otherwise every
   panel is locked to a fixed 50 x 50 mm square and patchwork can't align them.
-
+:::
 ## Patchwork setup
 
 ```{r}
@@ -1007,6 +1017,10 @@ mpg |>
   split_plot(by = drv)
 ```
 
+## Patchwork exercise
+
+Take 2 `ggplot2` plots and 2 `tidyplots` plots (e.g. from above or from another)
+
 ## Takeaways
 
 - For the everyday plots in this chapter, tidyplots has a one-to-one verb:
@@ -1106,6 +1120,15 @@ tp |>
   `ggplot2::ggplot_build(<tidyplot>)` in a batch script before rendering,
   so API drift surfaces fast.
 
+## Exercise
+
+Take 2 plots from <https://jbengler.github.io/tidyplots/> and
+rewrite them as `ggplot2` plots. The `ggplot2` cheatsheet 
+<https://opensource.posit.co/resources/cheatsheets/data-visualization/data-visualization.pdf>
+can help, as can an LLM coding assistant. 
+Why is the `tidyplot` cheatsheet <https://tidyplots.org/tidyplots-cheatsheet-v1.pdf>
+half the size of the `ggplot2` cheatsheet?
+
 # Bonus material on low-level graphics
 
 ## tidyplots → ggplot2 → grid
@@ -1186,10 +1209,12 @@ upViewport()
   a logo in a margin, hand-tweaking a strip), you drop down to grid.
 
 ## References
-
+::: {style="font-size: 0.7em;"} 
 - Wickham H, Navarro D, Pedersen TL. *ggplot2: Elegant Graphics for Data
-  Analysis* (3rd edition). The source for this deck (chapter *First steps*).
-  <https://ggplot2-book.org/getting-started.html>
+  Analysis* (3rd edition). The source for most of the example
+  (dtrafts of chapters *First steps* and *Arranging plots*).
+  <https://ggplot2-book.org/getting-started.html>,
+  <https://ggplot2-book.org/arranging-plots.html>
 - Engler JB (2025). "Tidyplots empowers life scientists with easy code-based
   data visualization." *iMeta*, e70018.
   [doi:10.1002/imt2.70018](https://doi.org/10.1002/imt2.70018)
@@ -1206,3 +1231,408 @@ upViewport()
   <https://cran.r-project.org/package=gridExtra>
 - Wickham H. *gtable: Arrange "Grobs" in Tables*.
   <https://cran.r-project.org/package=gtable>
+:::
+
+# Coda: do we still need to write the code?
+
+## We don't write this anymore
+
+:::: {.columns}
+
+::: {.column width="42%"}
+**What we write (C)**
+
+```c
+int count_kmer(const char *seq,
+               const char *kmer) {
+  int n = 0,
+      k = strlen(kmer),
+      L = strlen(seq);
+  for (int i = 0; i <= L - k; i++)
+    if (!strncmp(seq + i, kmer, k))
+      n++;
+  return n;
+}
+```
+:::
+
+::: {.column width="58%"}
+**What the CPU runs (x86-64 assembly)**
+
+::: {style="font-size: 0.55em;"}
+```nasm
+count_kmer:
+    endbr64
+    push    r14
+    push    r13
+    mov     r13, rsi
+    push    r12
+    push    rbp
+    push    rbx
+    mov     rbx, rdi
+    mov     rdi, rsi
+    call    strlen@PLT
+    mov     rdi, rbx
+    mov     r12, rax
+    call    strlen@PLT
+    sub     eax, r12d
+    js      .L5
+    cdqe
+    movsx   r12, r12d
+    xor     ebp, ebp
+    lea     r14, 1[rbx+rax]
+.L4:
+    mov     rdi, rbx
+    mov     rdx, r12
+    mov     rsi, r13
+    call    strncmp@PLT
+    cmp     eax, 1
+    adc     ebp, 0
+    add     rbx, 1
+    cmp     rbx, r14
+    jne     .L4
+    ret
+```
+:::
+:::
+
+::::
+
+::: {style="font-size: 0.6em;"}
+A few lines of C on the left, the x86-64 assembly the CPU actually runs on
+the right. The compiler does the translation, nobody hand-writes the
+right-hand side.
+:::
+
+## The same `count_kmer` in R
+
+One function call from **stringr**.
+
+```r
+library(stringr)
+str_count("ACGTACGTACGT", "ACG")
+#> [1] 3
+```
+
+Base R has `gregexpr()`, but `str_count()` reads more like the intent.
+
+## The same `count_kmer` in Python
+
+One method call on the string.
+
+```python
+"ACGTACGTACGT".count("ACG")
+# 3
+```
+
+No imports, no loop, no pointer arithmetic.
+
+## A subtle catch: overlapping matches
+
+- The C version above slides one base at a time, so it **counts overlapping
+  k-mers**: `count_kmer("AAAA", "AA")` returns **3** (positions 0, 1, 2).
+- `stringr::str_count()` and Python's `str.count()` are **non-overlapping**:
+  both return **2** for `"AAAA"` vs `"AA"` (positions 0, 2).
+- The default the language gives you is often not the default biology wants.
+
+## Counting overlapping k-mers
+
+To match the C version's signature, wrap the trick in a function of
+`(seq, kmer)`. A lookahead regex `(?=...)` matches a **position**, not
+characters, so positions can overlap.
+
+**R**:
+
+```r
+count_kmer <- function(seq, kmer) {
+  str_count(seq, paste0("(?=", kmer, ")"))
+}
+count_kmer("AAAA", "AA")
+#> [1] 3
+```
+
+**Python**:
+
+```python
+import re
+def count_kmer(seq, kmer):
+    return len(re.findall(f"(?={kmer})", seq))
+
+count_kmer("AAAA", "AA")
+# 3
+```
+
+Same trick in both languages, because both use ICU/PCRE-flavoured regex.
+
+## Lookahead / lookbehind: what they are
+
+A **lookaround** is a *zero-width assertion*. It checks whether a pattern
+matches at the current cursor position, but consumes **no characters**, so
+the cursor only advances by the engine's normal one step.
+
+| Syntax     | Name                | Meaning                                |
+|------------|---------------------|----------------------------------------|
+| `(?=X)`    | positive lookahead  | next chars **do** match `X`            |
+| `(?!X)`    | negative lookahead  | next chars **do not** match `X`        |
+| `(?<=X)`   | positive lookbehind | previous chars **do** match `X`        |
+| `(?<!X)`   | negative lookbehind | previous chars **do not** match `X`    |
+
+Other zero-width things you've already seen: `^`, `$`, `\b` (word boundary).
+They all assert a *position*, not characters.
+
+## Lookaround: why overlap works, and other uses
+
+Walking `"AAAA"` with `(?=AA)`: position 0 sees `AA` (match, cursor -> 1),
+position 1 sees `AA` (match, cursor -> 2), position 2 sees `AA` (match,
+cursor -> 3), position 3 sees only `A` (no match). **Three matches**, because
+the cursor advances by 1 each time instead of 2.
+
+Other handy uses:
+
+- `\d+(?=bp)` matches a number only if followed by `bp`, but `bp` is not in
+  the match.
+- `ACG(?!T)` matches `ACG` only when it is **not** followed by `T`.
+- `(?<=chr)\d+` matches the digits after `chr` without including `chr` in
+  the match.
+
+## Overlapping k-mers with `N` wildcard and case-insensitive
+
+**R** (`stringr` uses ICU regex, so lookahead + `ignore_case` both work):
+
+```r
+library(stringr)
+count_overlap_kmer <- function(seq, kmer) {
+  bases <- strsplit(kmer, "")[[1]]
+  pat   <- paste0("(?=", paste0("[", bases, "N]", collapse = ""), ")")
+  str_count(seq, regex(pat, ignore_case = TRUE))
+}
+count_overlap_kmer("acgNacGtNcg", "ACG")
+#> [1] 3   # matches acg, aNg (via N wildcard), and acG
+```
+
+**Python**:
+
+```python
+import re
+def count_overlap_kmer(seq, kmer):
+    pat = "(?=" + "".join(f"[{b}N]" for b in kmer) + ")"
+    return len(re.findall(pat, seq, flags=re.IGNORECASE))
+
+count_overlap_kmer("acgNacGtNcg", "ACG")
+# 3
+```
+
+The trick: for each base `b` in the query, allow `[bN]` in the sequence; wrap
+the whole thing in `(?=...)` for overlap; turn on case-insensitive matching.
+
+## Or just use Bioconductor: `Biostrings`
+
+The bioinformatics-native answer. Overlap, IUPAC, and mismatches are already
+built in.
+
+```r
+library(Biostrings)
+seq <- DNAString("ACGNCGTANG")
+
+# overlapping by default; N in the subject matches any base
+countPattern("ACG", seq,
+             fixed = c(pattern = TRUE, subject = FALSE))
+#> [1] 3
+
+# the full k-mer spectrum in one call
+oligonucleotideFrequency(seq, width = 3)
+#> AAA AAC ... ACG ... TTT
+```
+
+::: {style="font-size: 0.75em;"}
+| Function                       | Best for                                                       |
+|--------------------------------|----------------------------------------------------------------|
+| `stringr::str_count` + `(?=)`  | One-off on a plain character string, any alphabet              |
+| `Biostrings::countPattern`     | One motif, IUPAC / mismatches / a real `DNAString`             |
+| `Biostrings::vcountPattern`    | Same motif against many sequences (a `DNAStringSet`)           |
+| `Biostrings::oligonucleotideFrequency` | The full $4^k$-mer spectrum in one call                |
+:::
+
+The designer's job: know that `Biostrings` exists and that `fixed=` controls
+IUPAC behaviour. The agent's job: remember the argument name.
+
+## The three regex engines you keep running into
+
+Almost every language's regex support sits on top of one of three C/C++
+libraries.
+
+::: {style="font-size: 0.72em;"}
+| Engine    | Origin                          | Algorithm           | Distinctive trait                                             | Used by                                    |
+|-----------|---------------------------------|---------------------|----------------------------------------------------------------|--------------------------------------------|
+| **PCRE**  | Philip Hazel, 1997 (PCRE2 now)  | Backtracking NFA    | Perl-flavour kitchen sink: lookaround, backrefs, recursion     | PHP, nginx, Git, many C/C++ projects       |
+| **ICU**   | IBM Unicode toolkit             | Backtracking        | PCRE-ish syntax **plus** first-class Unicode (`\p{L}`, scripts, locale-aware folding) | R `stringr`/`stringi`, Java, macOS, Swift |
+| **RE2**   | Russ Cox, Google, 2010          | Thompson NFA / DFA  | **Linear time guarantee**, drops lookaround and backrefs       | Go `regexp`, Rust `regex`, Code Search     |
+:::
+
+- **Backtracking** (PCRE, ICU): expressive, can be exponential on pathological
+  patterns (ReDoS).
+- **Thompson NFA** (RE2): walks all states in parallel, linear in input length,
+  but can't express anything beyond a *regular* language, so no lookaround,
+  no backreferences.
+- Languages like Python `re`, JavaScript, .NET, and C++ `std::regex` ship
+  their own backtracking engines in the same family as PCRE.
+
+## Aside: not all regex engines are the same
+
+The lookahead trick `(?=...)` is not universal. The question is **which
+regex engine** the library uses.
+
+::: {style="font-size: 0.75em;"}
+| Family             | Examples                                              | Lookaround? | Worst case |
+|--------------------|-------------------------------------------------------|-------------|------------|
+| **RE2-style** (NFA) | Go `regexp`, Rust `regex` crate, Google RE2          | **no**      | linear     |
+| **Backtracking**   | PCRE, ICU (R `stringr`), Python `re`, JS, C++ `std::regex`, .NET | yes | can be exponential (ReDoS) |
+:::
+
+- **RE2-style** trades expressiveness (no lookaround, no backreferences) for
+  a guaranteed linear-time match. Built for serving untrusted patterns at
+  scale.
+- **Backtracking** engines are more expressive but pathological patterns
+  (`(a+)+$` on `"aaaa…!"`) can blow up.
+- So in Go and Rust, the overlap-counting one-liner doesn't compile. You
+  either write the explicit loop, or pull in `regexp2` (Go) or `fancy-regex`
+  (Rust), which add lookaround at the cost of the linear-time guarantee.
+- The designer's question is *"do I need lookaround?"* and *"do I care
+  about adversarial inputs?"*. The agent picks the crate.
+
+## What is ReDoS?
+
+**Regular Expression Denial of Service.** A short input can make a
+backtracking engine take astronomically long to decide a match.
+
+The textbook example:
+
+```
+pattern:  ^(a+)+$
+input:    aaaaaaaaaaaaaaaaaa!
+```
+
+`(a+)+` can split N `a`s into groups in $2^{N-1}$ ways. The trailing `!`
+forces failure, so the engine has to try **every** split before giving up.
+
+::: {style="font-size: 0.8em;"}
+| `a`s | Time (Python `re`) |
+|------|---------------------|
+| 20   | ~0.05 s             |
+| 25   | ~1.5 s              |
+| 30   | ~45 s               |
+| 35   | hours               |
+:::
+
+Real-world hits: **Cloudflare global outage (2 July 2019)**, a WAF regex
+pegged every edge CPU and took the network down for ~30 minutes.
+**Stack Overflow outage (20 July 2016)**, a whitespace-stripping regex
+on one ~20,000-char post took the site down for 34 minutes.
+
+## Catastrophic backtracking: the mechanism
+
+A backtracking engine tries one branch, fails, backs up, tries another.
+Catastrophic backtracking happens when the same input can be matched in
+**exponentially many** ways, and the overall match ultimately fails.
+
+The Cloudflare 2019 outage's villain was `.*(?:.*=.*)`, three nested
+greedy `.*` quantifiers competing for the same characters.
+
+Walking `abcdefg` (no `=`, so it must fail):
+
+1. The outer `.*` gobbles everything, cursor at end. Need `=`. Not there.
+2. Back up one char. Need `=`. Not there. Back up again. Repeat to start.
+3. Now the **inner** `.*` tries each split point. For each, the engine
+   again searches for `=`. Repeat.
+4. Multiply across three nested `.*`s with no anchor between them, and the
+   number of partitions to try is on the order of $N^3$.
+
+A few thousand bytes of body with no `=` to anchor on becomes billions of
+state transitions. One CPU core, pinned, minutes per request.
+
+## The "evil regex" family
+
+All of these match the same characters in exponentially many ways:
+
+```
+.*.*.*          (a+)+          (.*)*
+(a|a)+          (\w+\s?)+      ^(a+)+$
+```
+
+The fix for `.*=.*` is to **kill the ambiguity** by anchoring:
+
+```
+[^=]*=.*        characters-that-aren't-= , then = , then anything
+```
+
+Now there is **exactly one** way to split. The engine walks the input
+once, in linear time. Same meaning, no backtracking.
+
+This kind of audit is tedious and easy to miss. Which is why Cloudflare
+ultimately switched the WAF engine itself to **RE2**, where the bug
+class cannot exist.
+
+## Defending against ReDoS
+
+- Avoid nested quantifiers (`(a+)+`, `(.*)*`, `(a|a)+`).
+- Anchor and constrain, use character classes instead of `.*` where possible.
+- Use **atomic groups** `(?>...)` or **possessive quantifiers** `a++` to
+  disable backtracking inside a sub-expression (PCRE, Java, .NET).
+- Set a **match timeout** (.NET's `Regex.MatchTimeout`; Go and Rust don't
+  need one).
+- Bound the length of any user input you feed to a regex.
+- For untrusted patterns **or** untrusted input at scale, just use an
+  RE2-family engine. That's the whole reason RE2 exists, see
+  Russ Cox, *"Regular Expression Matching Can Be Simple And Fast"*,
+  <https://swtch.com/~rsc/regexp/regexp1.html>.
+
+## WAFs: where ReDoS gets really painful
+
+A **Web Application Firewall** sits in front of a web app and inspects
+every request for attack signatures (SQL injection, XSS, path traversal,
+known-CVE payloads). Each signature is a regex. A real rule set
+(OWASP Core Rule Set, ModSecurity, Cloudflare Managed Rules) is hundreds
+to thousands of regexes, run against every URL, header, cookie, and body.
+
+WAFs are the worst possible place for a backtracking-pathological regex:
+
+1. **Every request** is matched against **every rule**.
+2. The subject is **fully attacker-controlled** (URL, headers, body).
+3. Patterns are complex (alternations, nested quantifiers, `.*` everywhere)
+   because they have to catch many attack variants.
+4. WAFs run on **shared edge infrastructure**, so one bad regex can take
+   down many customers at once.
+
+**Cloudflare, 2 July 2019:** a new WAF rule with a nested `(?:.*=.*)`-style
+quantifier hit catastrophic backtracking on an ordinary request body.
+Every edge CPU worldwide pegged at 100%, global traffic through Cloudflare
+stopped for ~30 minutes. Postmortem:
+<https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/>.
+Cloudflare then migrated their WAF off PCRE onto **RE2**, making that
+class of bug impossible by construction.
+
+The lesson: a slow security pattern is itself a DoS vector against the
+thing it is supposed to protect.
+
+## Why this matters for the "do we still write code?" question
+
+- The one-liner is easy. Knowing **which** one-liner is right (overlap or no
+  overlap, IUPAC codes, reverse complement, masked bases) is the part a
+  designer still has to bring.
+- A good prompt to a coding agent names the intent:
+  *"count overlapping ACG occurrences in this DNA string, treat N as a
+  wildcard, ignore case"*. The agent then picks `str_count` vs a lookahead
+  vs Biostrings.
+- The concept is the contract; the code is the rendering.
+
+## Maybe we don't need to write much R or Python either
+
+- With an agentic coding assistant, we can show an example and ask for the
+  reproduction, ask for tweaks, ask for an alternative approach.
+- The **concept** matters more: what comparison, what model, what control,
+  what visualization answers the question.
+- Trying out different concepts gets cheaper, so we try more of them.
+- Open question for the bioinformatics designer: **how much R or Python do
+  we still need to know?** Probably enough to read the agent's output,
+  spot when it is wrong, and hold an informed conversation about the next
+  tweak.
