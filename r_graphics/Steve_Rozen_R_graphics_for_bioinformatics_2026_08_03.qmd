@@ -1,5 +1,5 @@
 ---
-title: "R graphics for bioinformatics:\nggplot2 and tidyplots"
+title: "R graphics for bioinformatics"
 author: "Steve Rozen<br>Duke Medical School<br>sr110@duke.edu, steverozen@pm.me"
 date: "2026-08-03"
 date-format: "YYYY-MM-DD"
@@ -153,14 +153,43 @@ ggplot2::ggsave("title_panel.png", title_panel,
                 width = 8, height = 3.2, dpi = 150, bg = "white")
 ```
 
+## Graphing concepts are more important than technical details
+
+Graph Galeries
+
+- !! Multilingual: <https://www.data-to-viz.com/>
+
+- R <https://r-graph-gallery.com/> (incl: <https://r-graph-gallery.com/best-dataviz-packages.html>)
+
+- Python <https://python-graph-gallery.com/>
+
+- References to many plotting systems: >https://datavizcatalogue.com/index.html>
+
+Thesis: in most cases you can ask a coding agent to adapt these plots to the data you are analyzing
+
+## For your future reference
+
+Wilke, *Fundamentals of Data Visualization* <https://clauswilke.com/dataviz/>
+
+Chang, 2026, *R Graphics Cookbook, 2nd ed* <https://r-graphics.org/>
+
+Wickham et al., *R for Data Science, 2nd ed* <https://r4ds.hadley.nz/>
+
+`plotnine` python package inspired by `ggplot2` <https://plotnine.org/>
+
+Wickham, *ggplot2: Elegant Graphics for Data Analysis (3e)* <https://ggplot2-book.org/>
+
+
+
 ## About these examples
 
 Most of these examples are from 
 the draft chapters *First steps* and *Arranging plots* in the e-book
 Wickham, Navarro, and Pedersen,
 *ggplot2: Elegant Graphics for Data Analysis* (3rd ed.), 
-(<https://ggplot2-book.org/getting-started.html>, 
-<https://ggplot2-book.org/arranging-plots.html>), downloaded June 25, 2026.
+
+<https://ggplot2-book.org/getting-started.html>, 
+<https://ggplot2-book.org/arranging-plots.html>, downloaded June 25, 2026.
 
 We also re-use examples from Selva Prabhakaran's
 [Complete ggplot2 Tutorial, Part 1](https://r-statistics.co/Complete-Ggplot2-Tutorial-Part1-With-R-Code.html).
@@ -196,18 +225,16 @@ data("mpg", package = "ggplot2")          # 234 car models
 data("economics", package = "ggplot2")    # US economic time series
 ```
 
-## The `mpg` data
+## The `mpg` miles-per-gallon example data
 
-`mpg` (miles per gallon)
-is a `tibble` with one row per car model: engine displacement (`displ`), highway mileage (`hwy`),
-city mileage (`cty`), drivetrain (`drv`), and `class`.
+`mpg` 
+is a `tibble` with info on car models, including engine displacement (`displ`), highway mileage (`hwy`),
+city mileage (`cty`), drivetrain (`drv`), etc.
 
 ```{r}
 #| label: mpg-head
 mpg
 ```
-
-# 1. Key components: a basic scatterplot
 
 ## Basic scatterplot --- ggplot2
 ::: {style="font-size: 0.7em;"} 
@@ -237,9 +264,7 @@ mpg |>
   add_data_points()
 ```
 
-# 2. Colour, size, shape
-
-## Mapping colour --- ggplot2
+## Mapping colour to scatterplot --- ggplot2
 
 `aes(colour = class)` puts the variable in the mapping.
 
@@ -249,7 +274,7 @@ ggplot(mpg, aes(displ, hwy, colour = class)) +
   geom_point()
 ```
 
-## Mapping colour --- tidyplots
+## Mapping colour to scatterplot --- tidyplots
 
 `color = class` goes inside `tidyplot()`.
 
@@ -337,8 +362,6 @@ tp
   with no overrides. The ggplot2 equivalent moves `color = state` into the
   shared `aes()` so `geom_smooth()` inherits it.
 
-# 3. Faceting
-
 ## Faceting --- ggplot2
 
 `facet_wrap(~ class)` makes one panel per `class`, with shared scales.
@@ -377,9 +400,7 @@ Generate this plot.  How can you make it more intelligible?
  ggplot(mpg, aes(displ, hwy, size = cyl, color = fl, shape=drv)) + geom_point()
 ```
 
-# 4. Plot geoms
-
-## Smoother --- ggplot2
+## Fitting curves --- ggplot2
 
 ```{r}
 #| label: smooth-gg
@@ -388,7 +409,7 @@ ggplot(mpg, aes(displ, hwy)) +
   geom_smooth()           # loess by default, with a ribbon
 ```
 
-## Smoother --- tidyplots
+## Fitting curves --- tidyplots
 
 ```{r}
 #| label: smooth-tp
@@ -673,9 +694,7 @@ economics |>
   add_data_points()
 ```
 
-# 5. Modifying the axes
-
-## Axis titles --- ggplot2
+## Adding axis titles --- ggplot2
 
 ```{r}
 #| label: xlab-gg
@@ -685,7 +704,7 @@ ggplot(mpg, aes(cty, hwy)) +
   ylab("highway driving (mpg)")
 ```
 
-## Axis titles --- tidyplots
+## Adding axis titles --- tidyplots
 
 ```{r}
 #| label: xlab-tp
@@ -739,8 +758,6 @@ mpg |>
   adjust_y_axis(limits = c(20, 30))
 ```
 
-# 6. Output
-
 ## Saving the plot
 
 Both return an object you can store, print, and save. tidyplots returns a
@@ -760,9 +777,7 @@ save_plot(p, "plot.png", width = 10, height = 10, units = "cm")   # tidyplots
 ggplot2::ggsave("plot.png", p, width = 5, height = 5)             # also works
 ```
 
-# 7. Arranging plots with patchwork
-
-## Arranging plots: it's patchwork, not the grammar
+## Arranging plots: `patchwork`
 ::: {style="font-size: 0.7em;"} 
 - Arranging finished plots into one figure is **not** part of ggplot2 or
   tidyplots. It is the job of [patchwork](https://patchwork.data-imaginist.com).
@@ -1129,6 +1144,95 @@ can help, as can an LLM coding assistant.
 Why is the `tidyplot` cheatsheet <https://tidyplots.org/tidyplots-cheatsheet-v1.pdf>
 half the size of the `ggplot2` cheatsheet?
 
+# A `seaborn` example translated to `ggplot2`
+
+## `seaborn.lineplot`: the Python original
+
+[seaborn](https://seaborn.pydata.org/) is the most popular high-level plotting
+package in Python, built on top of `matplotlib`. The example below is from
+the seaborn gallery: mean signal over time per `region`, split by `event`.
+
+::: {.columns}
+::: {.column width="44%"}
+```python
+import seaborn as sns
+sns.set_theme(style="darkgrid")
+
+fmri = sns.load_dataset("fmri")
+
+sns.lineplot(
+    x="timepoint", y="signal",
+    hue="region", style="event",
+    data=fmri)
+```
+:::
+::: {.column width="56%"}
+![](seaborn_fmri_lineplot.png){fig-align="center" width="100%"}
+:::
+:::
+
+## `ggplot2` equivalent --- code
+
+```{r}
+#| label: fmri-gg-code
+#| output: false
+library(readr)
+fmri <- read_csv("fmri.csv", show_col_types = FALSE)
+
+gg_fmri <- ggplot(fmri, aes(x = timepoint, y = signal,
+                            colour = region, linetype = event,
+                            fill = region)) +
+  stat_summary(fun.data = mean_cl_boot, geom = "ribbon",
+               alpha = 0.2, colour = NA) +
+  stat_summary(fun = mean, geom = "line", linewidth = 0.8) +
+  scale_colour_manual(values = c(parietal = "#4C72B0", frontal = "#DD8452")) +
+  scale_fill_manual(values   = c(parietal = "#4C72B0", frontal = "#DD8452")) +
+  scale_linetype_manual(values = c(stim = "solid", cue = "dashed")) +
+  theme_gray(base_size = 12) +
+  theme(panel.background = element_rect(fill = "#EAEAF2", colour = NA),
+        panel.grid.major = element_line(colour = "white"),
+        panel.grid.minor = element_line(colour = "white", linewidth = 0.3),
+        legend.key       = element_rect(fill = "#EAEAF2")) +
+  labs(x = "timepoint", y = "signal", colour = "region",
+       linetype = "event", fill = "region")
+```
+
+<details>
+<summary>**Notes on the ggplot2 translation (click to expand)**</summary>
+
+- `stat_summary(mean_cl_boot)` matches seaborn's default 95% bootstrap CI.
+  For a faster approximation use `mean_cl_normal` (normal-theory CI) or
+  `mean_se` (one SEM, narrower).
+- The two manual scales for `colour` and `fill` use the seaborn "deep" palette
+  hex codes so the ribbons match the lines.
+- `theme_gray` plus the panel-background tweaks approximate seaborn's
+  `darkgrid` style. If you have the `ggthemes` package,
+  `ggthemes::theme_solarized()` or the `seaborn` R package's `theme_seaborn()`
+  are alternatives, but the inline theme above avoids the extra dependency.
+
+</details>
+
+## `ggplot2` vs. `seaborn` --- side by side
+
+::: {.columns}
+::: {.column width="50%"}
+**ggplot2**
+
+```{r}
+#| label: fmri-gg-plot
+#| echo: false
+#| fig-width: 5
+#| fig-height: 3.5
+gg_fmri
+```
+:::
+::: {.column width="50%"}
+**seaborn**
+
+![](seaborn_fmri_lineplot.png){width="100%"}
+:::
+:::
+
 # Bonus material on low-level graphics
 
 ## tidyplots → ggplot2 → grid
@@ -1240,7 +1344,7 @@ upViewport()
 :::: {.columns}
 
 ::: {.column width="42%"}
-**What we write (C)**
+**What we wrote in 1993 (C)**
 
 ```c
 int count_kmer(const char *seq,
@@ -1304,9 +1408,9 @@ the right. The compiler does the translation, nobody hand-writes the
 right-hand side.
 :::
 
-## The same `count_kmer` in R
+## Another `count_kmer` now
 
-One function call from **stringr**.
+One R function call from **stringr**.
 
 ```r
 library(stringr)
@@ -1314,11 +1418,7 @@ str_count("ACGTACGTACGT", "ACG")
 #> [1] 3
 ```
 
-Base R has `gregexpr()`, but `str_count()` reads more like the intent.
-
-## The same `count_kmer` in Python
-
-One method call on the string.
+and python
 
 ```python
 "ACGTACGTACGT".count("ACG")
@@ -1362,7 +1462,9 @@ count_kmer("AAAA", "AA")
 # 3
 ```
 
-Same trick in both languages, because both use ICU/PCRE-flavoured regex.
+Same trick in both languages, because both use International Components 
+for Unicode (ICU) / Perl Compatible Regular Expressions (PCRE)
+regular expressions.
 
 ## Lookahead / lookbehind: what they are
 
@@ -1455,6 +1557,31 @@ oligonucleotideFrequency(seq, width = 3)
 
 The designer's job: know that `Biostrings` exists and that `fixed=` controls
 IUPAC behaviour. The agent's job: remember the argument name.
+
+## Why this matters for the "do we still write code?" question
+
+- The one-liner is easy. Knowing **which** one-liner is right (overlap or no
+  overlap, IUPAC codes, reverse complement, masked bases) is the part a
+  designer still has to bring.
+- A good prompt to a coding agent names the intent:
+  *"count overlapping ACG occurrences in this DNA string, treat N as a
+  wildcard, ignore case"*. The agent then picks `str_count` vs a lookahead
+  vs Biostrings.
+- The concept is the contract; the code is the rendering.
+
+## Maybe we don't need to write much R or Python either
+
+- With an agentic coding assistant, we can show an example and ask for the
+  reproduction, ask for tweaks, ask for an alternative approach.
+- The **concept** matters more: what comparison, what model, what control,
+  what visualization answers the question.
+- Trying out different concepts gets cheaper, so we try more of them.
+- Open question for the bioinformatics designer: **how much R or Python do
+  we still need to know?** Probably enough to read the agent's output,
+  spot when it is wrong, and hold an informed conversation about the next
+  tweak.
+
+# Material for another lecture
 
 ## The three regex engines you keep running into
 
@@ -1614,25 +1741,3 @@ class of bug impossible by construction.
 The lesson: a slow security pattern is itself a DoS vector against the
 thing it is supposed to protect.
 
-## Why this matters for the "do we still write code?" question
-
-- The one-liner is easy. Knowing **which** one-liner is right (overlap or no
-  overlap, IUPAC codes, reverse complement, masked bases) is the part a
-  designer still has to bring.
-- A good prompt to a coding agent names the intent:
-  *"count overlapping ACG occurrences in this DNA string, treat N as a
-  wildcard, ignore case"*. The agent then picks `str_count` vs a lookahead
-  vs Biostrings.
-- The concept is the contract; the code is the rendering.
-
-## Maybe we don't need to write much R or Python either
-
-- With an agentic coding assistant, we can show an example and ask for the
-  reproduction, ask for tweaks, ask for an alternative approach.
-- The **concept** matters more: what comparison, what model, what control,
-  what visualization answers the question.
-- Trying out different concepts gets cheaper, so we try more of them.
-- Open question for the bioinformatics designer: **how much R or Python do
-  we still need to know?** Probably enough to read the agent's output,
-  spot when it is wrong, and hold an informed conversation about the next
-  tweak.
