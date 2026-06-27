@@ -9,3 +9,4 @@
 output/
 gitignore/
 filtered_feature_bc_matrix/
+snowflake.log
