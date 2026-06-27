@@ -10,3 +10,7 @@ output/
 gitignore/
 filtered_feature_bc_matrix/
 snowflake.log
+r_graphics/session_excerpt_*.jsonl
+# pixi environments
+.pixi/*
+!.pixi/config.toml
