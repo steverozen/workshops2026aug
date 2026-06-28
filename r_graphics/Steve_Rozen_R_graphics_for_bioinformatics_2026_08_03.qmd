@@ -167,6 +167,121 @@ Graph Galeries
 
 Thesis: in most cases you can ask a coding agent to adapt these plots to the data you are analyzing
 
+# Excercise: use a coding agent to tanslate a `seaborn` example to `ggplot2`
+
+## `seaborn.lineplot`: the Python original
+
+[seaborn](https://seaborn.pydata.org/) is the most popular high-level plotting
+package in Python, built on top of `matplotlib`. The example below is from
+the seaborn gallery: mean functional magnetic resonance
+signal multiple time point per brain `region`, split by `event`.
+
+::: {.columns}
+::: {.column width="44%"}
+```python
+import seaborn as sns
+sns.set_theme(style="darkgrid")
+
+fmri = sns.load_dataset("fmri")
+
+sns.lineplot(
+    x="timepoint", y="signal",
+    hue="region", style="event",
+    data=fmri)
+```
+:::
+::: {.column width="56%"}
+![](seaborn_fmri_lineplot.png){fig-align="center" width="100%"}
+:::
+:::
+(from <https://seaborn.pydata.org/examples/errorband_lineplots.html>)
+
+## Prompt
+
+```
+I want to generate this plot in R using ggplot2: [Image #1], the python code is import seaborn as sns
+sns.set_theme(style="darkgrid")
+
+# Load an example dataset with long-form data
+fmri = sns.load_dataset("fmri")
+
+# Plot the responses for different events and regions
+sns.lineplot(x="timepoint", y="signal",
+             hue="region", style="event",
+             data=fmri)
+The data are in @fmri.csv
+```
+
+##
+
+Insert dialog
+
+## `ggplot2` equivalent --- code
+
+```{r}
+#| label: fmri-gg-code
+#| output: false
+library(readr)
+fmri <- read_csv("fmri.csv", show_col_types = FALSE)
+
+gg_fmri <- ggplot(fmri, aes(x = timepoint, y = signal,
+                            colour = region, linetype = event,
+                            fill = region)) +
+  stat_summary(fun.data = mean_cl_boot, geom = "ribbon",
+               alpha = 0.2, colour = NA) +
+  stat_summary(fun = mean, geom = "line", linewidth = 0.8) +
+  scale_colour_manual(values = c(parietal = "#4C72B0", frontal = "#DD8452")) +
+  scale_fill_manual(values   = c(parietal = "#4C72B0", frontal = "#DD8452")) +
+  scale_linetype_manual(values = c(stim = "solid", cue = "dashed")) +
+  theme_gray(base_size = 12) +
+  theme(panel.background = element_rect(fill = "#EAEAF2", colour = NA),
+        panel.grid.major = element_line(colour = "white"),
+        panel.grid.minor = element_line(colour = "white", linewidth = 0.3),
+        legend.key       = element_rect(fill = "#EAEAF2")) +
+  labs(x = "timepoint", y = "signal", colour = "region",
+       linetype = "event", fill = "region")
+```
+
+## Comments on the ggplot2 translation
+
+Notes from the coding agent:
+
+- `stat_summary(mean_cl_boot)` matches seaborn's default 95% bootstrap CI.
+  For a faster approximation use `mean_cl_normal` (normal-theory CI) or
+  `mean_se` (one SEM, narrower).
+- The two manual scales for `colour` and `fill` use the seaborn "deep" palette
+  hex codes so the ribbons match the lines.
+- `theme_gray` plus the panel-background tweaks approximate seaborn's
+  `darkgrid` style. 
+   The remainder of the coding agent notes were hallucinated: "If you have the `ggthemes` package,
+  `ggthemes::theme_solarized()` or the `seaborn` R package's `theme_seaborn()`
+  are alternatives, but the inline theme above avoids the extra dependency."
+
+Note that the python code is used several times in `seaborn` documentation and training material.
+The LLM probably saw it during training.
+
+## `ggplot2` vs. `seaborn` --- side by side
+
+::: {.columns}
+::: {.column width="50%"}
+**ggplot2**
+
+```{r}
+#| label: fmri-gg-plot
+#| echo: false
+#| fig-width: 5
+#| fig-height: 3.5
+gg_fmri
+```
+:::
+::: {.column width="50%"}
+**seaborn**
+
+![](seaborn_fmri_lineplot.png){width="100%"}
+:::
+:::
+
+
 ## For your future reference
 
 Wilke, *Fundamentals of Data Visualization* <https://clauswilke.com/dataviz/>
@@ -1143,95 +1258,6 @@ rewrite them as `ggplot2` plots. The `ggplot2` cheatsheet
 can help, as can an LLM coding assistant. 
 Why is the `tidyplot` cheatsheet <https://tidyplots.org/tidyplots-cheatsheet-v1.pdf>
 half the size of the `ggplot2` cheatsheet?
-
-# A `seaborn` example translated to `ggplot2`
-
-## `seaborn.lineplot`: the Python original
-
-[seaborn](https://seaborn.pydata.org/) is the most popular high-level plotting
-package in Python, built on top of `matplotlib`. The example below is from
-the seaborn gallery: mean signal over time per `region`, split by `event`.
-
-::: {.columns}
-::: {.column width="44%"}
-```python
-import seaborn as sns
-sns.set_theme(style="darkgrid")
-
-fmri = sns.load_dataset("fmri")
-
-sns.lineplot(
-    x="timepoint", y="signal",
-    hue="region", style="event",
-    data=fmri)
-```
-:::
-::: {.column width="56%"}
-![](seaborn_fmri_lineplot.png){fig-align="center" width="100%"}
-:::
-:::
-
-## `ggplot2` equivalent --- code
-
-```{r}
-#| label: fmri-gg-code
-#| output: false
-library(readr)
-fmri <- read_csv("fmri.csv", show_col_types = FALSE)
-
-gg_fmri <- ggplot(fmri, aes(x = timepoint, y = signal,
-                            colour = region, linetype = event,
-                            fill = region)) +
-  stat_summary(fun.data = mean_cl_boot, geom = "ribbon",
-               alpha = 0.2, colour = NA) +
-  stat_summary(fun = mean, geom = "line", linewidth = 0.8) +
-  scale_colour_manual(values = c(parietal = "#4C72B0", frontal = "#DD8452")) +
-  scale_fill_manual(values   = c(parietal = "#4C72B0", frontal = "#DD8452")) +
-  scale_linetype_manual(values = c(stim = "solid", cue = "dashed")) +
-  theme_gray(base_size = 12) +
-  theme(panel.background = element_rect(fill = "#EAEAF2", colour = NA),
-        panel.grid.major = element_line(colour = "white"),
-        panel.grid.minor = element_line(colour = "white", linewidth = 0.3),
-        legend.key       = element_rect(fill = "#EAEAF2")) +
-  labs(x = "timepoint", y = "signal", colour = "region",
-       linetype = "event", fill = "region")
-```
-
-<details>
-<summary>**Notes on the ggplot2 translation (click to expand)**</summary>
-
-- `stat_summary(mean_cl_boot)` matches seaborn's default 95% bootstrap CI.
-  For a faster approximation use `mean_cl_normal` (normal-theory CI) or
-  `mean_se` (one SEM, narrower).
-- The two manual scales for `colour` and `fill` use the seaborn "deep" palette
-  hex codes so the ribbons match the lines.
-- `theme_gray` plus the panel-background tweaks approximate seaborn's
-  `darkgrid` style. If you have the `ggthemes` package,
-  `ggthemes::theme_solarized()` or the `seaborn` R package's `theme_seaborn()`
-  are alternatives, but the inline theme above avoids the extra dependency.
-
-</details>
-
-## `ggplot2` vs. `seaborn` --- side by side
-
-::: {.columns}
-::: {.column width="50%"}
-**ggplot2**
-
-```{r}
-#| label: fmri-gg-plot
-#| echo: false
-#| fig-width: 5
-#| fig-height: 3.5
-gg_fmri
-```
-:::
-::: {.column width="50%"}
-**seaborn**
-
-![](seaborn_fmri_lineplot.png){width="100%"}
-:::
-:::
 
 # Bonus material on low-level graphics
 
