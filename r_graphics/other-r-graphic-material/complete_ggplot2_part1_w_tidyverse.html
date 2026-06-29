@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Bioinformatics &amp; Research Computing">
+
+<title>The Complete ggplot2 Tutorial, Part 1, with tidyplots equivalents</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="complete_ggplot2_part1_w_tidyverse_files/libs/clipboard/clipboard.min.js"></script>
+<script src="complete_ggplot2_part1_w_tidyverse_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="complete_ggplot2_part1_w_tidyverse_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="complete_ggplot2_part1_w_tidyverse_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="complete_ggplot2_part1_w_tidyverse_files/libs/quarto-html/popper.min.js"></script>
+<script src="complete_ggplot2_part1_w_tidyverse_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="complete_ggplot2_part1_w_tidyverse_files/libs/quarto-html/anchor.min.js"></script>
+<link href="complete_ggplot2_part1_w_tidyverse_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="complete_ggplot2_part1_w_tidyverse_files/libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="complete_ggplot2_part1_w_tidyverse_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="complete_ggplot2_part1_w_tidyverse_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="complete_ggplot2_part1_w_tidyverse_files/libs/bootstrap/bootstrap-80a72465ba608f349709eed02572a75d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#about-this-handout" id="toc-about-this-handout" class="nav-link active" data-scroll-target="#about-this-handout">About this handout</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">Setup</a></li>
+  <li><a href="#understanding-the-ggplot-syntax-the-blank-canvas" id="toc-understanding-the-ggplot-syntax-the-blank-canvas" class="nav-link" data-scroll-target="#understanding-the-ggplot-syntax-the-blank-canvas">1. Understanding the ggplot syntax (the blank canvas)</a></li>
+  <li><a href="#a-simple-scatterplot-and-a-smoothing-line" id="toc-a-simple-scatterplot-and-a-smoothing-line" class="nav-link" data-scroll-target="#a-simple-scatterplot-and-a-smoothing-line">2. A simple scatterplot (and a smoothing line)</a></li>
+  <li><a href="#adjusting-the-x-and-y-axis-limits" id="toc-adjusting-the-x-and-y-axis-limits" class="nav-link" data-scroll-target="#adjusting-the-x-and-y-axis-limits">3. Adjusting the x and y axis limits</a>
+  <ul class="collapse">
+  <li><a href="#method-1-delete-points-outside-the-range" id="toc-method-1-delete-points-outside-the-range" class="nav-link" data-scroll-target="#method-1-delete-points-outside-the-range">Method 1: delete points outside the range</a></li>
+  <li><a href="#method-2-zoom-in-without-deleting-points" id="toc-method-2-zoom-in-without-deleting-points" class="nav-link" data-scroll-target="#method-2-zoom-in-without-deleting-points">Method 2: zoom in without deleting points</a></li>
+  </ul></li>
+  <li><a href="#title-and-axis-labels" id="toc-title-and-axis-labels" class="nav-link" data-scroll-target="#title-and-axis-labels">4. Title and axis labels</a></li>
+  <li><a href="#color-and-size-of-points" id="toc-color-and-size-of-points" class="nav-link" data-scroll-target="#color-and-size-of-points">5. Color and size of points</a>
+  <ul class="collapse">
+  <li><a href="#static-color-and-size" id="toc-static-color-and-size" class="nav-link" data-scroll-target="#static-color-and-size">Static color and size</a></li>
+  <li><a href="#color-by-a-category" id="toc-color-by-a-category" class="nav-link" data-scroll-target="#color-by-a-category">Color by a category</a></li>
+  <li><a href="#remove-the-legend" id="toc-remove-the-legend" class="nav-link" data-scroll-target="#remove-the-legend">Remove the legend</a></li>
+  <li><a href="#change-the-color-palette" id="toc-change-the-color-palette" class="nav-link" data-scroll-target="#change-the-color-palette">Change the color palette</a></li>
+  </ul></li>
+  <li><a href="#x-axis-texts-and-tick-locations" id="toc-x-axis-texts-and-tick-locations" class="nav-link" data-scroll-target="#x-axis-texts-and-tick-locations">6. X axis texts and tick locations</a>
+  <ul class="collapse">
+  <li><a href="#set-the-breaks" id="toc-set-the-breaks" class="nav-link" data-scroll-target="#set-the-breaks">Set the breaks</a></li>
+  <li><a href="#set-the-breaks-and-custom-labels" id="toc-set-the-breaks-and-custom-labels" class="nav-link" data-scroll-target="#set-the-breaks-and-custom-labels">Set the breaks and custom labels</a></li>
+  <li><a href="#reverse-the-axis" id="toc-reverse-the-axis" class="nav-link" data-scroll-target="#reverse-the-axis">Reverse the axis</a></li>
+  <li><a href="#format-the-axis-label-text" id="toc-format-the-axis-label-text" class="nav-link" data-scroll-target="#format-the-axis-label-text">Format the axis label text</a></li>
+  <li><a href="#pre-built-themes" id="toc-pre-built-themes" class="nav-link" data-scroll-target="#pre-built-themes">Pre-built themes</a></li>
+  </ul></li>
+  <li><a href="#takeaways" id="toc-takeaways" class="nav-link" data-scroll-target="#takeaways">Takeaways</a></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">The Complete ggplot2 Tutorial, Part 1, with tidyplots equivalents</h1>
+<p class="subtitle lead">Selva Prabhakaran’s ggplot2 intro, each step paired with the tidyplots way</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Bioinformatics &amp; Research Computing </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="about-this-handout" class="level2">
+<h2 class="anchored" data-anchor-id="about-this-handout">About this handout</h2>
+<p>This follows Selva Prabhakaran’s <a href="https://r-statistics.co/Complete-Ggplot2-Tutorial-Part1-With-R-Code.html">Complete ggplot2 Tutorial, Part 1</a> step by step. For each step we keep the original <strong>ggplot2</strong> code and plot, then add the <strong>tidyplots</strong> code that produces the same figure.</p>
+<p>The two grammars in one line:</p>
+<ul>
+<li><strong>ggplot2</strong> maps columns to aesthetics inside <code>aes()</code>, then stacks <code>geom_*()</code> and <code>scale_*()</code> layers with <code>+</code>.</li>
+<li><strong>tidyplots</strong> pipes the data frame in, then chains <code>add_*()</code>, <code>adjust_*()</code>, and <code>remove_*()</code> verbs with the native pipe <code>|&gt;</code>.</li>
+</ul>
+<p>This tutorial is a good stress test for tidyplots, because it is built around a <em>continuous</em> scatterplot with a regression line, which is not tidyplots’ core use case (tidyplots leans toward categorical statistical plots). Most steps map cleanly. Where tidyplots has no native verb, we use its escape hatch <code>add(ggplot2::...)</code>, which drops a raw ggplot2 layer into a tidyplot.</p>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">scipen =</span> <span class="dv">999</span>)   <span class="co"># turn off scientific notation like 1e+06</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)        <span class="co"># the tutorial's package</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyplots)      <span class="co"># the package we translate each step into</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">data</span>(<span class="st">"midwest"</span>, <span class="at">package =</span> <span class="st">"ggplot2"</span>)   <span class="co"># 437 US-midwest counties</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The <code>midwest</code> data has one row per county. We plot county <code>area</code> against total population <code>poptotal</code>, later colored by <code>state</code>.</p>
+</section>
+<section id="understanding-the-ggplot-syntax-the-blank-canvas" class="level2">
+<h2 class="anchored" data-anchor-id="understanding-the-ggplot-syntax-the-blank-canvas">1. Understanding the ggplot syntax (the blank canvas)</h2>
+<p>Both start by declaring the data and the x/y mapping but drawing no geom, so both panels are empty. In ggplot2 the mapping goes in <code>aes()</code>. In tidyplots it goes in <code>tidyplot()</code>.</p>
+<section id="ggplot2" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2">ggplot2</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(midwest, <span class="fu">aes</span>(<span class="at">x =</span> area, <span class="at">y =</span> poptotal))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/blank-gg-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots">tidyplots</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb3"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a>midwest <span class="sc">|&gt;</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidyplot</span>(<span class="at">x =</span> area, <span class="at">y =</span> poptotal)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/blank-tp-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="a-simple-scatterplot-and-a-smoothing-line" class="level2">
+<h2 class="anchored" data-anchor-id="a-simple-scatterplot-and-a-smoothing-line">2. A simple scatterplot (and a smoothing line)</h2>
+<p>Adding points is <code>geom_point()</code> in ggplot2 and <code>add_data_points()</code> in tidyplots. The line of best fit is <code>geom_smooth(method = "lm")</code> in ggplot2. tidyplots wraps the same machinery in <code>add_curve_fit(method = "lm")</code>.</p>
+<section id="ggplot2-1" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2-1">ggplot2</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(midwest, <span class="fu">aes</span>(<span class="at">x =</span> area, <span class="at">y =</span> poptotal)) <span class="sc">+</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>)   <span class="co"># se = FALSE turns off the confidence band</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/scatter-gg-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots-1" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots-1">tidyplots</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>midwest <span class="sc">|&gt;</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidyplot</span>(<span class="at">x =</span> area, <span class="at">y =</span> poptotal) <span class="sc">|&gt;</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_data_points</span>() <span class="sc">|&gt;</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_curve_fit</span>(<span class="at">method =</span> <span class="st">"lm"</span>)   <span class="co"># the linear fit, ribbon shown by default</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/scatter-tp-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="adjusting-the-x-and-y-axis-limits" class="level2">
+<h2 class="anchored" data-anchor-id="adjusting-the-x-and-y-axis-limits">3. Adjusting the x and y axis limits</h2>
+<p>The tutorial shows two distinct ideas. They look similar but behave differently, and the distinction carries over to tidyplots.</p>
+<section id="method-1-delete-points-outside-the-range" class="level3">
+<h3 class="anchored" data-anchor-id="method-1-delete-points-outside-the-range">Method 1: delete points outside the range</h3>
+<p><code>xlim()</code> / <code>ylim()</code> <em>drop</em> the points outside the range, so the regression line is refit on what remains. In tidyplots, setting <code>limits</code> in <code>adjust_x_axis()</code> / <code>adjust_y_axis()</code> does the same thing, it clips the data.</p>
+<section id="ggplot2-2" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2-2">ggplot2</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(midwest, <span class="fu">aes</span>(<span class="at">x =</span> area, <span class="at">y =</span> poptotal)) <span class="sc">+</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>) <span class="sc">+</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlim</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.1</span>)) <span class="sc">+</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylim</span>(<span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1000000</span>))   <span class="co"># points outside are dropped, so the fit changes</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/lim-gg-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots-2" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots-2">tidyplots</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>midwest <span class="sc">|&gt;</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidyplot</span>(<span class="at">x =</span> area, <span class="at">y =</span> poptotal) <span class="sc">|&gt;</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_data_points</span>() <span class="sc">|&gt;</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_curve_fit</span>(<span class="at">method =</span> <span class="st">"lm"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_x_axis</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.1</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_y_axis</span>(<span class="at">limits =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1000000</span>))   <span class="co"># clips data, just like xlim/ylim</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/lim-tp-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="method-2-zoom-in-without-deleting-points" class="level3">
+<h3 class="anchored" data-anchor-id="method-2-zoom-in-without-deleting-points">Method 2: zoom in without deleting points</h3>
+<p><code>coord_cartesian()</code> zooms the viewport but keeps every point, so the fit is unchanged. tidyplots has no native zoom verb, so this is a natural place to use the escape hatch and add <code>ggplot2::coord_cartesian()</code> directly.</p>
+<section id="ggplot2-3" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2-3">ggplot2</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>g <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(midwest, <span class="fu">aes</span>(<span class="at">x =</span> area, <span class="at">y =</span> poptotal)) <span class="sc">+</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>)</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>g <span class="sc">+</span> <span class="fu">coord_cartesian</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.1</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1000000</span>))   <span class="co"># fit unchanged</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/zoom-gg-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots-3" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots-3">tidyplots</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>midwest <span class="sc">|&gt;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidyplot</span>(<span class="at">x =</span> area, <span class="at">y =</span> poptotal) <span class="sc">|&gt;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_data_points</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_curve_fit</span>(<span class="at">method =</span> <span class="st">"lm"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># escape hatch: tidyplots has no coord_cartesian verb, so drop in ggplot2's</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add</span>(ggplot2<span class="sc">::</span><span class="fu">coord_cartesian</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.1</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1000000</span>)))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/zoom-tp-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="title-and-axis-labels" class="level2">
+<h2 class="anchored" data-anchor-id="title-and-axis-labels">4. Title and axis labels</h2>
+<p>ggplot2 sets every label in one <code>labs()</code> call. tidyplots spreads them across <code>adjust_*</code> verbs: <code>adjust_title()</code>, <code>adjust_x_axis_title()</code>, <code>adjust_y_axis_title()</code>, and <code>adjust_caption()</code>. tidyplots has no subtitle verb, so we fold the subtitle into the caption (or use the escape hatch with <code>ggplot2::labs(subtitle = ...)</code>).</p>
+<section id="ggplot2-4" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2-4">ggplot2</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(midwest, <span class="fu">aes</span>(<span class="at">x =</span> area, <span class="at">y =</span> poptotal)) <span class="sc">+</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>() <span class="sc">+</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>) <span class="sc">+</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_cartesian</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.1</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1000000</span>)) <span class="sc">+</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title    =</span> <span class="st">"Area Vs Population"</span>,</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">subtitle =</span> <span class="st">"From midwest dataset"</span>,</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>       <span class="at">y        =</span> <span class="st">"Population"</span>,</span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a>       <span class="at">x        =</span> <span class="st">"Area"</span>,</span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a>       <span class="at">caption  =</span> <span class="st">"Midwest Demographics"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/titles-gg-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots-4" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots-4">tidyplots</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a>midwest <span class="sc">|&gt;</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidyplot</span>(<span class="at">x =</span> area, <span class="at">y =</span> poptotal) <span class="sc">|&gt;</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_data_points</span>() <span class="sc">|&gt;</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_curve_fit</span>(<span class="at">method =</span> <span class="st">"lm"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add</span>(ggplot2<span class="sc">::</span><span class="fu">coord_cartesian</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.1</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1000000</span>))) <span class="sc">|&gt;</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_title</span>(<span class="st">"Area Vs Population"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_x_axis_title</span>(<span class="st">"Area"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_y_axis_title</span>(<span class="st">"Population"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_caption</span>(<span class="st">"Midwest Demographics"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add</span>(ggplot2<span class="sc">::</span><span class="fu">labs</span>(<span class="at">subtitle =</span> <span class="st">"From midwest dataset"</span>))   <span class="co"># no native subtitle verb</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/titles-tp-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="color-and-size-of-points" class="level2">
+<h2 class="anchored" data-anchor-id="color-and-size-of-points">5. Color and size of points</h2>
+<section id="static-color-and-size" class="level3">
+<h3 class="anchored" data-anchor-id="static-color-and-size">Static color and size</h3>
+<p>When a color or size is a <em>fixed value</em> (not tied to data), it goes outside <code>aes()</code> in ggplot2. In tidyplots it goes as a plain argument to the <code>add_*()</code> verb.</p>
+<section id="ggplot2-5" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2-5">ggplot2</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(midwest, <span class="fu">aes</span>(<span class="at">x =</span> area, <span class="at">y =</span> poptotal)) <span class="sc">+</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">col =</span> <span class="st">"steelblue"</span>, <span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">col =</span> <span class="st">"firebrick"</span>) <span class="sc">+</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_cartesian</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.1</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1000000</span>)) <span class="sc">+</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Area Vs Population"</span>, <span class="at">y =</span> <span class="st">"Population"</span>, <span class="at">x =</span> <span class="st">"Area"</span>,</span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">caption =</span> <span class="st">"Midwest Demographics"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/static-gg-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots-5" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots-5">tidyplots</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>midwest <span class="sc">|&gt;</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidyplot</span>(<span class="at">x =</span> area, <span class="at">y =</span> poptotal) <span class="sc">|&gt;</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_data_points</span>(<span class="at">color =</span> <span class="st">"steelblue"</span>, <span class="at">size =</span> <span class="dv">3</span>) <span class="sc">|&gt;</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_curve_fit</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">color =</span> <span class="st">"firebrick"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add</span>(ggplot2<span class="sc">::</span><span class="fu">coord_cartesian</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.1</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1000000</span>))) <span class="sc">|&gt;</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_title</span>(<span class="st">"Area Vs Population"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_x_axis_title</span>(<span class="st">"Area"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_y_axis_title</span>(<span class="st">"Population"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_caption</span>(<span class="st">"Midwest Demographics"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/static-tp-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="color-by-a-category" class="level3">
+<h3 class="anchored" data-anchor-id="color-by-a-category">Color by a category</h3>
+<p>To color by a <em>column</em>, ggplot2 puts <code>col = state</code> inside <code>aes()</code>. tidyplots puts <code>color = state</code> in the initial <code>tidyplot()</code> call. The legend appears automatically in both.</p>
+<section id="ggplot2-6" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2-6">ggplot2</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a>gg <span class="ot">&lt;-</span> <span class="fu">ggplot</span>(midwest, <span class="fu">aes</span>(<span class="at">x =</span> area, <span class="at">y =</span> poptotal)) <span class="sc">+</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">col =</span> state), <span class="at">size =</span> <span class="dv">3</span>) <span class="sc">+</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_smooth</span>(<span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">col =</span> <span class="st">"firebrick"</span>, <span class="at">size =</span> <span class="dv">2</span>) <span class="sc">+</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">coord_cartesian</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.1</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1000000</span>)) <span class="sc">+</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">title =</span> <span class="st">"Area Vs Population"</span>, <span class="at">subtitle =</span> <span class="st">"From midwest dataset"</span>,</span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>       <span class="at">y =</span> <span class="st">"Population"</span>, <span class="at">x =</span> <span class="st">"Area"</span>, <span class="at">caption =</span> <span class="st">"Midwest Demographics"</span>)</span>
+<span id="cb14-7"><a href="#cb14-7" aria-hidden="true" tabindex="-1"></a>gg</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/bycat-gg-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots-6" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots-6">tidyplots</h4>
+<p>There is a subtle trap here. In tidyplots <code>color = state</code> is set globally in <code>tidyplot()</code>, so <strong>every</strong> later layer inherits that grouping, including <code>add_curve_fit()</code>. That would fit one regression line <em>per state</em>, whereas the ggplot2 version fits a single global line (because its <code>col = "firebrick"</code> sits <em>outside</em> <code>aes()</code> in <code>geom_smooth()</code>, carrying no grouping).</p>
+<p>To match ggplot2’s single line we drop the inherited grouping for the fit only. The cleanest way is the escape hatch: a raw <code>geom_smooth()</code> with <code>aes(color = NULL, group = 1)</code>, which removes the color mapping and forces one group. The points keep their per-state colors.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>tp <span class="ot">&lt;-</span> midwest <span class="sc">|&gt;</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidyplot</span>(<span class="at">x =</span> area, <span class="at">y =</span> poptotal, <span class="at">color =</span> state) <span class="sc">|&gt;</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_data_points</span>(<span class="at">size =</span> <span class="dv">3</span>) <span class="sc">|&gt;</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># single global fit: aes(color = NULL, group = 1) cancels the inherited grouping</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add</span>(ggplot2<span class="sc">::</span><span class="fu">geom_smooth</span>(ggplot2<span class="sc">::</span><span class="fu">aes</span>(<span class="at">color =</span> <span class="cn">NULL</span>, <span class="at">group =</span> <span class="dv">1</span>),</span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>                           <span class="at">method =</span> <span class="st">"lm"</span>, <span class="at">color =</span> <span class="st">"firebrick"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add</span>(ggplot2<span class="sc">::</span><span class="fu">coord_cartesian</span>(<span class="at">xlim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="fl">0.1</span>), <span class="at">ylim =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">1000000</span>))) <span class="sc">|&gt;</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_title</span>(<span class="st">"Area Vs Population"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_x_axis_title</span>(<span class="st">"Area"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_y_axis_title</span>(<span class="st">"Population"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_caption</span>(<span class="st">"Midwest Demographics"</span>)</span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>tp</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/bycat-tp-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><strong>What to notice:</strong> this is a real difference in the two grammars, not a bug. A global <code>color</code> aesthetic in tidyplots groups <em>all</em> statistical layers by default. If you instead want a per-group fit (one line per state), keep the original <code>add_curve_fit(method = "lm")</code> and drop the <code>color = "firebrick"</code> override. The ggplot2 equivalent of <em>that</em> would be moving <code>color = state</code> into the shared <code>aes()</code> so <code>geom_smooth()</code> inherits it too.</p>
+</section>
+</section>
+<section id="remove-the-legend" class="level3">
+<h3 class="anchored" data-anchor-id="remove-the-legend">Remove the legend</h3>
+<p><code>theme(legend.position = "None")</code> in ggplot2. <code>remove_legend()</code> in tidyplots.</p>
+<section id="ggplot2-7" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2-7">ggplot2</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>gg <span class="sc">+</span> <span class="fu">theme</span>(<span class="at">legend.position =</span> <span class="st">"None"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/nolegend-gg-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots-7" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots-7">tidyplots</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a>tp <span class="sc">|&gt;</span></span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">remove_legend</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/nolegend-tp-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="change-the-color-palette" class="level3">
+<h3 class="anchored" data-anchor-id="change-the-color-palette">Change the color palette</h3>
+<p>The tutorial swaps in RColorBrewer’s “Set1” via <code>scale_colour_brewer()</code>. In tidyplots you pass a color vector to <code>adjust_colors()</code>. You can hand it the exact same brewer palette, or use one of tidyplots’ own built-in schemes such as <code>colors_discrete_friendly</code>.</p>
+<section id="ggplot2-8" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2-8">ggplot2</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>gg <span class="sc">+</span> <span class="fu">scale_colour_brewer</span>(<span class="at">palette =</span> <span class="st">"Set1"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/palette-gg-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots-8" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots-8">tidyplots</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Option A: the very same RColorBrewer palette (midwest has 5 states)</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>tp <span class="sc">|&gt;</span></span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_colors</span>(<span class="at">new_colors =</span> RColorBrewer<span class="sc">::</span><span class="fu">brewer.pal</span>(<span class="dv">5</span>, <span class="st">"Set1"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/palette-tp-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Option B: a tidyplots built-in colorblind-friendly scheme</span></span>
+<span id="cb20-2"><a href="#cb20-2" aria-hidden="true" tabindex="-1"></a>tp <span class="sc">|&gt;</span></span>
+<span id="cb20-3"><a href="#cb20-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_colors</span>(<span class="at">new_colors =</span> colors_discrete_friendly)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/palette-tp2-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="x-axis-texts-and-tick-locations" class="level2">
+<h2 class="anchored" data-anchor-id="x-axis-texts-and-tick-locations">6. X axis texts and tick locations</h2>
+<section id="set-the-breaks" class="level3">
+<h3 class="anchored" data-anchor-id="set-the-breaks">Set the breaks</h3>
+<p><code>scale_x_continuous(breaks = ...)</code> in ggplot2 becomes the <code>breaks</code> argument of <code>adjust_x_axis()</code> in tidyplots.</p>
+<section id="ggplot2-9" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2-9">ggplot2</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>gg <span class="sc">+</span> <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="fl">0.1</span>, <span class="fl">0.01</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/breaks-gg-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots-9" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots-9">tidyplots</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>tp <span class="sc">|&gt;</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_x_axis</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="fl">0.1</span>, <span class="fl">0.01</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/breaks-tp-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="set-the-breaks-and-custom-labels" class="level3">
+<h3 class="anchored" data-anchor-id="set-the-breaks-and-custom-labels">Set the breaks and custom labels</h3>
+<p><code>labels</code> takes a vector the same length as <code>breaks</code> in both packages. Here we use the letters a-k just to show the mechanism.</p>
+<section id="ggplot2-10" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2-10">ggplot2</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>gg <span class="sc">+</span> <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="fl">0.1</span>, <span class="fl">0.01</span>), <span class="at">labels =</span> letters[<span class="dv">1</span><span class="sc">:</span><span class="dv">11</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/labels-gg-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots-10" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots-10">tidyplots</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb24"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb24-1"><a href="#cb24-1" aria-hidden="true" tabindex="-1"></a>tp <span class="sc">|&gt;</span></span>
+<span id="cb24-2"><a href="#cb24-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_x_axis</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="fl">0.1</span>, <span class="fl">0.01</span>), <span class="at">labels =</span> letters[<span class="dv">1</span><span class="sc">:</span><span class="dv">11</span>])</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/labels-tp-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="reverse-the-axis" class="level3">
+<h3 class="anchored" data-anchor-id="reverse-the-axis">Reverse the axis</h3>
+<p><code>scale_x_reverse()</code> in ggplot2. tidyplots exposes <code>transform = "reverse"</code> on <code>adjust_x_axis()</code>.</p>
+<section id="ggplot2-11" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2-11">ggplot2</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>gg <span class="sc">+</span> <span class="fu">scale_x_reverse</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/reverse-gg-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots-11" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots-11">tidyplots</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a>tp <span class="sc">|&gt;</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_x_axis</span>(<span class="at">transform =</span> <span class="st">"reverse"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/reverse-tp-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="format-the-axis-label-text" class="level3">
+<h3 class="anchored" data-anchor-id="format-the-axis-label-text">Format the axis label text</h3>
+<p>The tutorial formats the x axis as percentages (<code>sprintf</code>) and the y axis from 1000s to a “K” scale (custom function). Both packages accept a formatting function in <code>labels</code>. tidyplots also has a shortcut: <code>cut_short_scale = TRUE</code> auto-abbreviates large numbers (200000 becomes 200K), which is exactly the y-axis effect here.</p>
+<section id="ggplot2-12" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2-12">ggplot2</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>gg <span class="sc">+</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="fl">0.1</span>, <span class="fl">0.01</span>),</span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>                     <span class="at">labels =</span> <span class="fu">sprintf</span>(<span class="st">"%1.2f%%"</span>, <span class="fu">seq</span>(<span class="dv">0</span>, <span class="fl">0.1</span>, <span class="fl">0.01</span>))) <span class="sc">+</span></span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1000000</span>, <span class="dv">200000</span>),</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a>                     <span class="at">labels =</span> <span class="cf">function</span>(x) <span class="fu">paste0</span>(x <span class="sc">/</span> <span class="dv">1000</span>, <span class="st">"K"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/format-gg-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots-12" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots-12">tidyplots</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>tp <span class="sc">|&gt;</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_x_axis</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="fl">0.1</span>, <span class="fl">0.01</span>),</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>                <span class="at">labels =</span> <span class="fu">sprintf</span>(<span class="st">"%1.2f%%"</span>, <span class="fu">seq</span>(<span class="dv">0</span>, <span class="fl">0.1</span>, <span class="fl">0.01</span>))) <span class="sc">|&gt;</span></span>
+<span id="cb28-4"><a href="#cb28-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_y_axis</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="dv">1000000</span>, <span class="dv">200000</span>),</span>
+<span id="cb28-5"><a href="#cb28-5" aria-hidden="true" tabindex="-1"></a>                <span class="at">cut_short_scale =</span> <span class="cn">TRUE</span>)   <span class="co"># 200000 -&gt; 200K automatically</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/format-tp-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="pre-built-themes" class="level3">
+<h3 class="anchored" data-anchor-id="pre-built-themes">Pre-built themes</h3>
+<p>ggplot2 ships <code>theme_bw()</code>, <code>theme_classic()</code>, and more. tidyplots ships its own family: the default <code>theme_tidyplot()</code>, plus <code>theme_minimal_xy()</code>, <code>theme_minimal_x()</code>, <code>theme_minimal_y()</code>, and <code>theme_ggplot2()</code> (which imitates ggplot2’s grey look). You can also drop any ggplot2 theme into a tidyplot through the escape hatch.</p>
+<section id="ggplot2-13" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2-13">ggplot2</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>gg2 <span class="ot">&lt;-</span> gg <span class="sc">+</span> <span class="fu">scale_x_continuous</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="fl">0.1</span>, <span class="fl">0.01</span>))</span>
+<span id="cb29-2"><a href="#cb29-2" aria-hidden="true" tabindex="-1"></a>gg2 <span class="sc">+</span> <span class="fu">theme_bw</span>() <span class="sc">+</span> <span class="fu">labs</span>(<span class="at">subtitle =</span> <span class="st">"BW Theme"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/theme-gg-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb30"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb30-1"><a href="#cb30-1" aria-hidden="true" tabindex="-1"></a>gg2 <span class="sc">+</span> <span class="fu">theme_classic</span>() <span class="sc">+</span> <span class="fu">labs</span>(<span class="at">subtitle =</span> <span class="st">"Classic Theme"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/theme-gg2-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots-13" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots-13">tidyplots</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a><span class="co"># A tidyplots-native minimal theme (closest to theme_bw)</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>tp <span class="sc">|&gt;</span></span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_x_axis</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="fl">0.1</span>, <span class="fl">0.01</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb31-4"><a href="#cb31-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal_xy</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/theme-tp-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Or drop a genuine ggplot2 theme in through the escape hatch</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>tp <span class="sc">|&gt;</span></span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_x_axis</span>(<span class="at">breaks =</span> <span class="fu">seq</span>(<span class="dv">0</span>, <span class="fl">0.1</span>, <span class="fl">0.01</span>)) <span class="sc">|&gt;</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add</span>(ggplot2<span class="sc">::</span><span class="fu">theme_classic</span>())</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="complete_ggplot2_part1_w_tidyverse_files/figure-html/theme-tp2-1.png" class="img-fluid figure-img" width="576"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+</section>
+<section id="takeaways" class="level2">
+<h2 class="anchored" data-anchor-id="takeaways">Takeaways</h2>
+<ul>
+<li>Most steps map one verb to one layer: <code>geom_point()</code> is <code>add_data_points()</code>, <code>geom_smooth(method = "lm")</code> is <code>add_curve_fit(method = "lm")</code>, <code>scale_colour_brewer()</code> is <code>adjust_colors()</code>, axis tweaks are <code>adjust_x_axis()</code> / <code>adjust_y_axis()</code>.</li>
+<li>ggplot2 bundles all labels into one <code>labs()</code>. tidyplots splits them across several <code>adjust_*</code> verbs, one concern per verb.</li>
+<li>This is a continuous scatterplot tutorial, which is outside tidyplots’ main categorical-statistics wheelhouse. Two things needed the escape hatch <code>add(ggplot2::...)</code>: zooming with <code>coord_cartesian()</code> and adding a plot subtitle. That is the design promise, a tidy verb vocabulary that never traps you, because any tidyplot can absorb raw ggplot2 layers.</li>
+<li>tidyplots throws in conveniences ggplot2 makes you spell out, for example <code>cut_short_scale = TRUE</code> to abbreviate large axis numbers as “K”.</li>
+<li>Original tutorial: <a href="https://r-statistics.co/Complete-Ggplot2-Tutorial-Part1-With-R-Code.html" class="uri">https://r-statistics.co/Complete-Ggplot2-Tutorial-Part1-With-R-Code.html</a></li>
+</ul>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

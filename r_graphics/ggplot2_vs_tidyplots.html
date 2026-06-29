@@ -1,0 +1,1012 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="author" content="Bioinformatics &amp; Research Computing">
+
+<title>ggplot2 vs.&nbsp;tidyplots: the same scRNA-seq figures, two grammars</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="ggplot2_vs_tidyplots_files/libs/clipboard/clipboard.min.js"></script>
+<script src="ggplot2_vs_tidyplots_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="ggplot2_vs_tidyplots_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="ggplot2_vs_tidyplots_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="ggplot2_vs_tidyplots_files/libs/quarto-html/popper.min.js"></script>
+<script src="ggplot2_vs_tidyplots_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="ggplot2_vs_tidyplots_files/libs/quarto-html/anchor.min.js"></script>
+<link href="ggplot2_vs_tidyplots_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="ggplot2_vs_tidyplots_files/libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="ggplot2_vs_tidyplots_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="ggplot2_vs_tidyplots_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="ggplot2_vs_tidyplots_files/libs/bootstrap/bootstrap-80a72465ba608f349709eed02572a75d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul class="collapse">
+  <li><a href="#what-this-handout-shows" id="toc-what-this-handout-shows" class="nav-link active" data-scroll-target="#what-this-handout-shows">What this handout shows</a></li>
+  <li><a href="#setup" id="toc-setup" class="nav-link" data-scroll-target="#setup">Setup</a></li>
+  <li><a href="#a-tiny-synthetic-scrna-seq-dataset" id="toc-a-tiny-synthetic-scrna-seq-dataset" class="nav-link" data-scroll-target="#a-tiny-synthetic-scrna-seq-dataset">A tiny synthetic scRNA-seq dataset</a></li>
+  <li><a href="#plot-1-expression-by-condition-with-points-mean-sem-test" id="toc-plot-1-expression-by-condition-with-points-mean-sem-test" class="nav-link" data-scroll-target="#plot-1-expression-by-condition-with-points-mean-sem-test">Plot 1 — Expression by condition, with points + mean ± SEM + test</a></li>
+  <li><a href="#plot-2-marker-gene-violins-across-cell-types-faceting" id="toc-plot-2-marker-gene-violins-across-cell-types-faceting" class="nav-link" data-scroll-target="#plot-2-marker-gene-violins-across-cell-types-faceting">Plot 2 — Marker-gene violins across cell types (faceting)</a></li>
+  <li><a href="#plot-3-bonus-mean-expression-heatmap" id="toc-plot-3-bonus-mean-expression-heatmap" class="nav-link" data-scroll-target="#plot-3-bonus-mean-expression-heatmap">Plot 3 (bonus) — Mean-expression heatmap</a></li>
+  <li><a href="#plot-4-the-dot-plot-where-both-grammars-hit-their-ceiling" id="toc-plot-4-the-dot-plot-where-both-grammars-hit-their-ceiling" class="nav-link" data-scroll-target="#plot-4-the-dot-plot-where-both-grammars-hit-their-ceiling">Plot 4 — The dot plot: where both grammars hit their ceiling</a></li>
+  <li><a href="#discussion-prompts-for-students" id="toc-discussion-prompts-for-students" class="nav-link" data-scroll-target="#discussion-prompts-for-students">Discussion prompts for students</a></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">ggplot2 vs.&nbsp;tidyplots: the same scRNA-seq figures, two grammars</h1>
+<p class="subtitle lead">A side-by-side teaching handout</p>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    <div>
+    <div class="quarto-title-meta-heading">Author</div>
+    <div class="quarto-title-meta-contents">
+             <p>Bioinformatics &amp; Research Computing </p>
+          </div>
+  </div>
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="what-this-handout-shows" class="level2">
+<h2 class="anchored" data-anchor-id="what-this-handout-shows">What this handout shows</h2>
+<p>Both packages sit on top of the <strong>grammar of graphics</strong>, but they ask you to think differently:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th></th>
+<th><strong>ggplot2</strong></th>
+<th><strong>tidyplots</strong></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Mental model</td>
+<td>map data → aesthetics, then stack <em>geoms</em> and <em>stats</em></td>
+<td>pipe a data frame in, then <code>add_*()</code> named components</td>
+</tr>
+<tr class="even">
+<td>Verb style</td>
+<td><code>geom_*()</code>, <code>stat_*()</code>, <code>scale_*()</code>, <code>theme_*()</code></td>
+<td><code>add_&lt;statistic&gt;_&lt;representation&gt;()</code></td>
+</tr>
+<tr class="odd">
+<td>Defaults</td>
+<td>general-purpose grey theme</td>
+<td>publication-styled (small fonts, clean axes) out of the box</td>
+</tr>
+<tr class="even">
+<td>Stats / significance</td>
+<td>bring a helper (<code>ggsignif</code>, <code>ggpubr</code>, <code>stat_summary</code>)</td>
+<td>built in: <code>add_mean_bar()</code>, <code>add_sem_errorbar()</code>, <code>add_test_*()</code></td>
+</tr>
+<tr class="odd">
+<td>Faceting</td>
+<td><code>facet_wrap()</code> / <code>facet_grid()</code></td>
+<td><code>split_plot(by = ...)</code></td>
+</tr>
+<tr class="even">
+<td>Escape hatch</td>
+<td>— <em>is</em> the escape hatch</td>
+<td><code>add(ggplot2::geom_*())</code> drops back to raw ggplot2</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Teaching point:</strong> tidyplots is a gentle, statistics-first on-ramp that stays ggplot2-compatible — students learn a tidy <code>add_*()</code> vocabulary but never get trapped, because any tidyplot can absorb raw ggplot2 layers.</p>
+</section>
+<section id="setup" class="level2">
+<h2 class="anchored" data-anchor-id="setup">Setup</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)   <span class="co"># ggplot2, dplyr, tidyr, purrr</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyplots)   <span class="co"># install.packages("tidyplots")</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Only needed to make the *ggplot2* version match tidyplots' built-ins.</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="co"># The fact that these are extra installs is itself part of the lesson.</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggbeeswarm)  <span class="co"># geom_quasirandom()  -&gt; beeswarm points</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggsignif)    <span class="co"># geom_signif()        -&gt; significance brackets</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="a-tiny-synthetic-scrna-seq-dataset" class="level2">
+<h2 class="anchored" data-anchor-id="a-tiny-synthetic-scrna-seq-dataset">A tiny synthetic scRNA-seq dataset</h2>
+<p>We simulate log-normalized expression for four marker genes across three cell types and two conditions. <code>IL2</code> is wired to be <strong>induced by stimulation in T cells</strong> so we have a real effect to test.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">set.seed</span>(<span class="dv">42</span>)</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>cell_types <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"T cell"</span>, <span class="st">"B cell"</span>, <span class="st">"Monocyte"</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>conditions <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"Control"</span>, <span class="st">"Stimulated"</span>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>genes      <span class="ot">&lt;-</span> <span class="fu">c</span>(<span class="st">"CD3D"</span>, <span class="st">"MS4A1"</span>, <span class="st">"LYZ"</span>, <span class="st">"IL2"</span>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># biologically-flavored mean expression on a log-normalized scale</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>mean_expr <span class="ot">&lt;-</span> <span class="cf">function</span>(gene, cell_type, condition) {</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  base <span class="ot">&lt;-</span> dplyr<span class="sc">::</span><span class="fu">case_when</span>(</span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>    gene <span class="sc">==</span> <span class="st">"CD3D"</span>  <span class="sc">&amp;</span> cell_type <span class="sc">==</span> <span class="st">"T cell"</span>   <span class="sc">~</span> <span class="fl">3.0</span>,   <span class="co"># T-cell marker</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>    gene <span class="sc">==</span> <span class="st">"MS4A1"</span> <span class="sc">&amp;</span> cell_type <span class="sc">==</span> <span class="st">"B cell"</span>   <span class="sc">~</span> <span class="fl">3.2</span>,   <span class="co"># B-cell marker</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>    gene <span class="sc">==</span> <span class="st">"LYZ"</span>   <span class="sc">&amp;</span> cell_type <span class="sc">==</span> <span class="st">"Monocyte"</span> <span class="sc">~</span> <span class="fl">3.5</span>,   <span class="co"># monocyte marker</span></span>
+<span id="cb2-13"><a href="#cb2-13" aria-hidden="true" tabindex="-1"></a>    gene <span class="sc">==</span> <span class="st">"IL2"</span>   <span class="sc">&amp;</span> cell_type <span class="sc">==</span> <span class="st">"T cell"</span>   <span class="sc">~</span> <span class="fl">1.0</span>,   <span class="co"># low at baseline</span></span>
+<span id="cb2-14"><a href="#cb2-14" aria-hidden="true" tabindex="-1"></a>    <span class="cn">TRUE</span> <span class="sc">~</span> <span class="fl">0.3</span></span>
+<span id="cb2-15"><a href="#cb2-15" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-16"><a href="#cb2-16" aria-hidden="true" tabindex="-1"></a>  bump <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(gene <span class="sc">==</span> <span class="st">"IL2"</span> <span class="sc">&amp;</span> cell_type <span class="sc">==</span> <span class="st">"T cell"</span> <span class="sc">&amp;</span></span>
+<span id="cb2-17"><a href="#cb2-17" aria-hidden="true" tabindex="-1"></a>                   condition <span class="sc">==</span> <span class="st">"Stimulated"</span>, <span class="fl">1.6</span>, <span class="dv">0</span>)  <span class="co"># the effect</span></span>
+<span id="cb2-18"><a href="#cb2-18" aria-hidden="true" tabindex="-1"></a>  base <span class="sc">+</span> bump</span>
+<span id="cb2-19"><a href="#cb2-19" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb2-20"><a href="#cb2-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-21"><a href="#cb2-21" aria-hidden="true" tabindex="-1"></a>n_cells <span class="ot">&lt;-</span> <span class="dv">40</span></span>
+<span id="cb2-22"><a href="#cb2-22" aria-hidden="true" tabindex="-1"></a>sc <span class="ot">&lt;-</span> tidyr<span class="sc">::</span><span class="fu">expand_grid</span>(</span>
+<span id="cb2-23"><a href="#cb2-23" aria-hidden="true" tabindex="-1"></a>  <span class="at">cell_type =</span> cell_types,</span>
+<span id="cb2-24"><a href="#cb2-24" aria-hidden="true" tabindex="-1"></a>  <span class="at">condition =</span> conditions,</span>
+<span id="cb2-25"><a href="#cb2-25" aria-hidden="true" tabindex="-1"></a>  <span class="at">gene      =</span> genes,</span>
+<span id="cb2-26"><a href="#cb2-26" aria-hidden="true" tabindex="-1"></a>  <span class="at">cell      =</span> <span class="fu">seq_len</span>(n_cells)</span>
+<span id="cb2-27"><a href="#cb2-27" aria-hidden="true" tabindex="-1"></a>) <span class="sc">|&gt;</span></span>
+<span id="cb2-28"><a href="#cb2-28" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(</span>
+<span id="cb2-29"><a href="#cb2-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">cell_id    =</span> <span class="fu">paste</span>(cell_type, condition, cell, <span class="at">sep =</span> <span class="st">"_"</span>),</span>
+<span id="cb2-30"><a href="#cb2-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">mu         =</span> purrr<span class="sc">::</span><span class="fu">pmap_dbl</span>(<span class="fu">list</span>(gene, cell_type, condition), mean_expr),</span>
+<span id="cb2-31"><a href="#cb2-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">expression =</span> <span class="fu">pmax</span>(<span class="dv">0</span>, <span class="fu">rnorm</span>(dplyr<span class="sc">::</span><span class="fu">n</span>(), <span class="at">mean =</span> mu, <span class="at">sd =</span> <span class="fl">0.8</span>))</span>
+<span id="cb2-32"><a href="#cb2-32" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb2-33"><a href="#cb2-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-34"><a href="#cb2-34" aria-hidden="true" tabindex="-1"></a>dplyr<span class="sc">::</span><span class="fu">glimpse</span>(sc)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>Rows: 960
+Columns: 7
+$ cell_type  &lt;chr&gt; "T cell", "T cell", "T cell", "T cell", "T cell", "T cell",…
+$ condition  &lt;chr&gt; "Control", "Control", "Control", "Control", "Control", "Con…
+$ gene       &lt;chr&gt; "CD3D", "CD3D", "CD3D", "CD3D", "CD3D", "CD3D", "CD3D", "CD…
+$ cell       &lt;int&gt; 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, …
+$ cell_id    &lt;chr&gt; "T cell_Control_1", "T cell_Control_2", "T cell_Control_3",…
+$ mu         &lt;dbl&gt; 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,…
+$ expression &lt;dbl&gt; 4.0967668, 2.5482415, 3.2905027, 3.5062901, 3.3234147, 2.91…</code></pre>
+</div>
+</div>
+</section>
+<section id="plot-1-expression-by-condition-with-points-mean-sem-test" class="level2">
+<h2 class="anchored" data-anchor-id="plot-1-expression-by-condition-with-points-mean-sem-test">Plot 1 — Expression by condition, with points + mean ± SEM + test</h2>
+<p>The headline contrast. tidyplots gives you beeswarm points, a mean bar, SEM error bars, <em>and</em> a significance test in five readable verbs. ggplot2 needs <code>stat_summary()</code> plus two extra packages to match it.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>il2 <span class="ot">&lt;-</span> sc <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(gene <span class="sc">==</span> <span class="st">"IL2"</span>, cell_type <span class="sc">==</span> <span class="st">"T cell"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<section id="ggplot2" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2">ggplot2</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb5"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(                                  <span class="co"># start the plot</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>  il2,                                   <span class="co"># the data frame to plot</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(                                   <span class="co"># aes() maps data columns to visual roles</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> condition,                       <span class="co"># condition on the x axis</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> expression                       <span class="co"># expression on the y axis</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span>                                      <span class="co"># + adds the next layer</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_summary</span>(                          <span class="co"># compute a summary statistic per x group and draw it</span></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">fill =</span> condition),               <span class="co"># fill (bar interior color) varies by condition</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">fun =</span> mean,                          <span class="co"># the statistic to compute is the mean of y</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">geom =</span> <span class="st">"col"</span>,                        <span class="co"># draw the result as a column (bar)</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">width =</span> <span class="fl">0.6</span>,                         <span class="co"># bar width (1 = bars touch)</span></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">alpha =</span> <span class="fl">0.4</span>,                         <span class="co"># 40% opacity, so points behind show through</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="cn">NA</span>                           <span class="co"># no outline around the bars</span></span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">stat_summary</span>(                          <span class="co"># a second summary layer, for the error bars</span></span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">fun.data =</span> mean_se,                  <span class="co"># compute the mean and its +/- standard-error range</span></span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">geom =</span> <span class="st">"errorbar"</span>,                   <span class="co"># draw that range as an error bar</span></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">width =</span> <span class="fl">0.2</span>                          <span class="co"># width of the little horizontal caps</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>  ggbeeswarm<span class="sc">::</span><span class="fu">geom_quasirandom</span>(          <span class="co"># draw the individual cells as beeswarm points (spread sideways so they do not overlap)</span></span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(<span class="at">color =</span> condition),              <span class="co"># point color varies by condition</span></span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">width =</span> <span class="fl">0.25</span>,                        <span class="co"># how far points are allowed to spread sideways</span></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">size =</span> <span class="dv">1</span>                             <span class="co"># point size</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>  ggsignif<span class="sc">::</span><span class="fu">geom_signif</span>(                 <span class="co"># draw a significance bracket and run the test</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">comparisons =</span> <span class="fu">list</span>(                  <span class="co"># which x groups to compare</span></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a>      <span class="fu">c</span>(<span class="st">"Control"</span>, <span class="st">"Stimulated"</span>)         <span class="co"># compare Control vs Stimulated</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb5-30"><a href="#cb5-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">map_signif_level =</span> <span class="cn">TRUE</span>              <span class="co"># show stars (*, **, ***) instead of the raw p-value</span></span>
+<span id="cb5-31"><a href="#cb5-31" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb5-32"><a href="#cb5-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(                                  <span class="co"># set the labels</span></span>
+<span id="cb5-33"><a href="#cb5-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="cn">NULL</span>,                            <span class="co"># remove the x-axis title</span></span>
+<span id="cb5-34"><a href="#cb5-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"IL2 expression"</span>,                <span class="co"># y-axis title</span></span>
+<span id="cb5-35"><a href="#cb5-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"IL2 in T cells"</span>             <span class="co"># plot title</span></span>
+<span id="cb5-36"><a href="#cb5-36" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb5-37"><a href="#cb5-37" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>(                         <span class="co"># a clean built-in look (white background, axis lines, no grid)</span></span>
+<span id="cb5-38"><a href="#cb5-38" aria-hidden="true" tabindex="-1"></a>    <span class="at">base_size =</span> <span class="dv">11</span>                       <span class="co"># base font size in points</span></span>
+<span id="cb5-39"><a href="#cb5-39" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb5-40"><a href="#cb5-40" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(                                 <span class="co"># override individual style elements</span></span>
+<span id="cb5-41"><a href="#cb5-41" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"none"</span>             <span class="co"># hide the legend (the x axis already labels the conditions)</span></span>
+<span id="cb5-42"><a href="#cb5-42" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="ggplot2_vs_tidyplots_files/figure-html/p1-ggplot2-1.png" class="img-fluid figure-img" width="432"></p>
+<figcaption>ggplot2: stat_summary + ggbeeswarm + ggsignif</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots">tidyplots</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>il2 <span class="sc">|&gt;</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidyplot</span>(<span class="at">x =</span> condition, <span class="at">y =</span> expression, <span class="at">color =</span> condition) <span class="sc">|&gt;</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_mean_bar</span>(<span class="at">alpha =</span> <span class="fl">0.4</span>) <span class="sc">|&gt;</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_sem_errorbar</span>() <span class="sc">|&gt;</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_data_points_beeswarm</span>() <span class="sc">|&gt;</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_test_asterisks</span>() <span class="sc">|&gt;</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_title</span>(<span class="st">"IL2 in T cells"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_legend_position</span>(<span class="st">"none"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="ggplot2_vs_tidyplots_files/figure-html/p1-tidyplots-1.png" class="img-fluid figure-img" width="432"></p>
+<figcaption>tidyplots: five add_*() verbs, stats included</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p><strong>What to notice</strong></p>
+<ul>
+<li>The statistic and its visual form are <em>named together</em> in tidyplots (<code>add_mean_bar</code>, <code>add_sem_errorbar</code>), versus ggplot2’s <code>stat_summary(fun = ..., geom = ...)</code>.</li>
+<li>Significance testing is one verb in tidyplots; in ggplot2 it’s an add-on package.</li>
+<li>ggplot2 wins when you need an unusual <code>stat_summary</code> (e.g.&nbsp;a custom function) — full control, more typing.</li>
+</ul>
+</section>
+</section>
+<section id="plot-2-marker-gene-violins-across-cell-types-faceting" class="level2">
+<h2 class="anchored" data-anchor-id="plot-2-marker-gene-violins-across-cell-types-faceting">Plot 2 — Marker-gene violins across cell types (faceting)</h2>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb7"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>markers <span class="ot">&lt;-</span> sc <span class="sc">|&gt;</span> dplyr<span class="sc">::</span><span class="fu">filter</span>(gene <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"CD3D"</span>, <span class="st">"MS4A1"</span>, <span class="st">"LYZ"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<section id="ggplot2-1" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2-1">ggplot2</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb8"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  markers,                               <span class="co"># the data frame to plot</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> cell_type,                       <span class="co"># cell_type on the x axis</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> expression,                      <span class="co"># expression on the y axis</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">fill =</span> cell_type                     <span class="co"># fill color varies by cell_type</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_violin</span>(                           <span class="co"># draw a violin (a mirrored density of the distribution)</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">scale =</span> <span class="st">"width"</span>,                     <span class="co"># give every violin the same maximum width, so shapes are comparable across groups of different size</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">color =</span> <span class="cn">NA</span>,                          <span class="co"># no outline</span></span>
+<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">alpha =</span> <span class="fl">0.7</span>                          <span class="co"># 70% opacity</span></span>
+<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(                          <span class="co"># overlay a narrow box-and-whisker on each violin</span></span>
+<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">width =</span> <span class="fl">0.12</span>,                        <span class="co"># make the box narrow so the violin stays visible</span></span>
+<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">outlier.size =</span> <span class="fl">0.4</span>,                  <span class="co"># draw outlier points small</span></span>
+<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">alpha =</span> <span class="fl">0.9</span>                          <span class="co"># nearly opaque</span></span>
+<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(                            <span class="co"># split the plot into one small panel per gene</span></span>
+<span id="cb8-20"><a href="#cb8-20" aria-hidden="true" tabindex="-1"></a>    <span class="sc">~</span> gene,                              <span class="co"># the variable to split panels by</span></span>
+<span id="cb8-21"><a href="#cb8-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">scales =</span> <span class="st">"free_y"</span>                    <span class="co"># let each panel have its own y-axis range</span></span>
+<span id="cb8-22"><a href="#cb8-22" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb8-23"><a href="#cb8-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb8-24"><a href="#cb8-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="cn">NULL</span>,                            <span class="co"># remove the x-axis title</span></span>
+<span id="cb8-25"><a href="#cb8-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Expression"</span>                     <span class="co"># y-axis title</span></span>
+<span id="cb8-26"><a href="#cb8-26" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb8-27"><a href="#cb8-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>(                              <span class="co"># the black-and-white theme (white panel, grey gridlines, border)</span></span>
+<span id="cb8-28"><a href="#cb8-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">base_size =</span> <span class="dv">11</span>                       <span class="co"># base font size in points</span></span>
+<span id="cb8-29"><a href="#cb8-29" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb8-30"><a href="#cb8-30" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb8-31"><a href="#cb8-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.position =</span> <span class="st">"none"</span>,            <span class="co"># hide the legend</span></span>
+<span id="cb8-32"><a href="#cb8-32" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.x =</span> <span class="fu">element_text</span>(          <span class="co"># style the x-axis tick labels</span></span>
+<span id="cb8-33"><a href="#cb8-33" aria-hidden="true" tabindex="-1"></a>      <span class="at">angle =</span> <span class="dv">30</span>,                        <span class="co"># rotate them 30 degrees</span></span>
+<span id="cb8-34"><a href="#cb8-34" aria-hidden="true" tabindex="-1"></a>      <span class="at">hjust =</span> <span class="dv">1</span>                          <span class="co"># right-justify so long labels do not overlap</span></span>
+<span id="cb8-35"><a href="#cb8-35" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb8-36"><a href="#cb8-36" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="ggplot2_vs_tidyplots_files/figure-html/p2-ggplot2-1.png" class="img-fluid figure-img" width="672"></p>
+<figcaption>ggplot2: geom_violin + geom_boxplot + facet_wrap</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots-1" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots-1">tidyplots</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a>markers <span class="sc">|&gt;</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidyplot</span>(<span class="at">x =</span> cell_type, <span class="at">y =</span> expression, <span class="at">color =</span> cell_type) <span class="sc">|&gt;</span></span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_violin</span>() <span class="sc">|&gt;</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_boxplot</span>(<span class="at">width =</span> <span class="fl">0.15</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_legend_position</span>(<span class="st">"none"</span>) <span class="sc">|&gt;</span></span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">split_plot</span>(<span class="at">by =</span> gene)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="ggplot2_vs_tidyplots_files/figure-html/p2-tidyplots-1.png" class="img-fluid figure-img" width="672"></p>
+<figcaption>tidyplots: add_violin + add_boxplot + split_plot</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p><strong>What to notice</strong></p>
+<ul>
+<li><code>facet_wrap()</code> keeps everything in one ggplot object; <code>split_plot()</code> returns a set of independent tidyplots stitched together — handy when each panel needs different adjustments later.</li>
+<li>Same layered idea, near-identical line count here. Faceting is where the two packages feel most similar.</li>
+</ul>
+</section>
+</section>
+<section id="plot-3-bonus-mean-expression-heatmap" class="level2">
+<h2 class="anchored" data-anchor-id="plot-3-bonus-mean-expression-heatmap">Plot 3 (bonus) — Mean-expression heatmap</h2>
+<p>Both need a <code>group_by() |&gt; summarise()</code> first; the plotting line is where they diverge.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>heat <span class="ot">&lt;-</span> sc <span class="sc">|&gt;</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">group_by</span>(gene, cell_type) <span class="sc">|&gt;</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarise</span>(<span class="at">mean_expr =</span> <span class="fu">mean</span>(expression), <span class="at">.groups =</span> <span class="st">"drop"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<section id="ggplot2-2" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2-2">ggplot2</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  heat,                                  <span class="co"># the data frame to plot</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(</span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> cell_type,                       <span class="co"># cell_type on the x axis</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> gene,                            <span class="co"># gene on the y axis</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">fill =</span> mean_expr                     <span class="co"># the continuous mean_expr drives the fill color</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_tile</span>() <span class="sc">+</span>                          <span class="co"># draw one rectangle per x/y combination (the heatmap cells), colored by fill</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>() <span class="sc">+</span>               <span class="co"># apply the viridis color scale for a continuous (_c) fill; viridis is perceptually uniform and colorblind-friendly</span></span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="cn">NULL</span>,                            <span class="co"># remove the x-axis title</span></span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="cn">NULL</span>,                            <span class="co"># remove the y-axis title</span></span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">fill =</span> <span class="st">"Mean"</span>                        <span class="co"># title for the color legend</span></span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>(                         <span class="co"># a light theme with no axis lines and faint gridlines</span></span>
+<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">base_size =</span> <span class="dv">11</span>                       <span class="co"># base font size in points</span></span>
+<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ggplot2_vs_tidyplots_files/figure-html/p3-ggplot2-1.png" class="img-fluid figure-img" width="384"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots-2" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots-2">tidyplots</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb12"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>heat <span class="sc">|&gt;</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidyplot</span>(<span class="at">x =</span> cell_type, <span class="at">y =</span> gene, <span class="at">color =</span> mean_expr) <span class="sc">|&gt;</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add_heatmap</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="ggplot2_vs_tidyplots_files/figure-html/p3-tidyplots-1.png" class="img-fluid figure-img" width="384"></p>
+</figure>
+</div>
+</div>
+</div>
+<p><strong>What to notice</strong></p>
+<ul>
+<li>tidyplots maps the continuous fill through <code>color =</code> and <code>add_heatmap()</code> brings a sensible diverging/continuous scale for free; ggplot2 leaves the palette choice (here <code>scale_fill_viridis_c()</code>) explicitly to you.</li>
+</ul>
+</section>
+</section>
+<section id="plot-4-the-dot-plot-where-both-grammars-hit-their-ceiling" class="level2">
+<h2 class="anchored" data-anchor-id="plot-4-the-dot-plot-where-both-grammars-hit-their-ceiling">Plot 4 — The dot plot: where both grammars hit their ceiling</h2>
+<p>The Seurat <code>DotPlot</code> / Scanpy <code>sc.pl.dotplot</code> grid is the one canonical scRNA-seq figure that neither package draws from raw data. Each dot encodes <strong>two</strong> derived statistics at once:</p>
+<ul>
+<li><strong>size</strong> = % of cells in the group expressing the gene (<code>mean(expr &gt; 0)</code>)</li>
+<li><strong>color</strong> = mean expression, <strong>z-scored within each gene</strong> across groups</li>
+</ul>
+<p>Every earlier figure mapped to <em>one mark plus at most one computed statistic</em>. This one needs a genuine precompute — two summaries <em>and</em> a per-gene normalization — before anything reaches the canvas.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>dot <span class="ot">&lt;-</span> sc <span class="sc">|&gt;</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">group_by</span>(gene, cell_type) <span class="sc">|&gt;</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">summarise</span>(</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">pct_expr =</span> <span class="fu">mean</span>(expression <span class="sc">&gt;</span> <span class="dv">0</span>) <span class="sc">*</span> <span class="dv">100</span>,   <span class="co"># % of cells expressing</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">avg_expr =</span> <span class="fu">mean</span>(expression),             <span class="co"># mean expression</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">.groups  =</span> <span class="st">"drop"</span></span>
+<span id="cb13-7"><a href="#cb13-7" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb13-8"><a href="#cb13-8" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">group_by</span>(gene) <span class="sc">|&gt;</span></span>
+<span id="cb13-9"><a href="#cb13-9" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">mutate</span>(<span class="at">avg_scaled =</span> <span class="fu">as.numeric</span>(<span class="fu">scale</span>(avg_expr))) <span class="sc">|&gt;</span>  <span class="co"># z-score per gene</span></span>
+<span id="cb13-10"><a href="#cb13-10" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">ungroup</span>()</span>
+<span id="cb13-11"><a href="#cb13-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb13-12"><a href="#cb13-12" aria-hidden="true" tabindex="-1"></a>dot</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 12 × 5
+   gene  cell_type pct_expr avg_expr avg_scaled
+   &lt;chr&gt; &lt;chr&gt;        &lt;dbl&gt;    &lt;dbl&gt;      &lt;dbl&gt;
+ 1 CD3D  B cell        62.5    0.436     -0.586
+ 2 CD3D  Monocyte      65      0.461     -0.569
+ 3 CD3D  T cell       100      3.00       1.15 
+ 4 IL2   B cell        67.5    0.540     -0.512
+ 5 IL2   Monocyte      62.5    0.451     -0.640
+ 6 IL2   T cell        95      1.69       1.15 
+ 7 LYZ   B cell        60      0.390     -0.616
+ 8 LYZ   Monocyte     100      3.55       1.15 
+ 9 LYZ   T cell        65      0.530     -0.538
+10 MS4A1 B cell       100      3.32       1.15 
+11 MS4A1 Monocyte      57.5    0.353     -0.610
+12 MS4A1 T cell        66.2    0.463     -0.544</code></pre>
+</div>
+</div>
+<section id="ggplot2-3" class="level4">
+<h4 class="anchored" data-anchor-id="ggplot2-3">ggplot2</h4>
+<p>Natural here, but fully manual: you wire up the two scales yourself. Note the naming trap — <code>geom_dotplot()</code> is a Wilkinson dot <em>histogram</em>, unrelated to this.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  dot,                                   <span class="co"># the data frame to plot</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">aes</span>(</span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> cell_type,                       <span class="co"># cell_type on the x axis</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> gene                             <span class="co"># gene on the y axis</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb15-7"><a href="#cb15-7" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span></span>
+<span id="cb15-8"><a href="#cb15-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(                            <span class="co"># draw one dot per group, encoding TWO statistics at once</span></span>
+<span id="cb15-9"><a href="#cb15-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">aes</span>(</span>
+<span id="cb15-10"><a href="#cb15-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">size =</span> pct_expr,                   <span class="co"># dot area grows with % of cells expressing the gene</span></span>
+<span id="cb15-11"><a href="#cb15-11" aria-hidden="true" tabindex="-1"></a>      <span class="at">color =</span> avg_scaled                 <span class="co"># dot color shows the per-gene z-scored mean expression</span></span>
+<span id="cb15-12"><a href="#cb15-12" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb15-13"><a href="#cb15-13" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb15-14"><a href="#cb15-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_size_area</span>(                       <span class="co"># map the size value to dot AREA (not radius), the honest way to encode magnitude</span></span>
+<span id="cb15-15"><a href="#cb15-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">max_size =</span> <span class="dv">9</span>,                        <span class="co"># area of the largest dot</span></span>
+<span id="cb15-16"><a href="#cb15-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">"% expressing"</span>                <span class="co"># legend title for the size scale</span></span>
+<span id="cb15-17"><a href="#cb15-17" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb15-18"><a href="#cb15-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_gradient2</span>(                 <span class="co"># a diverging color scale with a defined midpoint</span></span>
+<span id="cb15-19"><a href="#cb15-19" aria-hidden="true" tabindex="-1"></a>    <span class="at">low =</span> <span class="st">"grey80"</span>,                      <span class="co"># color at the low end</span></span>
+<span id="cb15-20"><a href="#cb15-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">mid =</span> <span class="st">"lightsteelblue"</span>,              <span class="co"># color at the midpoint</span></span>
+<span id="cb15-21"><a href="#cb15-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">high =</span> <span class="st">"firebrick"</span>,                  <span class="co"># color at the high end</span></span>
+<span id="cb15-22"><a href="#cb15-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">midpoint =</span> <span class="dv">0</span>,                        <span class="co"># 0 (the z-score mean) maps to the mid color</span></span>
+<span id="cb15-23"><a href="#cb15-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">name =</span> <span class="st">"Avg expr</span><span class="sc">\n</span><span class="st">(z-score)"</span>         <span class="co"># legend title ("\n" puts the rest on a second line)</span></span>
+<span id="cb15-24"><a href="#cb15-24" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb15-25"><a href="#cb15-25" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb15-26"><a href="#cb15-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="cn">NULL</span>,                            <span class="co"># remove the x-axis title</span></span>
+<span id="cb15-27"><a href="#cb15-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="cn">NULL</span>                             <span class="co"># remove the y-axis title</span></span>
+<span id="cb15-28"><a href="#cb15-28" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb15-29"><a href="#cb15-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_bw</span>(</span>
+<span id="cb15-30"><a href="#cb15-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">base_size =</span> <span class="dv">11</span>                       <span class="co"># base font size in points</span></span>
+<span id="cb15-31"><a href="#cb15-31" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb15-32"><a href="#cb15-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb15-33"><a href="#cb15-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.x =</span> <span class="fu">element_text</span>(          <span class="co"># style the x-axis tick labels</span></span>
+<span id="cb15-34"><a href="#cb15-34" aria-hidden="true" tabindex="-1"></a>      <span class="at">angle =</span> <span class="dv">30</span>,                        <span class="co"># rotate them 30 degrees</span></span>
+<span id="cb15-35"><a href="#cb15-35" aria-hidden="true" tabindex="-1"></a>      <span class="at">hjust =</span> <span class="dv">1</span>                          <span class="co"># right-justify so long labels do not overlap</span></span>
+<span id="cb15-36"><a href="#cb15-36" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb15-37"><a href="#cb15-37" aria-hidden="true" tabindex="-1"></a>    <span class="at">panel.grid.minor =</span> <span class="fu">element_blank</span>()   <span class="co"># element_blank() removes an element; here it hides the minor gridlines</span></span>
+<span id="cb15-38"><a href="#cb15-38" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="ggplot2_vs_tidyplots_files/figure-html/p4-ggplot2-1.png" class="img-fluid figure-img" width="432"></p>
+<figcaption>ggplot2: geom_point with size + color mapped to two statistics</figcaption>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="tidyplots-3" class="level4">
+<h4 class="anchored" data-anchor-id="tidyplots-3">tidyplots</h4>
+<p>There is <strong>no</strong> <code>add_*()</code> for two statistics on one mark, so the idiomatic move is to precompute (above) and drop back to raw ggplot2 through <code>add()</code>. The color mapping set in <code>tidyplot()</code> is inherited by the added <code>geom_point()</code>; the size scale you still supply yourself. In other words, for this one figure you leave the tidy grammar behind.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>dot <span class="sc">|&gt;</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">tidyplot</span>(<span class="at">x =</span> cell_type, <span class="at">y =</span> gene, <span class="at">color =</span> avg_scaled) <span class="sc">|&gt;</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add</span>(                                   <span class="co"># add() drops a raw ggplot2 layer into a tidyplot</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>    ggplot2<span class="sc">::</span><span class="fu">geom_point</span>(                 <span class="co"># draw the dots (the color avg_scaled is inherited from tidyplot() above)</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>      ggplot2<span class="sc">::</span><span class="fu">aes</span>(<span class="at">size =</span> pct_expr)      <span class="co"># map the second statistic to dot size</span></span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb16-8"><a href="#cb16-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">add</span>(                                   <span class="co"># add the same area-based size scale used in the pure-ggplot2 version</span></span>
+<span id="cb16-9"><a href="#cb16-9" aria-hidden="true" tabindex="-1"></a>    ggplot2<span class="sc">::</span><span class="fu">scale_size_area</span>(</span>
+<span id="cb16-10"><a href="#cb16-10" aria-hidden="true" tabindex="-1"></a>      <span class="at">max_size =</span> <span class="dv">9</span>,                      <span class="co"># area of the largest dot</span></span>
+<span id="cb16-11"><a href="#cb16-11" aria-hidden="true" tabindex="-1"></a>      <span class="at">name =</span> <span class="st">"% expressing"</span>              <span class="co"># legend title for the size scale</span></span>
+<span id="cb16-12"><a href="#cb16-12" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb16-13"><a href="#cb16-13" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">|&gt;</span></span>
+<span id="cb16-14"><a href="#cb16-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">adjust_size</span>(                           <span class="co"># set the plotting-area size (a tidyplots verb)</span></span>
+<span id="cb16-15"><a href="#cb16-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">width =</span> <span class="dv">55</span>,                          <span class="co"># width in millimetres</span></span>
+<span id="cb16-16"><a href="#cb16-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">height =</span> <span class="dv">45</span>                          <span class="co"># height in millimetres</span></span>
+<span id="cb16-17"><a href="#cb16-17" aria-hidden="true" tabindex="-1"></a>  )</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="ggplot2_vs_tidyplots_files/figure-html/p4-tidyplots-1.png" class="img-fluid figure-img" width="432"></p>
+<figcaption>tidyplots: precompute, then add(ggplot2::geom_point()) — the escape hatch as necessity</figcaption>
+</figure>
+</div>
+</div>
+</div>
+<p><strong>What to notice</strong></p>
+<ul>
+<li>The interesting work is in dplyr, not the plotting verb: neither library computes “% expressing” or a per-gene z-score for you.</li>
+<li>ggplot2 handles it cleanly once the table exists — two scales, by hand.</li>
+<li>tidyplots’ <code>add_&lt;statistic&gt;_&lt;representation&gt;()</code> model assumes one statistic per mark, so a two-statistic dot has no native verb. <code>add()</code> stops being a curiosity and becomes the only way through.</li>
+<li><strong>The teaching line:</strong> high-level grammars are wonderful until a figure encodes multiple derived quantities — and the DotPlot is the canonical scRNA-seq case where that happens.</li>
+</ul>
+</section>
+</section>
+<section id="discussion-prompts-for-students" class="level2">
+<h2 class="anchored" data-anchor-id="discussion-prompts-for-students">Discussion prompts for students</h2>
+<ul>
+<li>When is ggplot2’s explicitness an advantage rather than overhead?</li>
+<li>Rewrite Plot 1’s ggplot2 version <em>without</em> <code>ggbeeswarm</code>/<code>ggsignif</code>. What do you lose?</li>
+<li>Use <code>add(ggplot2::geom_*())</code> to bolt a custom ggplot2 layer onto a tidyplot — confirm the escape hatch actually works.</li>
+<li>In Plot 4, what would break if you z-scored <code>avg_expr</code> <em>globally</em> instead of per gene? Why does the per-gene scaling matter for reading a marker dot plot?</li>
+</ul>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

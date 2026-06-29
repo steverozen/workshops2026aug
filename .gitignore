@@ -4,7 +4,6 @@
 .Ruserdata
 *_files/
 *_cache/
-*.html
 /.quarto/
 output/
 gitignore/
