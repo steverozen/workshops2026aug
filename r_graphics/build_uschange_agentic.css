@@ -1,0 +1,7 @@
+/* Shrink default reveal.js fonts by ~2pt across the board. */
+.reveal { font-size: 32px; }
+.reveal h1 { font-size: 1.9em; }
+.reveal h2 { font-size: 1.4em; }
+.reveal h3 { font-size: 1.15em; }
+.reveal pre code { font-size: 0.75em; line-height: 1.25; }
+.reveal table { font-size: 0.75em; }

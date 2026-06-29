@@ -253,7 +253,7 @@ Notes from the coding agent:
   hex codes so the ribbons match the lines.
 - `theme_gray` plus the panel-background tweaks approximate seaborn's
   `darkgrid` style. 
-   The remainder of the coding agent notes were hallucinated: "If you have the `ggthemes` package,
+   The remainder of the coding agent's notes were hallucinated: "If you have the `ggthemes` package,
   `ggthemes::theme_solarized()` or the `seaborn` R package's `theme_seaborn()`
   are alternatives, but the inline theme above avoids the extra dependency."
 
