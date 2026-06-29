@@ -1,51 +1,82 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="utf-8">
-<title>Workshops August 2026</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<style>
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-         max-width: 880px; margin: 2em auto; padding: 0 1em; line-height: 1.5; color: #222; }
-  h1 { border-bottom: 1px solid #ddd; padding-bottom: 0.3em; }
-  h2 { margin-top: 1.6em; }
-  ul { padding-left: 1.3em; }
-  li { margin: 0.25em 0; }
-  code { background: #f4f4f4; padding: 0.1em 0.35em; border-radius: 3px; font-size: 0.95em; }
-  a { color: #0366d6; text-decoration: none; }
-  a:hover { text-decoration: underline; }
-</style>
+  <meta charset="utf-8">
+  <title>Workshops August 2026</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      max-width: 880px;
+      margin: 2em auto;
+      padding: 0 1em;
+      line-height: 1.5;
+      color: #222;
+    }
+
+    h1 {
+      border-bottom: 1px solid #ddd;
+      padding-bottom: 0.3em;
+    }
+
+    h2 {
+      margin-top: 1.6em;
+    }
+
+    ul {
+      padding-left: 1.3em;
+    }
+
+    li {
+      margin: 0.25em 0;
+    }
+
+    code {
+      background: #f4f4f4;
+      padding: 0.1em 0.35em;
+      border-radius: 3px;
+      font-size: 0.95em;
+    }
+
+    a {
+      color: #0366d6;
+      text-decoration: none;
+    }
+
+    a:hover {
+      text-decoration: underline;
+    }
+  </style>
 </head>
+
 <body>
 
-<h1>Workshops August 2026</h1>
+  <h1>Workshops August 2026</h1>
 
-<p>Materials for the August 2026 R / bioinformatics workshops by Steve Rozen.
-Source repository:
-<a href="https://github.com/steverozen/workshops2026aug">github.com/steverozen/workshops2026aug</a>.</p>
+  <p>Materials for the August 2026 R / bioinformatics workshops by Steve Rozen.
+    Source repository:
+    <a href="https://github.com/steverozen/workshops2026aug">github.com/steverozen/workshops2026aug</a>.
+  </p>
 
-<h2>R graphics lecture</h2>
-<ul>
-  <li><a href="r_graphics/Steve_Rozen_R_graphics_for_bioinformatics_2026_08_03.html">Main lecture (HTML slides)</a></li>
-  <li><a href="r_graphics/build_uschange_agentic.html">Building a ggplot with agentic coding (iteration log)</a></li>
-  <li><a href="r_graphics/ggplot2_vs_tidyplots.html">ggplot2 vs. tidyplots handout</a></li>
-  <li><a href="r_graphics/ggplot2_vs_tidyplots_slides.html">ggplot2 vs. tidyplots slides</a></li>
-  <li><a href="r_graphics/elegant_ggplot2_vs_tidyplot_2.html">Elegant ggplot2 vs. tidyplot, variant 2</a></li>
-  <li><a href="r_graphics/elegant_ggplot2_vs_tidyplot_9.html">Elegant ggplot2 vs. tidyplot, variant 9</a></li>
-</ul>
+  <h2>Slides (.pptx)</h2>
+  <ul>
+    <li><a href="slides/build_uschange_agentic.html">Building a ggplot with agentic coding (iteration log)</a></li>
+    <li><a href="slides/Steve_Rozen_bioinformatics-on-ramp_2026_08_03.pptx">Bioinformatics on-ramp (2026-08-03)</a></li>
+    <li><a href="slides/Steve_Rozen_R_graphics_for_bioinformatics_2026_08_03.html">R graphics for bioinformatics (HTML,
+        2026-08-03)</a></li>
+    <li><a href="slides/Steve_Rozen_R_single_cell_2026_08_04.pptx">R single-cell (2026-08-04)</a></li>
+    <li><a href="slides/Steve_Rozen_R_CITEseq_and_scATACseq_2026_08_04.pptx">R CITE-seq and scATAC-seq (2026-08-04)</a>
+    </li>
+  </ul>
 
-<h2>Slides (.pptx)</h2>
-<ul>
-  <li><a href="slides/Steve_Rozen_bioinformatics-on-ramp_2026_08_03.pptx">Bioinformatics on-ramp (2026-08-03)</a></li>
-  <li><a href="slides/Steve_Rozen_R_graphics_for_bioinformatics_2026_08_03.html">R graphics for bioinformatics (HTML, 2026-08-03)</a></li>
-  <li><a href="slides/Steve_Rozen_R_single_cell_2026_08_04.pptx">R single-cell (2026-08-04)</a></li>
-  <li><a href="slides/Steve_Rozen_R_CITEseq_and_scATACseq_2026_08_04.pptx">R CITE-seq and scATAC-seq (2026-08-04)</a></li>
-</ul>
-
-<h2>Single-cell vignettes (source)</h2>
-<p>Runnable Quarto versions of Seurat / Signac vignettes live under
-<a href="https://github.com/steverozen/workshops2026aug/tree/main/source_tutorials"><code>source_tutorials/</code></a>
-in the repo (PBMC 3K, SCTransform, CITE-seq multimodal, Signac scATAC-seq).</p>
+  <h2>Single-cell vignettes (source)</h2>
+  <p>Runnable Quarto versions of Seurat / Signac vignettes live under
+    <a
+      href="https://github.com/steverozen/workshops2026aug/tree/main/source_tutorials"><code>source_tutorials/</code></a>
+    in the repo (PBMC 3K, SCTransform, CITE-seq multimodal, Signac scATAC-seq).
+  </p>
 
 </body>
+
 </html>
