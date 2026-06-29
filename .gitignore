@@ -9,6 +9,7 @@ output/
 gitignore/
 filtered_feature_bc_matrix/
 snowflake.log
+node_modules/
 # pixi environments
 .pixi/*
 !.pixi/config.toml
