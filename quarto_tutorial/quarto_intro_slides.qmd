@@ -1,0 +1,266 @@
+---
+title: "Introduction to Quarto"
+subtitle: "Reproducible documents for analytical work<br/>Adapted from <https://r4ds.hadley.nz/quarto.html>"
+author: "Steve Rozen"
+format:
+  revealjs:
+    theme: simple
+    slide-number: true
+    incremental: false
+    embed-resources: true
+    code-line-numbers: false
+    code-copy: true
+    monofont: "Liberation Mono"
+    mainfont: "Liberation Sans"
+    css: quarto_intro_slides.css
+---
+
+## Why Quarto and Markdown?
+
+- **Communicate results, not just code.** One file holds prose, code, and
+  output (figures, tables, numbers).
+- **Reproducible.** Re-render the document and every number, figure, and
+  table is recomputed from the data.
+- **Multi-format.** The same `.qmd` source renders to HTML, PDF, Word,
+  slides, websites, and books.
+- **Plain text.** Diffs cleanly in git, easy to review, easy to share.
+- **Separates content from styling.** Authors write Markdown, Quarto handles
+  layout.
+
+## Why this matters for analysis
+
+- No more "copy the number from the R console into the Word doc."
+- No more "which version of the figure did I paste into the slide?"
+- Reviewers and collaborators can rerun the analysis end-to-end.
+- Future-you, six months from now, can rerun it too.
+
+## What is a Quarto document?
+
+A `.qmd` file is a plain-text file with three kinds of content:
+
+1. A **YAML header** (metadata and output options).
+2. **Markdown text** (prose, headings, lists, links).
+3. **Code chunks** (executable R, Python, Julia, etc.).
+
+You render it with `quarto render file.qmd` (or the Render button in
+RStudio / VS Code / Positron).
+
+## 1. The YAML header
+
+``` yaml
+---
+title: "Diamond sizes"
+author: "Hadley Wickham"
+date: 2026-06-29
+format: html
+---
+```
+
+- Lives at the top, between `---` lines.
+- Controls title, author, output format, and execution options.
+- `format:` can be `html`, `pdf`, `docx`, `revealjs`, ...
+
+## 2. Markdown text
+
+```` markdown
+# Heading 1
+## Heading 2
+
+*italic*, **bold**, `code`.
+
+- bulleted
+- list
+
+1. numbered
+2. list
+
+[a link](https://quarto.org)
+````
+
+Lightweight conventions; render to any output format.
+
+## 3. Code chunks
+
+```` markdown
+```{r}
+#| label: setup
+#| message: false
+library(tidyverse)
+```
+````
+
+- Fenced with triple backticks and the engine name in braces (`{r}`).
+- Options go after `#|` at the top of the chunk.
+- Output (text, tables, figures) is inserted into the rendered document.
+
+## Common chunk options
+
+| Option       | Effect                                          |
+|--------------|-------------------------------------------------|
+| `echo`       | Show the source code?                           |
+| `eval`       | Run the code?                                   |
+| `include`    | Include code *and* output? (`false` hides both) |
+| `message`    | Show messages?                                  |
+| `warning`    | Show warnings?                                  |
+| `error`      | Keep rendering on error? (`true` to continue)   |
+| `results`    | `"hide"` to suppress text output                |
+| `fig-show`   | `"hide"` to suppress figures                    |
+
+Set globally in YAML under `execute:` or per-chunk with `#|`.
+
+## Figures
+
+Control figure size and captions with chunk options:
+
+``` r
+#| label: fig-carat
+#| fig-cap: "Diamond price vs carat."
+#| fig-width: 6
+#| fig-height: 4
+#| out-width: "80%"
+ggplot(diamonds, aes(carat, price)) + geom_hex()
+```
+
+- Label starting with `fig-` makes the chunk cross-referenceable.
+- Reference it in prose as `@fig-carat`.
+
+## Tables
+
+```` markdown
+```{r}
+#| label: tbl-diamonds
+#| tbl-cap: "First five diamonds."
+knitr::kable(head(diamonds, 5))
+```
+````
+
+- Label starting with `tbl-` makes it a cross-referenceable table.
+- Reference in prose as `@tbl-diamonds`.
+- For richer tables: `gt::gt()`, `DT::datatable()`, `kableExtra`.
+
+## Inline code
+
+Embed values directly in your prose:
+
+``` markdown
+We analyzed `r nrow(diamonds)` diamonds with a mean price of
+$`r round(mean(diamonds$price))`.
+```
+
+Renders as:
+
+> We analyzed 53940 diamonds with a mean price of $3933.
+
+This is the single most important habit for keeping prose and data
+in sync.
+
+## Caching
+
+For slow chunks:
+
+``` r
+#| cache: true
+#| dependson: "raw_data"
+```
+
+- Saved results are reused until the chunk (or a `dependson` chunk)
+  changes.
+- Speeds up iterative writing; be careful when upstream data changes
+  outside R's view.
+
+## Editors
+
+- **RStudio** has a *visual editor* (WYSIWYG-style) and a *source editor*
+  (plain text). We will work in the **source editor** today.
+- VS Code and Positron also have first-class Quarto support.
+- A `.qmd` is just text, so any editor works.
+
+## Typical workflow
+
+1. Edit the `.qmd` in your editor.
+2. Run chunks interactively to develop the analysis.
+3. Render the whole document (`quarto render`) to catch reproducibility
+   problems early.
+4. Commit the `.qmd` (and usually not the rendered output) to git.
+
+## Exercises, Quarto basics
+
+1. Create a new Quarto document (File > New File > Quarto Document in
+   RStudio). Read the instructions. Practice running the chunks
+   individually. Render the document using the button and the keyboard
+   shortcut. Modify the code, re-run, and verify the output changes.
+2. Create one new Quarto document for each of the three built-in
+   formats: HTML, PDF, and Word. Render each. How do the outputs
+   differ? How do the inputs differ? (You may need to install LaTeX
+   for PDF, RStudio will prompt you.)
+
+## Exercises, source editor
+
+1. Create a brief CV. Title is your name. Include headings for
+   education or employment. Each section has a bulleted list of
+   jobs / degrees. Put the year in **bold**.
+2. Using the source editor and a Markdown quick reference, figure
+   out how to:
+   a. Add a footnote.
+   b. Add a horizontal rule.
+   c. Add a block quote.
+3. Copy `diamond-sizes.qmd` from
+   <https://github.com/hadley/r4ds/tree/main/quarto> into a local
+   Quarto document. Run it, then add text after the frequency
+   polygon describing its most striking features.
+
+## Exercises, code chunks
+
+1. Add a section that explores how diamond sizes vary by `cut`,
+   `color`, and `clarity`. Assume the reader does not know R, so
+   instead of setting `echo: false` on every chunk, set it as a
+   global option.
+2. Download `diamond-sizes.qmd` from
+   <https://github.com/hadley/r4ds/tree/main/quarto>. Add a section
+   that describes the largest 20 diamonds, including a table of
+   their most important attributes.
+3. Modify `diamond-sizes.qmd` to use `label_comma()` for nicely
+   formatted output. Include the percentage of diamonds larger than
+   2.5 carats.
+
+## Exercises, figures
+
+1. Find an image of a diamond, paste it into `diamond-sizes.qmd`,
+   add a caption, resize it, and render. Note where the image is
+   saved.
+2. Edit the label of the plot chunk in `diamond-sizes.qmd` to start
+   with `fig-` and add `fig-cap`. Add a cross-reference to the
+   figure in the text above the chunk.
+3. Change the figure size with each of these options in turn, render,
+   and describe what changes:
+   a. `fig-width: 10`
+   b. `fig-height: 3`
+   c. `out-width: "100%"`
+   d. `out-width: "20%"`
+
+## Exercises, tables
+
+1. Insert a code chunk into `diamond-sizes.qmd` and use
+   `knitr::kable()` to show the first 5 rows of `diamonds`.
+2. Display the same table with `gt::gt()` instead.
+3. Add a chunk label starting with `tbl-` and a caption via
+   `tbl-cap`. Add a cross-reference to the table in the text above
+   the chunk.
+
+## Exercises, caching
+
+1. Set up a network of chunks where `d` depends on `c` and `b`, and
+   both `b` and `c` depend on `a`. Have each chunk print
+   `lubridate::now()`, set `cache: true`, and verify your
+   understanding of caching.
+
+## Summary
+
+- A `.qmd` is YAML header + Markdown + code chunks.
+- Render with `quarto render` to keep prose, code, and output in sync.
+- Chunk options control what is shown and what is run.
+- Inline code (`` `r ` ``) keeps numbers in the prose accurate.
+- Cross-reference figures (`fig-`) and tables (`tbl-`).
+- Cache slow chunks so iteration stays fast.
+
+Reference: <https://r4ds.hadley.nz/quarto.html>
