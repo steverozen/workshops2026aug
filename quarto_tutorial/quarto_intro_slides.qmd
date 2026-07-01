@@ -267,6 +267,71 @@ tidyplot(diamonds, carat, price, height = NA, width = NA) |>
 
 ## Coding agents seem to often get figure sizes and placement and text sizes wrong at first; skills and SOPs can help
 
+Guide to work arounds: can it be codified as an agent skill:
+
+Different ways to specify font sizes in different parts of `ggplot2` and
+different interactions with scaling in the output.
+
+https://tidyverse.org/blog/2020/08/taking-control-of-plot-scaling/
+
+
+## Figures --- wait, there's more
+
+:::: {.columns}
+
+::: {.column width="45%"}
+```{.r style="font-size: 0.7em;"}
+#| label: fig-carat-ggplotly
+#| fig-cap: "Diamond price vs carat."
+#| fig-width: 6
+#| fig-height: 4
+#| out-width: "80%"
+p <- ggplot(diamonds, aes(carat, price)) +
+  geom_hex()
+plotly::ggplotly(p)
+```
+:::
+
+::: {.column width="55%"}
+```{r}
+#| label: fig-carat-ggplotly
+#| fig-cap: "Diamond price vs carat."
+#| fig-width: 6
+#| fig-height: 4
+#| out-width: "80%"
+p <- ggplot(diamonds, aes(carat, price)) + geom_hex()
+plotly::ggplotly(p)
+```
+:::
+
+::::
+
+## Figures -- a more interesting ggplotly example
+
+```{r}
+#| label: fig-gapminder-ggplotly
+data(gapminder, package = "gapminder")
+gg <- ggplot(gapminder, aes(gdpPercap, lifeExp, color = continent)) +
+  geom_point(aes(size = pop, frame = year, ids = country)) +
+  scale_x_log10()
+plotly::ggplotly(gg)
+```
+
+## Figures -- code for previous slide
+
+The key is the argument `frame = year` in the call to `geom_point`
+
+```{.r}
+data(gapminder, package = "gapminder")
+gg <- ggplot(gapminder, aes(gdpPercap, lifeExp, color = continent)) +
+  geom_point(aes(size = pop, frame = year, ids = country)) +
+  scale_x_log10()
+plotly::ggplotly(gg)
+```
+
+You can also call `plotly` directly. There's a whole book by Carson Sieviert: https://plotly-r.com/
+
+
 ## Tables
 
 ```{{r}}
@@ -285,6 +350,43 @@ Reference in prose as `@tbl-diamonds`. - For richer tables: `gt::gt()`,
 #| label: tbl-diamonds
 #| tbl-cap: "First five diamonds."
 knitr::kable(head(diamonds, 5))
+```
+
+## [The `DT` package for interactive tables]{style="font-size: 0.85em;"} {.smaller}
+
+Sort by any column, search, page through rows, all client-side in the
+rendered HTML.
+
+```{r}
+#| label: tbl-diamonds-dt
+htmltools::div(
+  style = "font-size: 0.65em;",
+  DT::datatable(
+    head(diamonds, 100),
+    rownames  = FALSE,
+    filter    = "top",
+    options   = list(
+      pageLength = 5,
+      scrollX    = TRUE,
+      order      = list(list(6, "desc"))
+    )
+  )
+)
+```
+
+## Code for previous table
+
+``` r
+  DT::datatable(
+    head(diamonds, 100),
+    rownames  = FALSE,
+    filter    = "top",
+    options   = list(
+      pageLength = 5,
+      scrollX    = TRUE,
+      order      = list(list(6, "desc"))
+    )
+  )
 ```
 
 ## Inline code
@@ -359,6 +461,12 @@ Demo how one does this, executing code blocks in quarto and then a copy of the c
 
 ## Exercises, Quarto basics
 
+Markdown: https://quarto.org/docs/authoring/markdown-basics.html
+
+Other cheatsheets: https://rstudio.github.io/cheatsheets/quarto.pdf
+
+https://res.cloudinary.com/dyd911kmh/image/upload/v1676540721/Marketing/Blog/Quarto_Cheat_Sheet.pdf
+
 1.  Create a new Quarto document (File \> New File \> Quarto Document in
     RStudio). Read the instructions. Practice running the chunks
     individually. Render the document using the button and the keyboard
@@ -427,13 +535,20 @@ Demo how one does this, executing code blocks in quarto and then a copy of the c
 - Caching
 - Passing in parameters
 
-## Summary REWRITE
+## Summary
 
 - A `.qmd` is YAML header + Markdown formatting + code chunks.
 - Render with `quarto render` to keep prose, code, and output in sync.
 - Chunk options control what is shown and what is run.
-- Inline code (`` `r ` ``) keeps numbers in the prose accurate.
-- Cross-reference figures (`fig-`) and tables (`tbl-`).
-- Cache slow chunks so iteration stays fast.
+
+Why:
+
+- **Communicate results, methods, and code in one reproducible
+  document**
+- **Reproducible.** Re-render the document and every number, figure, and
+  table is recomputed from the data.
+- **Multi-format.** The same `.qmd` source renders to HTML, dynamic
+  dashboards, PDF, Word, slides (and websites and books).
+- **Plain text.** Diffs cleanly in git, easy to review, easy to share.
 
 Reference: <https://r4ds.hadley.nz/quarto.html>
