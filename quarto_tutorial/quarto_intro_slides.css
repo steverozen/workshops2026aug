@@ -11,3 +11,4 @@
   font-family: "Liberation Mono", monospace;
 }
 .reveal .slide-background { background: white; }
+.reveal ul, .reveal ol { display: block; }
