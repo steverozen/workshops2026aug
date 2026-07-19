@@ -163,11 +163,12 @@ Graph Galeries
 
 - Python <https://python-graph-gallery.com/>
 
-- References to many plotting systems: >https://datavizcatalogue.com/index.html>
+- References to many plotting systems: <https://datavizcatalogue.com/index.html>
 
-Thesis: in most cases you can ask a coding agent to adapt these plots to the data you are analyzing
+In many cases you can ask a coding agent to adapt these plots to the data you are analyzing, but you 
+still need to understand the concepts behind `ggplot`
 
-# Excercise: use a coding agent to tanslate a `seaborn` example to `ggplot2`
+# Example: use a coding agent to tanslate a `seaborn` example to `ggplot2`
 
 ## `seaborn.lineplot`: the Python original
 
@@ -212,7 +213,7 @@ sns.lineplot(x="timepoint", y="signal",
 The data are in @fmri.csv
 ```
 
-##
+## Insert diaglog
 
 Insert dialog
 
@@ -244,6 +245,7 @@ gg_fmri <- ggplot(fmri, aes(x = timepoint, y = signal,
 
 ## Comments on the ggplot2 translation
 
+::: {style="font-size: 0.7em;"} 
 Notes from the coding agent:
 
 - `stat_summary(mean_cl_boot)` matches seaborn's default 95% bootstrap CI.
@@ -259,6 +261,7 @@ Notes from the coding agent:
 
 Note that the python code is used several times in `seaborn` documentation and training material.
 The LLM probably saw it during training.
+:::
 
 ## `ggplot2` vs. `seaborn` --- side by side
 

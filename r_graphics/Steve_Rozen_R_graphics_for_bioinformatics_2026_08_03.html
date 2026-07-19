@@ -1110,13 +1110,13 @@ Steve Rozen<br>Duke Medical School<br>sr110@duke.edu, steverozen@pm.me
 <li><p>!! Multilingual: <a href="https://www.data-to-viz.com/" class="uri">https://www.data-to-viz.com/</a></p></li>
 <li><p>R <a href="https://r-graph-gallery.com/" class="uri">https://r-graph-gallery.com/</a> (incl: <a href="https://r-graph-gallery.com/best-dataviz-packages.html" class="uri">https://r-graph-gallery.com/best-dataviz-packages.html</a>)</p></li>
 <li><p>Python <a href="https://python-graph-gallery.com/" class="uri">https://python-graph-gallery.com/</a></p></li>
-<li><p>References to many plotting systems: &gt;https://datavizcatalogue.com/index.html&gt;</p></li>
+<li><p>References to many plotting systems: <a href="https://datavizcatalogue.com/index.html" class="uri">https://datavizcatalogue.com/index.html</a></p></li>
 </ul>
-<p>Thesis: in most cases you can ask a coding agent to adapt these plots to the data you are analyzing</p>
+<p>In many cases you can ask a coding agent to adapt these plots to the data you are analyzing, but you still need to understand the concepts behind <code>ggplot</code></p>
 </section>
 <section>
-<section id="excercise-use-a-coding-agent-to-tanslate-a-seaborn-example-to-ggplot2" class="title-slide slide level1 center">
-<h1>Excercise: use a coding agent to tanslate a <code>seaborn</code> example to <code>ggplot2</code></h1>
+<section id="example-use-a-coding-agent-to-tanslate-a-seaborn-example-to-ggplot2" class="title-slide slide level1 center">
+<h1>Example: use a coding agent to tanslate a <code>seaborn</code> example to <code>ggplot2</code></h1>
 
 </section>
 <section id="seaborn.lineplot-the-python-original" class="slide level2">
@@ -1156,8 +1156,8 @@ sns.lineplot(x=&quot;timepoint&quot;, y=&quot;signal&quot;,
              data=fmri)
 The data are in @fmri.csv</code></pre>
 </section>
-<section id="section" class="slide level2">
-<h2></h2>
+<section id="insert-diaglog" class="slide level2">
+<h2>Insert diaglog</h2>
 <p>Insert dialog</p>
 </section>
 <section id="ggplot2-equivalent-code" class="slide level2">
@@ -1183,16 +1183,18 @@ The data are in @fmri.csv</code></pre>
 <span id="cb3-18"><a href aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(<span class="at">x =</span> <span class="st">&quot;timepoint&quot;</span>, <span class="at">y =</span> <span class="st">&quot;signal&quot;</span>, <span class="at">colour =</span> <span class="st">&quot;region&quot;</span>,</span>
 <span id="cb3-19"><a href aria-hidden="true" tabindex="-1"></a>       <span class="at">linetype =</span> <span class="st">&quot;event&quot;</span>, <span class="at">fill =</span> <span class="st">&quot;region&quot;</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
-<details>
-<summary>
-<strong>Notes on the ggplot2 translation (click to expand)</strong>
-</summary>
+</section>
+<section id="comments-on-the-ggplot2-translation" class="slide level2">
+<h2>Comments on the ggplot2 translation</h2>
+<div style="font-size: 0.7em;">
+<p>Notes from the coding agent:</p>
 <ul>
 <li><code>stat_summary(mean_cl_boot)</code> matches seaborn’s default 95% bootstrap CI. For a faster approximation use <code>mean_cl_normal</code> (normal-theory CI) or <code>mean_se</code> (one SEM, narrower).</li>
 <li>The two manual scales for <code>colour</code> and <code>fill</code> use the seaborn “deep” palette hex codes so the ribbons match the lines.</li>
-<li><code>theme_gray</code> plus the panel-background tweaks approximate seaborn’s <code>darkgrid</code> style. If you have the <code>ggthemes</code> package, <code>ggthemes::theme_solarized()</code> or the <code>seaborn</code> R package’s <code>theme_seaborn()</code> are alternatives, but the inline theme above avoids the extra dependency.</li>
+<li><code>theme_gray</code> plus the panel-background tweaks approximate seaborn’s <code>darkgrid</code> style. The remainder of the coding agent’s notes were hallucinated: “If you have the <code>ggthemes</code> package, <code>ggthemes::theme_solarized()</code> or the <code>seaborn</code> R package’s <code>theme_seaborn()</code> are alternatives, but the inline theme above avoids the extra dependency.”</li>
 </ul>
-</details>
+<p>Note that the python code is used several times in <code>seaborn</code> documentation and training material. The LLM probably saw it during training.</p>
+</div>
 </section>
 <section id="ggplot2-vs.-seaborn-side-by-side" class="slide level2">
 <h2><code>ggplot2</code> vs. <code>seaborn</code> — side by side</h2>

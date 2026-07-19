@@ -1,0 +1,326 @@
+---
+title: "Folders, directories, and how to navigate them"
+author: "Steve Rozen<br>sr110 [at] duke.edu, steverozen [at] pm.me"
+date: "2026-08-03"
+date-format: "YYYY-MM-DD"
+format:
+  revealjs:
+    embed-resources: true
+    slide-number: true
+    incremental: false
+    code-fold: false
+    code-line-numbers: false
+    theme: simple
+    width: 1123
+    height: 794
+    center: false
+execute:
+  warning: false
+  message: false
+  echo: true
+---
+
+## What is a folder (a.k.a. directory)?
+
+- A **folder** and a **directory** are the same thing, two names for one idea.
+  - "Folder" is the word the graphical file browser uses.
+  - "Directory" is the word the command line uses.
+- A directory is a **container** that holds files and other directories.
+- Directories form a **tree**: one top ("root"), branches, and leaves (files).
+
+## The tree metaphor
+
+```
+/                          <- root of the whole file system (Linux/Mac)
+├── home/
+│   └── steve/
+│       ├── Documents/
+│       │   └── grant.docx
+│       └── github/
+│           └── workshops2026aug/
+│               └── gentle-on-ramp/
+│                   └── folders_and_navigation.qmd
+└── tmp/
+```
+
+- On **Windows**, each drive has its own root: `C:\`, `D:\`, ...
+- On **Mac/Linux**, there is one root `/`, and drives get mounted into it.
+
+## Paths: how you name a location
+
+::: {style="font-size: 0.8em;"} 
+A **path** is a sequence of directory names that points to a file or folder.
+
+- **Absolute path** — starts at the root, works from anywhere.
+  - Linux/Mac: `/home/steve/Documents/grant.docx`
+  - Windows: `C:\Users\steve\Documents\grant.docx`
+- **Relative path** — starts from wherever you *currently are*.
+  - `Documents/grant.docx` (if you are in `/home/steve`)
+  - `../github/` (go up one level, then into `github`)
+
+Two special names every directory has:
+
+- `.` means "this directory"
+- `..` means "the parent directory (one level up)"
+:::
+
+## Slashes: `/` vs `\`
+
+- Linux and Mac use forward slash: `/home/steve/Documents`
+- Windows uses backslash: `C:\Users\steve\Documents`
+- Most modern Windows tools also accept forward slashes.
+- In R and Python code, **always use forward slashes** even on Windows,
+  or use `file.path()` / `os.path.join()` so your code is portable.
+
+## Your home directory
+
+Every user has a **home directory**, their personal top-level folder.
+
+| System   | Typical location            | Shortcut |
+|----------|-----------------------------|----------|
+| Linux    | `/home/steve`               | `~`      |
+| Mac      | `/Users/steve`              | `~`      |
+| Windows  | `C:\Users\steve`            | `%USERPROFILE%` |
+
+In a shell, `~` expands to your home. So `~/Documents` means
+`/home/steve/Documents` for me, and `/Users/alice/Documents` for someone else.
+
+# Three ways to navigate
+
+::: {style="font-size: 0.7em;"} 
+## 1. A graphical file browser (Nautilus, Finder, Explorer)
+
+- **Linux (GNOME):** Nautilus, called "Files".
+- **Mac:** Finder.
+- **Windows:** File Explorer.
+
+What they all give you:
+
+- Double-click a folder to enter it.
+- A **back** button and an **up** arrow to go to the parent.
+- An **address bar** you can click to type a path.
+- Drag-and-drop to move or copy files.
+- Various right click commands and keyboard shortcuts.
+
+Good for: browsing, quick one-off moves, previewing images/PDFs.
+:::
+
+## 2. A file-tree browser (in your editor)
+
+Most editors show the folder tree in a sidebar.
+
+- **VS Code / Positron / Cursor:** the "Explorer" panel on the left.
+- **JupyterLab:** the file browser on the left.
+
+Advantages over a general file browser:
+
+- Click a file, it opens in the editor immediately.
+- The tree reflects the **project root** you opened, so paths line up with your code.
+- Right-click gives you "Reveal in Finder / Explorer", "Copy path",
+  "Copy relative path", "Open in integrated terminal".
+
+## 3. The command line (terminal)
+
+Where to find it:
+
+- **Linux:** GNOME Terminal, Konsole, or press `Ctrl` + `Alt` + `T`.
+- **Mac:** Terminal.app, or iTerm2.
+- **Windows:** PowerShell, Windows Terminal, or the old `cmd.exe`.
+
+Inside your editor:
+
+- VS Code / Positron: `` Ctrl + ` `` opens an integrated terminal.
+- RStudio: the "Terminal" tab, next to "Console".
+
+## Special tutorial on the file browser in RStudio
+
+The File browser in Rstudio is unusual. 
+
+Demo here.
+
+## Hidden files
+
+Files whose names start with a dot (`.bashrc`, `.git/`) are **hidden** by default
+on Linux and Mac. That is a convention, not a security feature. 
+Windows has other conventions for hiding "system files"
+
+
+# Command-line basics
+
+## The four commands you use every minute
+
+```bash
+pwd                 # "print working directory": where am I?
+ls                  # list files in the current directory
+cd some/folder      # change directory into some/folder
+cd ..               # go up one level
+```
+
+On Windows `cmd.exe` the equivalents are:
+
+```bat
+cd                  :: with no argument, prints the current directory
+dir                 :: list files
+cd some\folder      :: change directory
+cd ..               :: go up one level
+```
+
+PowerShell accepts `pwd`, `ls`, and `cd` as aliases, so the bash commands above
+work there too.
+
+## `ls`: seeing what's in a directory
+
+*Note the `-a` flag to see "hidden files" -- files with names 
+that start with . (dot).
+
+
+```bash
+ls                  # names only
+ls -l               # long form: permissions, size, date
+ls -lh              # long form with human-readable sizes (1.2K, 3.4M)
+ls -a               # include hidden files (dotfiles)
+ls -la              # both
+ls Documents        # list a specific directory without cd-ing in
+```
+
+Windows `cmd.exe`:
+
+```bat
+dir                 :: names, sizes, dates
+dir /a              :: include hidden
+dir /s              :: recurse into subfolders
+```
+
+## `cd`: moving around
+
+```bash
+cd                  # with no argument: go home (~)
+cd ~                # same thing, explicitly
+cd -                # go back to the previous directory you were in
+cd /                # go to the root of the file system
+cd ..               # up one
+cd ../..            # up two
+cd ~/github/workshops2026aug   # absolute path from home
+```
+
+Tab-completion is your friend: type `cd Doc` then press `Tab`, the shell
+finishes `Documents/` if that's the only match, or shows options if not.
+
+## Making, moving, and removing
+
+```bash
+mkdir new_folder            # make a directory
+mkdir -p a/b/c              # make a chain of nested directories at once
+
+cp file.txt backup.txt      # copy a file
+cp -r folder/ backup/       # copy a folder and its contents (recursive)
+
+mv old.txt new.txt          # rename
+mv file.txt ~/Documents/    # move into another folder
+
+rm file.txt                 # delete a file (no trash, gone immediately!)
+rm -r folder/               # delete a folder and everything in it
+```
+
+**Warning:** `rm` does **not** send files to a trash / recycle bin. It deletes
+them straight away. Be especially careful with `rm -r` and never with `sudo`
+unless you are sure.
+
+## A quick tour, live
+
+```bash
+pwd                                    # /home/steve
+cd github/workshops2026aug             # into the workshop repo
+pwd                                    # /home/steve/github/workshops2026aug
+ls                                     # see what's here
+cd gentle-on-ramp                      # into today's folder
+ls -lh                                 # long listing with sizes
+cd ..                                  # back up one level
+cd ~                                   # back home
+```
+
+## Absolute vs. relative in practice
+
+Suppose you are in `/home/steve/github/workshops2026aug/gentle-on-ramp/`
+and you want to open `../r_graphics/Steve_Rozen_R_graphics_for_bioinformatics_2026_08_03.qmd`.
+
+Both of these work:
+
+```bash
+# relative, shorter, breaks if you cd somewhere else first
+xdg-open ../r_graphics/Steve_Rozen_R_graphics_for_bioinformatics_2026_08_03.qmd
+
+# absolute, longer, works from anywhere
+xdg-open /home/steve/github/workshops2026aug/r_graphics/Steve_Rozen_R_graphics_for_bioinformatics_2026_08_03.qmd
+```
+
+Relative paths are great inside a project (your scripts stay portable when the
+project moves). Absolute paths are great in one-off commands.
+
+## Getting from the file browser to the terminal (and back)
+
+- **Nautilus:** right-click inside a folder → "Open in Terminal".
+- **Finder (Mac):** drag a folder onto the Terminal icon, or enable
+  "New Terminal at Folder" in System Settings → Keyboard → Services.
+- **Explorer (Windows):** type `cmd` or `powershell` in the address bar and
+  press Enter, the shell opens in that folder.
+- Going the other way — from a shell to the file browser:
+  - Linux: `xdg-open .`
+  - Mac:   `open .`
+  - Windows: `explorer .`
+
+## Wildcards (globs)
+
+The shell expands patterns before running the command.
+
+```bash
+ls *.qmd              # every .qmd file in this directory
+ls slides/*.pptx      # every .pptx in the slides/ subdirectory
+rm tmp_*.png          # every file starting with tmp_ and ending in .png
+ls **/*.R             # every .R file at any depth (needs shopt -s globstar)
+```
+
+- `*` means "any string of characters, no slashes".
+- `?` means "exactly one character".
+- `[abc]` means "one of a, b, or c".
+
+## Where am I in R and Python?
+
+R:
+
+```r
+getwd()                           # current working directory
+setwd("~/github/workshops2026aug") # change it
+list.files()                      # like ls
+```
+
+Python:
+
+```python
+import os
+os.getcwd()
+os.chdir("/home/steve/github/workshops2026aug")
+os.listdir()
+```
+
+In RStudio / Positron / Jupyter, when you open a **project**, the working
+directory is set to the project root automatically. Use relative paths from
+there and your code stays portable.
+
+## Takeaways
+
+- Folder = directory. One tree. Every location has a **path**.
+- `~` is home. `.` is here. `..` is up one.
+- Four commands cover 90% of navigation: `pwd`, `ls`, `cd`, and tab-completion.
+- The file browser, the editor's file-tree, and the terminal are three views of
+  the **same** filesystem, use whichever fits the task.
+- `rm` has no undo. Measure twice, cut once.
+
+## For your future reference
+
+- The Unix Shell (Software Carpentry): <https://swcarpentry.github.io/shell-novice/>
+- GNU coreutils manual: <https://www.gnu.org/software/coreutils/manual/coreutils.html>
+- Microsoft "Windows commands" reference:
+  <https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/windows-commands>
+- Apple "Terminal User Guide":
+  <https://support.apple.com/guide/terminal/welcome/mac>
