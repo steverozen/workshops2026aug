@@ -13,3 +13,7 @@ node_modules/
 # pixi environments
 .pixi/*
 !.pixi/config.toml
+
+# Downloaded tutorial HTML. Kept out of git because students fetch these from
+# the upstream URLs listed in wed_morning_tutorials.md.
+slides/wed_morning/wed_morn_tutorials/*.html
