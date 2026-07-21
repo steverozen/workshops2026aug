@@ -1,0 +1,595 @@
+---
+title: "Trajectory inference with Monocle 3"
+subtitle: "Local version, reads from the workshop data repo, no network access"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    embed-resources: true
+    fig-width: 8
+    fig-height: 6
+execute:
+  warning: false
+  message: true
+  error: true
+---
+
+Transcribed from `1_b_monocle3.html`.
+
+Upstream: Julia Jakiela, "Inferring single cell trajectories with Monocle3 (R)",
+Galaxy Training Network,
+<https://training.galaxyproject.org/training-material/topics/single-cell/tutorials/scrna-case_monocle3-rstudio/tutorial.html>
+
+Data: a mouse model of fetal growth restriction, Bacon et al. 2018.
+Method: Cao et al. 2019, "The single-cell transcriptional landscape of
+mammalian organogenesis", Nature, <https://doi.org/10.1038/s41586-019-0969-x>
+
+::: {.callout-important}
+## Status: transcribed, not yet executed
+
+Every chunk is transcribed from the upstream tutorial and none of them has been
+run in this repository. This first render is the test. `error: true` is set on
+purpose so that the render does not stop at the first failure and we get the
+full list of problems in one pass.
+:::
+
+::: {.callout-note}
+## Local data file
+
+Upstream downloads `AnnData_filtered.h5ad` from Zenodo and converts it to a
+Monocle `cell_data_set`. Here we read one staged file,
+`AnnData_filtered_cds.rds`, which is that conversion already done, an object of
+class `cell_data_set`. The staging script builds it once, so the workshop does
+not need network access, a Python/reticulate `anndata` install, or the
+matrix-transpose and column-renaming steps.
+:::
+
+::: {.callout-warning}
+## The usual student stumbling block
+
+Monocle 3 infers a trajectory **within a single partition**. If `learn_graph()`
+produces a disconnected mess, the answer is almost always that the cells span
+several partitions, not that the parameters are wrong. That is what the
+`partition_qval` tuning below is for.
+:::
+
+## Setup
+
+```{r}
+#| label: setup
+source(here::here("slides", "find_data_dir.R"))
+data_dir <- find_data_dir("1_b_monocle3")
+report_data_dir("1_b_monocle3")
+```
+
+```{r}
+#| label: libraries
+library(monocle3)
+library(magrittr)     # needed for %>%
+library(viridisLite)
+library(ggplot2)
+```
+
+## Upload, view and modify the files
+
+Upstream at this point runs
+
+```r
+download.file('https://zenodo.org/record/7455590/files/AnnData_filtered.h5ad',
+              'AnnData.h5ad')
+ann <- anndata::read_h5ad('AnnData.h5ad')
+expression_matrix <- ann$X
+cell_metadata     <- ann$obs
+gene_metadata     <- ann$var
+expression_matrix <- as.matrix(expression_matrix)
+expression_matrix <- t(expression_matrix)   # Monocle wants genes as rows
+colnames(gene_metadata)[2] <- 'gene_short_name'
+cds <- new_cell_data_set(expression_matrix, cell_metadata, gene_metadata)
+```
+
+All of that has been done once at staging time. We read the result.
+
+```{r}
+#| label: load-cds
+cds <- readRDS(file.path(data_dir, "AnnData_filtered_cds.rds"))
+cds
+```
+
+```{r}
+#| label: inspect-cds
+# Monocle needs genes as rows and cells as columns, and needs a column of
+# gene_metadata named gene_short_name. Confirm both on the staged object.
+head(exprs(cds), c(5, 5))
+head(fData(cds))
+colnames(fData(cds))
+```
+
+## Monocle workflow
+
+## Pre-processing
+
+Normalisation and PCA. `num_dim` is the number of principal components.
+This step is slow, roughly 5 minutes at `num_dim = 210`.
+
+```{r}
+#| label: preprocess
+# PCA pre-processing with 210 principal components
+cds_preprocessing <- preprocess_cds(cds, method = "PCA", num_dim = 210)
+
+# plot the variation in gene expression vs PCA components
+plot_pc_variance_explained(cds_preprocessing)
+```
+
+## Batch correction and Dimensionality reduction
+
+The dataset comprises 7 samples, so batch effects are a real risk.
+
+```{r}
+#| label: check-batch-column
+colnames(colData(cds_preprocessing))    # confirm the batch column is called 'batch'
+```
+
+```{r}
+#| label: umap-before-alignment
+# reduce dimension first
+cds_preprocessing_UMAP <- reduce_dimension(cds_preprocessing,
+                                           reduction_method = "UMAP",
+                                           preprocess_method = "PCA")
+
+# then produce a plot to check for batch effects
+plot_cells(cds_preprocessing_UMAP, color_cells_by = "batch",
+           label_cell_groups = FALSE)
+```
+
+```{r}
+#| label: align
+# perform batch correction
+cds_batch <- align_cds(cds_preprocessing_UMAP, preprocess_method = "PCA",
+                       alignment_group = "batch")
+```
+
+```{r}
+#| label: umap-after-alignment
+# dimensionality reduction after alignment, now on the aligned space
+cds_red_dim <- reduce_dimension(cds_batch, preprocess_method = "Aligned",
+                                reduction_method = "UMAP")
+
+# see the batch correction effect on a plot
+plot_cells(cds_red_dim, color_cells_by = "batch", label_cell_groups = FALSE)
+```
+
+## Clustering: clusters
+
+```{r}
+#| label: cluster-default
+# clustering with the default (automatic) resolution
+cds_auto_cluster <- cluster_cells(cds_red_dim, reduction_method = "UMAP")
+
+plot_cells(cds_auto_cluster, reduction_method = "UMAP",
+           color_cells_by = "cluster", group_label_size = 5)
+```
+
+```{r}
+#| label: cluster-resolution
+# higher resolution gives more clusters, which helps assign cell types
+cds_clustered <- cluster_cells(cds_red_dim, reduction_method = "UMAP",
+                               resolution = 0.0002)
+
+plot_cells(cds_clustered, reduction_method = "UMAP",
+           color_cells_by = "cluster", group_label_size = 5)
+```
+
+## Clustering: partitions
+
+Trajectory inference happens within one partition, so check the partitions
+before learning the graph.
+
+```{r}
+#| label: partitions-default
+plot_cells(cds_clustered, reduction_method = "UMAP",
+           color_cells_by = "partition", label_cell_groups = FALSE)
+```
+
+Raising `partition_qval` above its default of 0.05 widens the partitions, that
+is, it yields fewer of them. Check afterwards that the clusters did not change.
+
+```{r}
+#| label: partitions-qval
+# changing the partition q-value
+cds_clustered <- cluster_cells(cds_red_dim, reduction_method = "UMAP",
+                               resolution = 0.0002, partition_qval = 1)
+
+# see the partitions with the changed q-value
+plot_cells(cds_clustered, reduction_method = "UMAP",
+           color_cells_by = "partition", label_cell_groups = FALSE)
+
+# check if clusters didn't change
+plot_cells(cds_clustered, reduction_method = "UMAP",
+           color_cells_by = "cluster", label_cell_groups = FALSE)
+```
+
+## Additional step: assigning cells to one partition
+
+Not needed for this dataset. It is the last resort when `partition_qval` cannot
+merge the partitions you need merged.
+
+```{r}
+#| label: manual-partition
+# simulate a badly partitioned dataset
+cds_partitions_extra <- cluster_cells(cds_red_dim, reduction_method = "UMAP",
+                                      partition_qval = 0.0001)
+
+plot_cells(cds_partitions_extra, reduction_method = "UMAP",
+           color_cells_by = "partition", label_cell_groups = FALSE)
+
+# store '1' the number of times equal to the number of cells
+big_partition <- c(rep(1, length(cds_partitions_extra@colData@rownames)))
+
+# take the barcode of each cell and assign '1' to each of them
+names(big_partition) <- cds_partitions_extra@colData@rownames
+
+# convert from numeric to factor
+big_partition <- as.factor(big_partition)
+
+# overwrite the partition slot of the CDS object
+cds_partitions_extra@clusters$UMAP$partitions <- big_partition
+
+plot_cells(cds_partitions_extra, reduction_method = "UMAP",
+           color_cells_by = "partition", label_cell_groups = FALSE)
+```
+
+## Assigning cell types
+
+### Supervised approach
+
+Marker genes from Bacon et al. 2018:
+
+| Marker | Cell type |
+|---|---|
+| Il2ra | Double negative (early T-cell) |
+| Cd8b1, Cd8a, Cd4 | Double positive (middle T-cell) |
+| Cd8b1, Cd8a, Cd4 high | Double positive (late middle T-cell) |
+| Itm2a | Mature T-cell |
+| Aif1 | Macrophages |
+| Hba-a1 | RBC |
+
+```{r}
+#| label: marker-expression
+plot_cells(cds_clustered,
+           genes = c('Il2ra', 'Cd8b1', 'Cd8a', 'Cd4', 'Itm2a', 'Aif1', 'Hba-a1'),
+           reduction_method = "UMAP")
+```
+
+```{r}
+#| label: annotate
+# keep the objects tidy so you can come back to any point of the analysis
+cds_annotated <- cds_clustered
+
+# create a new column 'cell_type' and initialise it with cluster values
+colData(cds_annotated)$cell_type <- as.character(clusters(cds_annotated))
+
+# Annotate clusters. Cluster numbering is not reproducible across package
+# versions, so check the marker plot above before trusting this mapping.
+# dplyr::recode leaves any unmatched level unchanged.
+colData(cds_annotated)$cell_type <- dplyr::recode(
+  colData(cds_annotated)$cell_type,
+  '1' = 'DP-M1',    # double positive, middle T-cell (1st cluster)
+  '2' = 'DP-M2',    # double positive, middle T-cell (2nd cluster)
+  '3' = 'T-mat',    # mature T-cell
+  '4' = 'DN',       # double negative, early T-cell
+  '5' = 'DP-L',     # double positive, late middle T-cell
+  '6' = 'DP-M3',    # double positive, middle T-cell (3rd cluster)
+  '7' = 'Unknown',
+  '8' = 'Unknown')
+
+plot_cells(cds_annotated, color_cells_by = "cell_type",
+           label_cell_groups = FALSE)
+```
+
+### Unsupervised approach
+
+`top_markers()` is one of the slow steps. `reference_cells` speeds up the
+significance test at some cost in sensitivity.
+
+```{r}
+#| label: top-markers
+marker_test <- top_markers(cds_clustered, group_cells_by = "cluster",
+                           reduction_method = "UMAP",
+                           reference_cells = 1000, cores = 8)
+```
+
+```{r}
+#| label: top-markers-filter
+top_specific_markers <- marker_test %>%
+  dplyr::filter(fraction_expressing >= 0.10) %>%   # fraction of expressing cells
+  dplyr::group_by(cell_group) %>%
+  dplyr::top_n(1, pseudo_R2)                       # one top gene per cluster
+
+# Ties in pseudo_R2 give more genes per cluster than asked for. Break them.
+top_specific_markers <- top_specific_markers %>%
+  dplyr::distinct(pseudo_R2, .keep_all = TRUE)
+
+# store the names of the marker genes
+top_marker_names <- unique(top_specific_markers %>%
+                             dplyr::pull(gene_short_name))
+top_marker_names
+```
+
+```{r}
+#| label: genes-by-group
+plot_genes_by_group(cds_clustered,                    # our CDS object
+                    top_marker_names,                 # genes to show
+                    group_cells_by = "cluster",       # how to group cells
+                    ordering_type = "maximal_on_diag")
+```
+
+```{r}
+#| label: plot-found-markers
+# plot the identified genes to check their expression in the bigger picture
+plot_cells(cds_clustered,
+           genes = c('Pcdhgc4', 'Pcdhga5', 'Gm5559', 'Gm10359', 'Ccr9',
+                     'Cd8b1', 'Plac8', 'Il2ra', 'Cd52', 'Tmsb10', 'Mki67',
+                     'Hmgb2', 'Pclaf', 'Npm1'),
+           reduction_method = "UMAP")
+```
+
+### A marker file for Garnett
+
+```{r}
+#| label: garnett
+# top_markers() again, now grouping cells by the assigned cell type
+assigned_marker_test <- top_markers(cds_annotated,
+                                    group_cells_by = "cell_type",
+                                    reference_cells = 1000,
+                                    cores = 8)
+
+# filter these markers according to how stringent you want to be
+garnett_markers <- assigned_marker_test %>%
+  dplyr::filter(marker_test_q_value < 0.05 & specificity >= 0.25) %>%
+  dplyr::group_by(cell_group) %>%
+  dplyr::top_n(5, marker_score)
+
+# exclude genes that are good markers for more than one cell type
+garnett_markers_filtered <- garnett_markers %>%
+  dplyr::group_by(gene_short_name) %>%
+  dplyr::filter(dplyr::n() == 1)
+
+# Write to a temp file rather than the repo, so rendering leaves no artefacts.
+marker_file <- file.path(tempdir(), "marker_file.txt")
+generate_garnett_marker_file(garnett_markers_filtered, file = marker_file)
+cat(readLines(marker_file), sep = "\n")
+```
+
+## Trajectory inference
+
+`use_partition = TRUE` learns a disjoint graph per partition, which is what we
+want. The 'Unknown' cells sit in their own partition and should not be joined
+to the T-cell trajectory.
+
+```{r}
+#| label: learn-graph
+cds_trajectory <- learn_graph(cds_annotated, use_partition = TRUE)
+
+plot_cells(cds_trajectory,
+           color_cells_by = "cell_type",
+           label_cell_groups = FALSE,
+           label_groups_by_cluster = FALSE,
+           label_leaves = FALSE,
+           label_branch_points = FALSE)
+```
+
+### Option 1: Root nodes
+
+```{r}
+#| label: principal-points
+# label_principal_points = TRUE shows the Y_<number> node names
+plot_cells(cds_trajectory,
+           color_cells_by = "cell_type",
+           label_cell_groups = FALSE,
+           label_groups_by_cluster = FALSE,
+           label_leaves = FALSE,
+           label_branch_points = FALSE,
+           label_principal_points = TRUE,
+           graph_label_size = 3)
+```
+
+Upstream reads a node name off that plot and hardcodes it, for example
+`order_cells(cds_trajectory, root_pr_nodes = 'Y_14')`. Node numbering is not
+stable across runs, so instead we use the tutorial's helper function, which
+picks the root node from the annotated cell types. That keeps the document
+non-interactive and independent of the node numbering.
+
+```{r}
+#| label: root-helper
+# a helper function to identify the root principal point
+get_correct_root_state <- function(cds, cell_phenotype, root_type) {
+  cell_ids <- which(pData(cds)[, cell_phenotype] == root_type)
+
+  closest_vertex <-
+    cds@principal_graph_aux[["UMAP"]]$pr_graph_cell_proj_closest_vertex
+  closest_vertex <- as.matrix(closest_vertex[colnames(cds), ])
+  root_pr_nodes <-
+    igraph::V(principal_graph(cds)[["UMAP"]])$name[
+      as.numeric(names(which.max(table(closest_vertex[cell_ids, ]))))]
+  root_pr_nodes
+}
+
+# find the node where the DN (double negative, earliest) cells reside
+DN_node_id <- get_correct_root_state(cds_trajectory,
+                                     cell_phenotype = 'cell_type', "DN")
+DN_node_id
+
+cds_order_1_helper <- order_cells(cds_trajectory, root_pr_nodes = DN_node_id)
+```
+
+### Option 2: Root cells
+
+```{r}
+#| label: root-cells
+# all cells of the type we believe starts the trajectory
+starting_cell_type <- 'DN'
+index <- which(cds_trajectory@colData$cell_type == starting_cell_type)
+DN_cells <- colnames(cds_trajectory)[index]
+
+# on unannotated data you would instead name a cluster
+starting_cluster <- colnames(cds_trajectory[, clusters(cds_trajectory) == 4])
+
+cds_order_2 <- order_cells(cds_trajectory, root_cells = DN_cells)
+```
+
+Upstream also mentions calling `order_cells(cds_trajectory)` with no root
+argument, which opens a cell-picking window. That cannot run in a rendered
+document, so it is not included here.
+
+## Plotting in pseudotime
+
+```{r}
+#| label: pseudotime
+cds_order <- cds_order_1_helper
+
+plot_cells(cds_order,
+           color_cells_by = "pseudotime",
+           label_cell_groups = FALSE,
+           label_leaves = FALSE,
+           label_branch_points = FALSE)
+
+# access pseudotime for each cell and store it alongside the cell metadata
+pseudotime <- pseudotime(cds_order)
+cds_order@colData$pseudotime <- pseudotime
+summary(pseudotime)
+```
+
+## Differential expression analysis
+
+A small gene subset keeps the regression examples fast.
+
+```{r}
+#| label: de-subset
+test_genes <- c('Il2ra', 'Cd8b1', 'Cd8a', 'Cd4', 'Itm2a', 'Aif1', 'Hba-a1')
+cds_subset <- cds_order[rowData(cds_order)$gene_short_name %in% test_genes, ]
+cds_subset
+```
+
+### Some more plotting
+
+```{r}
+#| label: violin
+plot_genes_violin(cds_subset, group_cells_by = "cell_type", ncol = 2)
+```
+
+```{r}
+#| label: genes-in-pseudotime
+plot_genes_in_pseudotime(cds_subset, color_cells_by = "cell_type",
+                         min_expr = 0.5)
+```
+
+### Regression analysis, advanced
+
+```{r}
+#| label: fit-models
+# fit a generalized linear model for each gene
+gene_fits <- fit_models(cds_subset, model_formula_str = "~cell_type + batch")
+
+# extract a table of coefficients, Wald-tested against zero
+fit_coefs <- coefficient_table(gene_fits)
+head(fit_coefs)
+```
+
+```{r}
+#| label: coef-filter
+# the intercept term is not of interest
+no_intercept_coefs <- fit_coefs %>% dplyr::filter(term != "(Intercept)")
+
+# extract results for DP-M1 cells only
+DP_M1_coefs <- fit_coefs %>% dplyr::filter(term == "cell_typeDP-M1")
+
+# control the false discovery rate and keep a few columns
+DP_M1_coefs_filtered <- DP_M1_coefs %>%
+  dplyr::filter(q_value < 0.05) %>%
+  dplyr::select(gene_short_name, term, q_value, estimate)
+
+DP_M1_coefs_filtered
+```
+
+### Graph-autocorrelation analysis, advanced
+
+`graph_test()` uses Moran's I. This runs on the full dataset and is the slowest
+step in the tutorial.
+
+```{r}
+#| label: graph-test
+graph_test_res <- graph_test(cds_order, neighbor_graph = "knn", cores = 8)
+head(graph_test_res)
+```
+
+```{r}
+#| label: gene-modules
+# gene IDs for which q-value < 0.05
+pr_deg_ids <- row.names(subset(graph_test_res, q_value < 0.05))
+
+# group genes into modules, this runs UMAP on the genes rather than the cells
+gene_module_df <- find_gene_modules(cds_order[pr_deg_ids, ], resolution = 1e-2)
+```
+
+```{r}
+#| label: module-heatmap
+cell_group_df <- tibble::tibble(
+  cell = row.names(colData(cds_order)),
+  cell_group = clusters(cds_order)[colnames(cds_order)])
+
+agg_mat <- aggregate_gene_expression(cds_order, gene_module_df, cell_group_df)
+row.names(agg_mat) <- stringr::str_c("Module ", row.names(agg_mat))
+colnames(agg_mat)  <- stringr::str_c("Cluster ", colnames(agg_mat))
+
+pheatmap::pheatmap(agg_mat, cluster_rows = TRUE, cluster_cols = TRUE,
+                   scale = "column", clustering_method = "ward.D2",
+                   fontsize = 6)
+```
+
+```{r}
+#| label: plot-modules
+# Module numbering varies between runs, so take whichever modules exist rather
+# than the upstream hardcoded c(40, 39, 36, 17).
+modules_to_plot <- head(sort(unique(gene_module_df$module)), 4)
+
+plot_cells(cds_order,
+           genes = gene_module_df %>%
+             dplyr::filter(module %in% modules_to_plot),
+           group_cells_by = "cluster",
+           color_cells_by = "cluster",
+           show_trajectory_graph = FALSE)
+```
+
+## 3D plotting
+
+```{r}
+#| label: plot-3d
+cds_3d <- reduce_dimension(cds_order, preprocess_method = 'Aligned',
+                           max_components = 3)
+
+plot_cells_3d(cds_3d, color_cells_by = "cell_type")
+```
+
+## Export plots
+
+```{r}
+#| label: export
+plot_pseudotime <- plot_cells(cds_order,
+                              color_cells_by = "pseudotime",
+                              label_cell_groups = FALSE,
+                              label_leaves = FALSE,
+                              label_branch_points = FALSE)
+
+# Written to a temp directory so rendering leaves nothing behind in the repo.
+svg(file.path(tempdir(), "plot_pseudotime.svg"))
+plot_pseudotime
+dev.off()
+```
+
+## Session info
+
+```{r}
+#| label: sessioninfo
+sessionInfo()
+```

@@ -1,0 +1,301 @@
+---
+title: "Trajectory inference with Slingshot"
+subtitle: "Local version, reads from the workshop data repo, no network access"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    embed-resources: true
+    fig-width: 8
+    fig-height: 6
+execute:
+  warning: false
+  message: true
+  error: true
+---
+
+Local rework of `1_a_slingshot.html`.
+
+Upstream: <https://nbisweden.github.io/workshop-archive/workshop-scRNAseq/2020-01-27/labs/compiled/slingshot/slingshot.html>
+(NBIS workshop-scRNAseq, 2020-01-27 archive)
+
+Method: Street et al. 2018, "Slingshot: cell lineage and pseudotime inference
+for single-cell transcriptomics", BMC Genomics,
+<https://doi.org/10.1186/s12864-018-4772-9>
+
+::: {.callout-important}
+## Status: transcribed from upstream, first render is a test
+
+The code below is transcribed from the upstream lab, with the GEO download
+replaced by a read from the staged data repo. It has not been executed yet.
+`error: true` is set in the YAML on purpose, so a test render reports every
+failure rather than stopping at the first one.
+:::
+
+## Setup
+
+```{r}
+#| label: setup
+source(here::here("slides", "find_data_dir.R"))
+data_dir <- find_data_dir("1_a_slingshot")
+report_data_dir("1_a_slingshot")
+```
+
+```{r}
+#| label: libraries
+suppressPackageStartupMessages({
+  library(Matrix)
+  library(scran)
+  library(scater)
+  library(igraph)
+  library(slingshot)
+  library(tradeSeq)
+  library(dplyr)
+  library(cowplot)
+  library(RColorBrewer)
+})
+```
+
+## Load data
+
+Mouse bone marrow progenitors, GEO GSE72857 (Paul et al. 2015).
+
+Upstream downloads `GSE72857_umitab.txt.gz` from the NCBI FTP server, decompresses
+it, reads it with `read.delim()`, and converts it to a sparse matrix. The staging
+script does all of that once and saves the sparse matrix, so here we just read it.
+
+::: {.callout-note}
+## Staged file
+
+`GSE72857_umitab.rds`, a sparse `dgCMatrix` of raw UMI counts, genes by cells.
+Produced by `staging/stage_1_a_slingshot.R`.
+:::
+
+```{r}
+#| label: load
+umi_counts <- readRDS(file.path(data_dir, "GSE72857_umitab.rds"))
+
+# Select every fifth cell, to keep the exercise fast.
+umi_counts <- umi_counts[, c(TRUE, FALSE, FALSE, FALSE, FALSE)]
+dim(umi_counts)
+```
+
+```{r}
+#| label: palette
+# Colour palette used throughout.
+pal <- c(RColorBrewer::brewer.pal(9, "Set1"), RColorBrewer::brewer.pal(8, "Set2"))
+```
+
+## Basic processing with the Scran / Scater pipeline
+
+Upstream offers a Scran/Scater route and a Seurat route, and they are
+alternatives, not steps. We use Scran/Scater because it keeps the object a
+`SingleCellExperiment`, which is what Slingshot wants anyway. The Seurat route is
+kept below but not run.
+
+The goal of this section is only to produce two things, a reduction to run the
+trajectory on, and a clustering.
+
+```{r}
+#| label: scran-pipeline
+data <- SingleCellExperiment(assays = list(counts = umi_counts))
+data <- computeSumFactors(data, sizes = c(20, 40, 60, 80))
+data <- logNormCounts(data)
+var.fit <- modelGeneVar(data)
+top.hvgs <- getTopHVGs(var.fit, n = 2000)
+data <- runPCA(data, subset_row = top.hvgs)
+g <- buildSNNGraph(data, k = 5, use.dimred = "PCA", assay.type = "RNA")
+data$louvain_SNNk5 <- factor(igraph::cluster_louvain(g)$membership)
+data <- runUMAP(data, dimred = "PCA", n_dimred = 50, ncomponents = 2,
+                spread = 2, min_dist = 0.1, n_neighbors = 10, metric = "cosine")
+```
+
+```{r}
+#| label: plot-clusters
+plotReducedDim(data, dimred = "UMAP", colour_by = "louvain_SNNk5")
+```
+
+```{r}
+#| label: extract-for-slingshot
+# Slingshot takes plain matrices, not the SingleCellExperiment.
+dimred     <- reducedDim(data, type = "UMAP")
+clustering <- data$louvain_SNNk5
+counts     <- as.matrix(counts(data)[top.hvgs, ])
+```
+
+## Alternative: the Seurat route
+
+Not run. Shown because students who did the earlier days in Seurat will want to
+see how they get to the same two objects.
+
+```{r}
+#| label: seurat-pipeline
+#| eval: false
+library(Seurat)
+data_seurat <- CreateSeuratObject(counts = umi_counts)
+data_seurat <- NormalizeData(data_seurat)
+data_seurat <- FindVariableFeatures(data_seurat, nfeatures = 2000)
+data_seurat <- ScaleData(data_seurat)
+data_seurat <- RunPCA(data_seurat)
+data_seurat <- FindNeighbors(data_seurat)
+data_seurat <- FindClusters(data_seurat, resolution = 1)
+data_seurat <- RunUMAP(data_seurat, n.neighbors = 10, dims = 1:50,
+                       spread = 2, min.dist = 0.3)
+DimPlot(data_seurat, group.by = "RNA_snn_res.1")
+
+dimred     <- data_seurat@reductions$umap@cell.embeddings
+clustering <- data_seurat$RNA_snn_res.1
+counts     <- as.matrix(data_seurat@assays$RNA@counts[
+  data_seurat@assays$RNA@var.features, ])
+```
+
+## Defining cell lineages with Slingshot
+
+`slingshot()` is a wrapper around two steps. First define the lineages, which
+are paths through the clusters. Then fit a curve through the data for each
+lineage. They are shown separately here for clarity.
+
+```{r}
+#| label: lineages
+set.seed(1)
+lineages <- getLineages(data = dimred, clusterLabels = clustering)
+lineages
+```
+
+```{r}
+#| label: plot-lineages
+plot(dimred, col = pal[clustering], asp = 1, pch = 16)
+lines(lineages, lwd = 3, col = "black")
+```
+
+## Defining principal curves
+
+Principal curves iteratively deform an initial curve to fit the data. Slingshot
+runs one per lineage, and bundles curves that share clusters.
+
+`approx_points = 300` is a speed compromise. With all cells this is slow.
+
+```{r}
+#| label: curves
+curves <- getCurves(lineages, approx_points = 300, thresh = 0.01,
+                    stretch = 0.8, allow.breaks = FALSE, shrink = 0.99)
+curves
+```
+
+```{r}
+#| label: plot-curves
+plot(dimred, col = pal[clustering], asp = 1, pch = 16)
+lines(curves, lwd = 3, col = "black")
+```
+
+## Finding differentially expressed genes
+
+tradeSeq smooths expression along the trajectory with generalized additive
+models, then tests whether coefficients differ between points on the trajectory.
+
+```{r}
+#| label: tradeseq-setup
+BiocParallel::register(BiocParallel::SerialParam())
+```
+
+::: {.callout-warning}
+## `fitGAM` is the slow step
+
+Upstream filters hard before fitting, down to roughly 215 genes, purely to make
+the tutorial finish. That filter is not a real analysis choice. In your own work
+you would fit at least the variable genes.
+
+If this is still too slow on the workshop machine, precompute the fitted object
+in the staging script and read it here instead.
+:::
+
+```{r}
+#| label: fitgam
+# Stringent filter, for speed only.
+filt_counts <- counts[rowSums(counts > 5) > ncol(counts) / 100, ]
+dim(filt_counts)
+
+sce <- fitGAM(counts = as.matrix(filt_counts), sds = curves)
+```
+
+```{r}
+#| label: plot-gene-count
+plotGeneCount(curves, filt_counts, clusters = clustering, models = sce)
+```
+
+### Genes that change with pseudotime
+
+```{r}
+#| label: association-test
+pseudotime_association <- associationTest(sce)
+pseudotime_association$fdr <- p.adjust(pseudotime_association$pvalue,
+                                       method = "fdr")
+pseudotime_association <- pseudotime_association[
+  order(pseudotime_association$pvalue), ]
+pseudotime_association$feature_id <- rownames(pseudotime_association)
+head(pseudotime_association, 20)
+```
+
+```{r}
+#| label: plot-helper
+# Upstream defines a helper that immediately overwrites its own argument, so it
+# always plots the same gene no matter what you pass it. Fixed here to actually
+# use the argument.
+plot_differential_expression <- function(feature_id) {
+  cowplot::plot_grid(
+    plotGeneCount(curves, filt_counts, gene = feature_id[1],
+                  clusters = clustering, models = sce) +
+      ggplot2::theme(legend.position = "none"),
+    plotSmoothers(sce, as.matrix(counts), gene = feature_id[1]))
+}
+```
+
+```{r}
+#| label: plot-association
+feature_id <- pseudotime_association |>
+  dplyr::filter(pvalue < 0.05) |>
+  dplyr::top_n(1, -waldStat) |>
+  dplyr::pull(feature_id)
+
+plot_differential_expression(feature_id)
+```
+
+### Genes that change between two pseudotime points
+
+```{r}
+#| label: start-end-test
+pseudotime_start_end_association <- startVsEndTest(sce, pseudotimeValues = c(0, 1))
+pseudotime_start_end_association$feature_id <-
+  rownames(pseudotime_start_end_association)
+
+feature_id <- pseudotime_start_end_association |>
+  dplyr::filter(pvalue < 0.05) |>
+  dplyr::top_n(1, waldStat) |>
+  dplyr::pull(feature_id)
+
+plot_differential_expression(feature_id)
+```
+
+### Genes that are different between lineages
+
+```{r}
+#| label: lineage-test
+different_end_association <- diffEndTest(sce)
+different_end_association$feature_id <- rownames(different_end_association)
+
+feature_id <- different_end_association |>
+  dplyr::filter(pvalue < 0.05) |>
+  dplyr::arrange(dplyr::desc(waldStat)) |>
+  dplyr::slice(1) |>
+  dplyr::pull(feature_id)
+
+plot_differential_expression(feature_id)
+```
+
+## Session info
+
+```{r}
+#| label: sessioninfo
+sessionInfo()
+```

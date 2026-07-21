@@ -1,0 +1,312 @@
+---
+title: "Differential abundance testing with Milo"
+subtitle: "Local version, reads from the workshop data repo, no network access"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    embed-resources: true
+    fig-width: 8
+    fig-height: 6
+execute:
+  warning: false
+  message: true
+  error: true
+---
+
+Local rework of `3_b_composition_milo.html`.
+
+Upstream: <https://bioconductor.org/packages/release/bioc/vignettes/miloR/inst/doc/milo_gastrulation.html>
+
+Method: Dann et al. 2022, "Differential abundance testing on single-cell data
+using k-nearest neighbor graphs", Nature Biotechnology,
+<https://doi.org/10.1038/s41587-021-01033-z>
+
+Dataset: Pijuan-Sala et al. 2019, "A single-cell molecular map of mouse
+gastrulation and early organogenesis", Nature,
+<https://doi.org/10.1038/s41586-019-0933-9>
+
+::: {.callout-important}
+## Status: transcribed from upstream, first render is a test
+
+The code below is transcribed from the upstream vignette, with the
+`EmbryoAtlasData()` download replaced by a read from the staged data repo. It has
+not been executed yet. `error: true` is set in the YAML on purpose, so a test
+render reports every failure rather than stopping at the first one.
+:::
+
+::: {.callout-caution}
+## Do not put the download back
+
+Upstream calls `EmbryoAtlasData()`, which pulls the mouse gastrulation atlas
+through `ExperimentHub`. `ExperimentHub` caches per user, so twenty students on
+twenty accounts means twenty multi-GB downloads at the same moment. That call is
+deliberately absent here. It lives in `staging/stage_3_b_composition_milo.R` and
+is run once, ahead of time.
+:::
+
+## Setup
+
+```{r}
+#| label: setup
+source(here::here("slides", "find_data_dir.R"))
+data_dir <- find_data_dir("3_b_composition_milo")
+report_data_dir("3_b_composition_milo")
+```
+
+```{r}
+#| label: libraries
+suppressPackageStartupMessages({
+  library(miloR)
+  library(SingleCellExperiment)
+  library(scater)
+  library(scran)
+  library(dplyr)
+  library(patchwork)
+  library(ggplot2)
+})
+```
+
+## Load data
+
+Eight samples, four at stage E7.0 and four at E7.5, so the contrast is
+developmental time. The object already carries a `pca.corrected` reduction, built
+after fastMNN batch correction, and cells with an all-NA reduction have already
+been dropped by the staging script.
+
+::: {.callout-note}
+## Staged file
+
+`embryo_atlas_subset.rds`, a `SingleCellExperiment`. Produced by
+`staging/stage_3_b_composition_milo.R`, which is where the `EmbryoAtlasData()`
+call and the NA filter live.
+:::
+
+```{r}
+#| label: load
+embryo_data <- readRDS(file.path(data_dir, "embryo_atlas_subset.rds"))
+embryo_data
+```
+
+## Visualize the data
+
+```{r}
+#| label: umap
+embryo_data <- runUMAP(embryo_data, dimred = "pca.corrected", name = "umap")
+plotReducedDim(embryo_data, colour_by = "stage", dimred = "umap")
+```
+
+## Create a Milo object
+
+`Milo` extends `SingleCellExperiment` with slots for the neighbourhoods.
+
+```{r}
+#| label: milo-object
+embryo_milo <- Milo(embryo_data)
+embryo_milo
+```
+
+## Construct the KNN graph
+
+`k` affects the power of the test, because each neighbourhood needs enough cells
+per sample to estimate between-replicate variance. Too large and it over-smooths.
+Start with the same `k` you used for clustering and UMAP.
+
+```{r}
+#| label: build-graph
+embryo_milo <- buildGraph(embryo_milo, k = 30, d = 30,
+                          reduced.dim = "pca.corrected")
+```
+
+## Define representative neighbourhoods
+
+`prop` is the fraction of cells sampled as neighbourhood indices. `refined = TRUE`
+is the recommended sampling scheme.
+
+```{r}
+#| label: make-nhoods
+embryo_milo <- makeNhoods(embryo_milo, prop = 0.1, k = 30, d = 30,
+                          refined = TRUE, reduced_dims = "pca.corrected")
+```
+
+Rule of thumb: mean neighbourhood size should be above 5 times the number of
+samples. If it is lower, raise `k` or `prop` and rebuild.
+
+```{r}
+#| label: nhood-size-hist
+plotNhoodSizeHist(embryo_milo)
+```
+
+## Count cells in neighbourhoods
+
+Milo uses the variation in cell numbers between replicates of the same condition
+to test for differential abundance, so the counting is by sample.
+
+```{r}
+#| label: count-cells
+embryo_milo <- countCells(embryo_milo,
+                          meta.data = as.data.frame(colData(embryo_milo)),
+                          sample = "sample")
+head(nhoodCounts(embryo_milo))
+```
+
+## Defining the experimental design
+
+Testing is a negative binomial GLM from edgeR. The design matrix maps each sample
+to its condition, here `stage`, plus `sequencing.batch` as a known technical
+covariate.
+
+::: {.callout-tip}
+## Worth lingering on
+
+This is the same design-matrix idea as DESeq2 in `2_a_pseudobulk_de_local.qmd`,
+applied to neighbourhood counts instead of gene counts.
+:::
+
+```{r}
+#| label: design
+embryo_design <- data.frame(colData(embryo_milo))[,
+  c("sample", "stage", "sequencing.batch")]
+
+# Batch is stored as an integer, and must be a factor.
+embryo_design$sequencing.batch <- as.factor(embryo_design$sequencing.batch)
+embryo_design <- dplyr::distinct(embryo_design)
+rownames(embryo_design) <- embryo_design$sample
+
+embryo_design
+```
+
+## Computing neighbourhood connectivity
+
+Milo adapts the spatial FDR correction from cydar, weighting each p-value by the
+reciprocal of the kth nearest neighbour distance. Those distances have to be
+stored first.
+
+```{r}
+#| label: nhood-distance
+# This is the slowest step in the workflow.
+embryo_milo <- calcNhoodDistance(embryo_milo, d = 30,
+                                 reduced.dim = "pca.corrected")
+```
+
+## Testing
+
+```{r}
+#| label: test
+da_results <- testNhoods(embryo_milo,
+                         design = ~ sequencing.batch + stage,
+                         design.df = embryo_design,
+                         reduced.dim = "pca.corrected")
+head(da_results)
+```
+
+```{r}
+#| label: top-hits
+da_results |>
+  dplyr::arrange(SpatialFDR) |>
+  head(20)
+```
+
+## Inspecting the results
+
+```{r}
+#| label: pvalue-hist
+ggplot(da_results, aes(PValue)) + geom_histogram(bins = 50)
+```
+
+```{r}
+#| label: volcano
+ggplot(da_results, aes(logFC, -log10(SpatialFDR))) +
+  geom_point() +
+  geom_hline(yintercept = 1)   # 10% FDR
+```
+
+Each node is a neighbourhood, edges show how many cells two neighbourhoods share,
+and node position comes from the index cell's position in the single-cell UMAP.
+Significant neighbourhoods are coloured by log fold change.
+
+```{r}
+#| label: nhood-graph
+embryo_milo <- buildNhoodGraph(embryo_milo)
+
+umap_pl <- plotReducedDim(embryo_milo, dimred = "umap", colour_by = "stage",
+                          text_by = "celltype", text_size = 3,
+                          point_size = 0.5) +
+  guides(fill = "none")
+
+nh_graph_pl <- plotNhoodGraphDA(embryo_milo, da_results, layout = "umap",
+                                alpha = 0.1)
+
+umap_pl + nh_graph_pl + plot_layout(guides = "collect")
+```
+
+## Differential abundance by cell type
+
+Label each neighbourhood by its most abundant cell type, and record what fraction
+of the neighbourhood carries that label.
+
+```{r}
+#| label: annotate
+da_results <- annotateNhoods(embryo_milo, da_results, coldata_col = "celltype")
+head(da_results)
+```
+
+```{r}
+#| label: celltype-fraction
+ggplot(da_results, aes(celltype_fraction)) + geom_histogram(bins = 50)
+```
+
+```{r}
+#| label: relabel-mixed
+# Neighbourhoods that are a blend of cell types get called Mixed rather than
+# being forced into one label.
+da_results$celltype <- ifelse(da_results$celltype_fraction < 0.7,
+                              "Mixed", da_results$celltype)
+```
+
+```{r}
+#| label: beeswarm
+plotDAbeeswarm(da_results, group.by = "celltype")
+```
+
+::: {.callout-tip}
+## The teaching payoff
+
+Early types such as epiblast and primitive streak are enriched at the earlier
+stage, ectoderm later. Note the "Mixed" neighbourhoods that also come up
+significant. Those are transitional states, and they are exactly what a
+cluster-level test would have averaged away. That is the argument for Milo over
+`propeller` or `scCODA` in continuum data.
+:::
+
+## Finding markers of DA populations
+
+`findNhoodGroupMarkers` runs a one-versus-all differential expression test for a
+group of neighbourhoods. The grouping has to be defined first, in a `NhoodGroup`
+column.
+
+```{r}
+#| label: lognorm
+embryo_milo <- logNormCounts(embryo_milo)
+```
+
+```{r}
+#| label: custom-grouping
+# Group the significant neighbourhoods that shifted in one direction against
+# everything else. subset.row restricts to 10 genes for illustration, exactly as
+# upstream does. Drop that argument for a real analysis.
+da_results$NhoodGroup <- as.numeric(da_results$SpatialFDR < 0.1 &
+                                    da_results$logFC < 0)
+da_nhood_markers <- findNhoodGroupMarkers(
+  embryo_milo, da_results,
+  subset.row = rownames(embryo_milo)[1:10])
+head(da_nhood_markers)
+```
+
+## Session info
+
+```{r}
+#| label: sessioninfo
+sessionInfo()
+```

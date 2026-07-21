@@ -1,0 +1,395 @@
+---
+title: "Differential expression testing in Seurat"
+subtitle: "Local version, reads from the workshop data repo, no network access"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    embed-resources: true
+    fig-width: 8
+    fig-height: 6
+execute:
+  warning: false
+  message: true
+  error: true
+---
+
+Local rework of `2_b_de_vignette.html`.
+
+Upstream: <https://satijalab.org/seurat/articles/de_vignette>
+
+::: {.callout-important}
+## Status: transcribed from upstream, not yet executed
+
+Every chunk below is transcribed from the upstream Seurat vignette and has **not
+been run yet**. This first render is the test. `error: true` is set in the YAML
+on purpose so that the render completes and lists *all* failures, rather than
+stopping at the first one.
+:::
+
+::: {.callout-tip}
+## Pairs with `2_a_pseudobulk_de_local.qmd`
+
+Seurat's default `FindMarkers()` treats each **cell** as an independent
+replicate. Cells from the same donor are not independent, so this inflates
+significance and produces large numbers of false positives. The pseudobulk
+section below, and the companion document `2_a_pseudobulk_de_local.qmd`, show
+the fix. Aggregate to one profile per donor per cell type, then test at the
+sample level.
+
+See Squair et al. 2021, "Confronting false discoveries in single-cell
+differential expression", Nature Communications,
+<https://doi.org/10.1038/s41467-021-25960-2>
+:::
+
+::: {.callout-note}
+## Data files this document expects
+
+Upstream calls `SeuratData::LoadData("ifnb")`, which downloads and installs the
+`ifnb.SeuratData` package. That is a network call, so it is replaced here by a
+plain `readRDS()`.
+
+The staging script must place these files in the data directory for
+`2_b_de_vignette`:
+
+- `ifnb.rds` , the `ifnb` `Seurat` object (interferon-beta stimulated human
+  PBMCs, 2 conditions, about 14k cells), i.e. the result of
+  `saveRDS(SeuratData::LoadData("ifnb"), "ifnb.rds")` run on a machine with
+  network access.
+- `ye1.ctrl.8.10.sm.best` and `ye2.stim.8.10.sm.best` , the demuxlet donor
+  assignments that the upstream vignette pulls from GitHub. Optional. If they
+  are absent the chunk falls back to the original URLs, which needs network.
+:::
+
+::: {.callout-warning}
+## Optional packages needed for the alternative tests
+
+`FindMarkers()` dispatches on `test.use`. Most options are covered by Seurat's
+own dependencies, but several need extra packages installed separately:
+
+- `test.use = "DESeq2"` needs Bioconductor **DESeq2**. It is used in the
+  pseudobulk section below, so a missing DESeq2 breaks that whole section.
+- `test.use = "MAST"` needs Bioconductor **MAST**. It is used in the last
+  section.
+- `test.use = "wilcox"` (the default) uses **presto** when it is installed, and
+  `test.use = "wilcox_limma"` needs **limma**.
+
+A missing package will surface as an error in this test render rather than
+stopping it.
+:::
+
+## Setup
+
+```{r}
+#| label: setup
+source(here::here("slides", "find_data_dir.R"))
+data_dir <- find_data_dir("2_b_de_vignette")
+report_data_dir("2_b_de_vignette")
+```
+
+## Load in the data
+
+This vignette highlights some example workflows for performing differential
+expression in Seurat. For demonstration purposes we use the interferon-beta
+stimulated human PBMCs dataset (`ifnb`), which upstream is available via the
+`SeuratData` package and here is read from a staged `.rds` file.
+
+```{r}
+#| label: libraries
+library(Seurat)
+library(ggplot2)
+```
+
+```{r}
+#| label: load-data
+ifnb <- readRDS(file.path(data_dir, "ifnb.rds"))
+ifnb
+```
+
+## Perform default differential expression tests
+
+The bulk of Seurat's differential expression features can be accessed through
+the `FindMarkers()` function. By default, Seurat performs differential
+expression (DE) testing based on the non-parametric Wilcoxon rank sum test. To
+test for DE genes between two specific groups of cells, specify the `ident.1`
+and `ident.2` parameters.
+
+```{r}
+#| label: default-de
+# Normalize the data
+ifnb <- NormalizeData(ifnb)
+
+# Find DE features between CD16 Mono and CD14 Mono
+Idents(ifnb) <- "seurat_annotations"
+monocyte.de.markers <- FindMarkers(ifnb, ident.1 = "CD16 Mono", ident.2 = "CD14 Mono")
+# view results
+head(monocyte.de.markers)
+```
+
+The results data frame has the following columns:
+
+- `p_val` : p-value (unadjusted)
+- `avg_log2FC` : log fold-change of the average expression between the two
+  groups. Positive values indicate that the feature is more highly expressed in
+  the first group.
+- `pct.1` : the percentage of cells where the feature is detected in the first
+  group
+- `pct.2` : the percentage of cells where the feature is detected in the second
+  group
+- `p_val_adj` : adjusted p-value, based on Bonferroni correction using all
+  features in the dataset.
+
+If the `ident.2` parameter is omitted or set to `NULL`, `FindMarkers()` will
+test for differentially expressed features between the group specified by
+`ident.1` and all other cells. Additionally, the parameter `only.pos` can be set
+to `TRUE` to only search for positive markers, i.e. features that are more
+highly expressed in the `ident.1` group.
+
+```{r}
+#| label: default-de-one-vs-rest
+# Find differentially expressed features between CD16 Monocytes and all other cells, only
+# search for positive markers
+monocyte.de.markers <- FindMarkers(ifnb, ident.1 = "CD16 Mono", ident.2 = NULL, only.pos = TRUE)
+# view results
+head(monocyte.de.markers)
+```
+
+## Perform DE analysis within the same cell type across conditions
+
+Since this dataset contains treatment information (control versus stimulated
+with interferon-beta), we can also ask what genes change in different conditions
+for cells of the same type. First we create a column in the `meta.data` slot to
+hold both the cell type and treatment information and switch the current
+`Idents` to that column. Then we use `FindMarkers()` to find the genes that are
+different between control and stimulated CD14 monocytes.
+
+```{r}
+#| label: celltype-stim-de
+ifnb$celltype.stim <- paste(ifnb$seurat_annotations, ifnb$stim, sep = "_")
+Idents(ifnb) <- "celltype.stim"
+mono.de <- FindMarkers(ifnb, ident.1 = "CD14 Mono_STIM", ident.2 = "CD14 Mono_CTRL", verbose = FALSE)
+head(mono.de, n = 10)
+```
+
+However, the p-values obtained from this analysis should be interpreted with
+caution, because these tests treat each cell as an independent replicate and
+ignore inherent correlations between cells originating from the same sample.
+Such analyses have been shown to find a large number of false positive
+associations, as demonstrated by Squair et al. 2021
+(<https://doi.org/10.1038/s41467-021-25960-2>), Zimmerman et al. 2021
+(<https://doi.org/10.1038/s41467-021-21038-1>), Junttila et al. 2022
+(<https://doi.org/10.1093/bib/bbac286>), and others. Below we show how
+pseudobulking can be used to account for such within-sample correlation.
+
+## Perform DE analysis after pseudobulking
+
+To pseudobulk we use `AggregateExpression()` to sum together gene counts of all
+the cells from the same sample for each cell type. This results in one gene
+expression profile per sample and cell type. We can then perform DE analysis
+using DESeq2 on the sample level. This treats the samples, rather than the
+individual cells, as independent observations.
+
+First we need to retrieve the sample information for each cell. This is not
+loaded in the metadata. Upstream loads it from the GitHub repo of the source
+data for the original paper. Here we prefer staged local copies and fall back to
+the upstream URLs only if the local files are missing.
+
+```{r}
+#| label: add-donor-ids
+# load the inferred sample IDs of each cell
+ctrl_local <- file.path(data_dir, "ye1.ctrl.8.10.sm.best")
+stim_local <- file.path(data_dir, "ye2.stim.8.10.sm.best")
+ctrl_src <- if (file.exists(ctrl_local)) {
+  ctrl_local
+} else {
+  url("https://raw.githubusercontent.com/yelabucsf/demuxlet_paper_code/master/fig3/ye1.ctrl.8.10.sm.best")
+}
+stim_src <- if (file.exists(stim_local)) {
+  stim_local
+} else {
+  url("https://raw.githubusercontent.com/yelabucsf/demuxlet_paper_code/master/fig3/ye2.stim.8.10.sm.best")
+}
+ctrl <- read.table(ctrl_src, head = TRUE, stringsAsFactors = FALSE)
+stim <- read.table(stim_src, head = TRUE, stringsAsFactors = FALSE)
+info <- rbind(ctrl, stim)
+
+# rename the cell IDs by substituting the '-' into '.'
+info$BARCODE <- gsub(pattern = "\\-", replacement = "\\.", info$BARCODE)
+
+# only keep the cells with high-confidence sample ID
+info <- info[grep(pattern = "SNG", x = info$BEST), ]
+
+# remove cells with duplicated IDs in both ctrl and stim groups
+info <- info[!duplicated(info$BARCODE) & !duplicated(info$BARCODE, fromLast = TRUE), ]
+
+# now add the sample IDs to ifnb
+rownames(info) <- info$BARCODE
+info <- info[, c("BEST"), drop = FALSE]
+names(info) <- c("donor_id")
+ifnb <- AddMetaData(ifnb, metadata = info)
+
+# remove cells without donor IDs
+ifnb$donor_id[is.na(ifnb$donor_id)] <- "unknown"
+ifnb <- subset(ifnb, subset = donor_id != "unknown")
+```
+
+We can now perform pseudobulking (`AggregateExpression()`) based on the donor
+IDs.
+
+```{r}
+#| label: pseudobulk
+# pseudobulk the counts based on donor-condition-celltype
+pseudo_ifnb <- AggregateExpression(ifnb, assays = "RNA", return.seurat = TRUE,
+                                   group.by = c("stim", "donor_id", "seurat_annotations"))
+
+# each 'cell' is a donor-condition-celltype pseudobulk profile
+tail(Cells(pseudo_ifnb))
+
+pseudo_ifnb$celltype.stim <- paste(pseudo_ifnb$seurat_annotations, pseudo_ifnb$stim, sep = "_")
+```
+
+Next we perform DE testing on the pseudobulk level for CD14 monocytes, and
+compare it against the previous single-cell-level DE results.
+
+```{r}
+#| label: pseudobulk-de
+Idents(pseudo_ifnb) <- "celltype.stim"
+
+bulk.mono.de <- FindMarkers(object = pseudo_ifnb,
+                            ident.1 = "CD14 Mono_STIM",
+                            ident.2 = "CD14 Mono_CTRL",
+                            test.use = "DESeq2")
+head(bulk.mono.de, n = 15)
+```
+
+```{r}
+#| label: compare-sc-bulk
+# compare the DE P-values between the single-cell level and the pseudobulk level results
+names(bulk.mono.de) <- paste0(names(bulk.mono.de), ".bulk")
+bulk.mono.de$gene <- rownames(bulk.mono.de)
+
+names(mono.de) <- paste0(names(mono.de), ".sc")
+mono.de$gene <- rownames(mono.de)
+
+merge_dat <- merge(mono.de, bulk.mono.de, by = "gene")
+merge_dat <- merge_dat[order(merge_dat$p_val.bulk), ]
+
+# Number of genes that are marginally significant in both, marginally significant
+# only in bulk, and marginally significant only in single-cell
+common <- merge_dat$gene[which(merge_dat$p_val.bulk < 0.05 &
+                                 merge_dat$p_val.sc < 0.05)]
+only_sc <- merge_dat$gene[which(merge_dat$p_val.bulk > 0.05 &
+                                  merge_dat$p_val.sc < 0.05)]
+only_bulk <- merge_dat$gene[which(merge_dat$p_val.bulk < 0.05 &
+                                    merge_dat$p_val.sc > 0.05)]
+print(paste0("# Common: ", length(common)))
+print(paste0("# Only in single-cell: ", length(only_sc)))
+print(paste0("# Only in bulk: ", length(only_bulk)))
+```
+
+Upstream reports 3,519 genes with evidence of differential expression (prior to
+multiple hypothesis testing) in both analyses, 1,649 genes that only appear
+differentially expressed in the single-cell analysis, and just 204 genes that
+only appear differentially expressed in the bulk analysis. The single-cell
+p-values are systematically smaller. We can investigate these discrepancies with
+`VlnPlot()`.
+
+First, the top genes that are differentially expressed in both analyses.
+
+```{r}
+#| label: violin-common
+# create a new column to annotate sample-condition-celltype in the single-cell dataset
+ifnb$donor_id.stim <- paste0(ifnb$stim, "-", ifnb$donor_id)
+
+# generate violin plot
+Idents(ifnb) <- "celltype.stim"
+print(merge_dat[merge_dat$gene %in% common[1:2], c("gene", "p_val.sc", "p_val.bulk")])
+
+VlnPlot(ifnb, features = common[1:2], idents = c("CD14 Mono_CTRL", "CD14 Mono_STIM"),
+        group.by = "stim")
+```
+
+```{r}
+#| label: violin-common-by-donor
+VlnPlot(ifnb, features = common[1:2], idents = c("CD14 Mono_CTRL", "CD14 Mono_STIM"),
+        group.by = "donor_id.stim", ncol = 1)
+```
+
+In both the pseudobulk and single-cell analyses, the p-values for these two
+genes are astronomically small. For both of these genes, when just comparing all
+stimulated CD14 monocytes to all control CD14 monocytes across samples, we see
+much higher expression in the stimulated cells. When breaking down these cells
+by sample, we continue to see consistently higher expression levels in the
+stimulated samples compared to the control samples. In other words, this finding
+is not driven by just one or two samples. Because of this consistency, we find
+this signal in both analyses.
+
+By contrast, we can examine examples of genes that are only DE under the
+single-cell analysis.
+
+```{r}
+#| label: violin-only-sc
+print(merge_dat[merge_dat$gene %in% c("SRGN", "HLA-DRA"), c("gene", "p_val.sc", "p_val.bulk")])
+
+VlnPlot(ifnb, features = c("SRGN", "HLA-DRA"), idents = c("CD14 Mono_CTRL", "CD14 Mono_STIM"),
+        group.by = "stim")
+```
+
+```{r}
+#| label: violin-only-sc-by-donor
+VlnPlot(ifnb, features = c("SRGN", "HLA-DRA"), idents = c("CD14 Mono_CTRL", "CD14 Mono_STIM"),
+        group.by = "donor_id.stim", ncol = 1)
+```
+
+Here, SRGN and HLA-DRA both have very small p-values in the single-cell analysis
+(on the order of $10^{-21}$ and $10^{-9}$), but much larger p-values around 0.18
+in the pseudobulk analysis. While there appears to be a difference between
+control and stimulated cells when ignoring sample information, the signal is
+much weaker on the sample level, and we can see notable variability from sample
+to sample.
+
+## Perform DE analysis using alternative tests
+
+Seurat supports many other DE tests. The currently supported values of
+`test.use` are:
+
+- `"wilcox"` : Wilcoxon rank sum test (default, using the `presto` package)
+- `"wilcox_limma"` : Wilcoxon rank sum test (using the `limma` package)
+- `"bimod"` : likelihood-ratio test for single cell feature expression
+  (McDavid et al., Bioinformatics, 2013,
+  <https://doi.org/10.1093/bioinformatics/bts714>)
+- `"roc"` : standard AUC classifier
+- `"t"` : Student's t-test
+- `"poisson"` : likelihood ratio test assuming an underlying Poisson
+  distribution. Use only for UMI-based datasets
+- `"negbinom"` : likelihood ratio test assuming an underlying negative binomial
+  distribution. Use only for UMI-based datasets
+- `"LR"` : uses a logistic regression framework to determine differentially
+  expressed genes. Constructs a logistic regression model predicting group
+  membership based on each feature individually and compares this to a null
+  model with a likelihood ratio test.
+- `"MAST"` : GLM-framework that treats cellular detection rate as a covariate
+  (Finak et al., Genome Biology, 2015,
+  <https://doi.org/10.1186/s13059-015-0844-5>)
+- `"DESeq2"` : DE based on a model using the negative binomial distribution
+  (Love et al., Genome Biology, 2014,
+  <https://doi.org/10.1186/s13059-014-0550-8>)
+
+For MAST and DESeq2, please ensure that these packages are installed separately
+in order to use them as part of Seurat. Once installed, the `test.use` parameter
+can be used to specify which DE test to use.
+
+```{r}
+#| label: mast
+# Test for DE features using the MAST package
+Idents(ifnb) <- "seurat_annotations"
+head(FindMarkers(ifnb, ident.1 = "CD14 Mono", ident.2 = "CD16 Mono", test.use = "MAST"))
+```
+
+## Session Info
+
+```{r}
+#| label: sessioninfo
+sessionInfo()
+```
