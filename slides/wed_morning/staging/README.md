@@ -69,10 +69,10 @@ preprocessing applied. Read those when a number looks wrong six months from now.
 | `1_b_monocle3` | yes | Needs Python with `anndata`, which comes from the project pixi environment. Doing the conversion here is precisely what spares the students from needing Python at all. Needs `monocle3` in R. |
 | `2_a_pseudobulk_de` | yes | Already staged. One Dropbox `.rds`, no preprocessing. |
 | `2_b_de_vignette` | yes | Two downloads, not one. `SeuratData` for `ifnb`, plus two demuxlet files from GitHub that supply the donor IDs the pseudobulk section needs. |
-| `3_a_composition_covid` | **no** | See below. |
+| `3_a_composition_covid` | yes | Now automatic. Substitutes a smaller public dataset for the query object that has no public download. See below. Needs `Seurat` in R and Python `anndata`. |
 | `3_b_composition_milo` | yes | The big ExperimentHub download. This is the one that would otherwise break the room. |
 
-## `3_a_composition_covid` cannot be fully staged
+## `3_a_composition_covid`, and why it substitutes a dataset
 
 The upstream vignette reads two objects from paths inside the Satija lab
 filesystem:
@@ -82,23 +82,26 @@ reference <- readRDS("/brahms/hartmana/vignette_data/pbmc_multimodal_2023.rds")
 object    <- readRDS("/brahms/mollag/seurat_v5/vignette_data/merged_covid_object.rds")
 ```
 
-The **reference** is public, on Zenodo at <https://zenodo.org/record/7779017>.
-The script does not guess the direct file URL, because it has changed between
-releases. Copy the link from the record page and either drop the file in place
-yourself, or set `PBMC_REFERENCE_URL` and re-run.
+The 1,498,064-cell query object has **no public download**. So rather than chase
+it, the staging script substitutes a smaller public COVID PBMC dataset that
+already carries the labels the composition analysis needs:
 
-The **query object**, 1,498,064 cells from 277 donors, has no public URL at all.
-It is built by the Seurat BPCells interaction vignette out of three cellxgene
-collections. Running the script prints the three collection URLs and the
-options, which are, in increasing order of sanity: ask the Satija lab for a
-copy, rebuild it yourself, or substitute a smaller COVID PBMC dataset and adapt
-the `.qmd`.
+Wilk et al. 2020, Nature Medicine, <https://doi.org/10.1038/s41591-020-0944-y>,
+from CELLxGENE. 41,305 cells, 13 donors (7 COVID-19, 6 healthy), 26 cell types.
 
-The third is probably the right answer for a workshop. The composition analysis
-only needs `donor_id`, `disease` with the literal levels `normal` and
-`COVID-19`, and a predicted cell type column. A far smaller object teaches the
-same point, and the point of that section is that the vignette applies no
-statistical test.
+Why this works: the CELLxGENE schema guarantees `donor_id`, `disease` with the
+literal levels `normal` and `COVID-19`, and `cell_type`, which is exactly what
+the composition analysis indexes. No reference and no mapping step are needed,
+because the annotations come with the data. The headline result reproduces: MAIT
+cells down and plasmablasts up in COVID-19.
+
+The script downloads the CELLxGENE h5ad, exports its **raw counts** with
+`h5ad_to_mtx.py --raw` (CELLxGENE stores SCT-normalized values in `X` and the
+integer counts in `raw`), and assembles a Seurat object with the metadata
+preserved. It needs `Seurat` in R and Python `anndata`.
+
+The upstream reference, if you ever want to teach the mapping half of the
+vignette, is public on Zenodo at <https://zenodo.org/record/7779017>.
 
 ## The Python side, for 1_b only
 

@@ -2,19 +2,17 @@
 #
 # Stage the data for 3_a_composition_covid_local.qmd.
 #
-# READ THIS BEFORE RUNNING. This tutorial cannot be fully staged automatically.
+# The upstream vignette maps a 1.5-million-cell COVID PBMC query, which has no
+# public download, onto a 162,000-cell reference. We substitute a far smaller
+# public COVID PBMC dataset that already carries the annotations the composition
+# analysis needs, so no mapping and no reference are required, and the whole
+# tutorial stages automatically.
 #
-# The vignette reads two objects from paths inside the Satija lab filesystem:
-#
-#   reference <- readRDS("/brahms/hartmana/vignette_data/pbmc_multimodal_2023.rds")
-#   object    <- readRDS("/brahms/mollag/seurat_v5/vignette_data/merged_covid_object.rds")
-#
-# The reference has a public home on Zenodo, so this script can fetch it.
-#
-# The 1.5-million-cell merged COVID query object does NOT. There is no public
-# URL. It is built by the Seurat BPCells interaction vignette out of three
-# cellxgene collections. Getting it means either rebuilding it, which is a
-# substantial job in its own right, or asking the Satija lab for a copy.
+# Dataset: Wilk et al. 2020, PBMCs from COVID-19 patients and healthy donors,
+# distributed by CELLxGENE. 41,305 cells, 13 donors (7 COVID-19, 6 healthy),
+# 26 cell types including IgA/IgG plasmablasts and MAIT cells. The CELLxGENE
+# schema guarantees donor_id, disease (levels 'COVID-19' and 'normal'), and
+# cell_type, which is exactly what the composition analysis indexes.
 #
 #   Rscript stage_3_a_composition_covid.R [--force] [--outdir DIR]
 
@@ -33,84 +31,105 @@ source(file.path(.this_dir, "staging_helpers.R"))
 NAME     <- "3_a_composition_covid"
 UPSTREAM <- "https://satijalab.org/seurat/articles/covid_sctmapping"
 
-REFERENCE_URL <- "https://zenodo.org/record/7779017"
-BPCELLS_VIGNETTE <- "https://satijalab.org/seurat/articles/seurat5_bpcells_interaction_vignette"
+# Wilk et al. PBMC dataset on CELLxGENE. See the collection for provenance:
+# https://cellxgene.cziscience.com/collections/b9fc3d70-5a72-4479-a046-c2cc1ab19efc
+DATASET_PAGE <- paste0("https://cellxgene.cziscience.com/collections/",
+                       "b9fc3d70-5a72-4479-a046-c2cc1ab19efc")
+H5AD_URL <- paste0("https://datasets.cellxgene.cziscience.com/",
+                   "b99d7006-3c5f-4c80-bbd9-3bd4b842b782.h5ad")
 
-argv   <- staging_args(NAME, "Stage the PBMC reference for the COVID composition tutorial")
+argv   <- staging_args(NAME, "Stage the Wilk COVID PBMC dataset for the composition tutorial")
 outdir <- staging_outdir(NAME, argv)
 
-## 1. The PBMC CITE-seq reference --------------------------------------------
+require_packages(c("Seurat", "Matrix"))
+require_python_modules(c("anndata", "scipy", "pandas"))
 
-ref_target <- file.path(outdir, "pbmc_multimodal_2023.rds")
+target <- file.path(outdir, "covid_pbmc_wilk.rds")
 
-if (needs_staging(ref_target, argv$force)) {
-  message("The PBMC reference is distributed from Zenodo:")
-  message("  ", REFERENCE_URL)
-  message("")
-  message("Zenodo record pages list their files under a /files/ path whose exact")
-  message("name has changed between releases, so this script does not guess it.")
-  message("Open the record, copy the .rds download link, and either:")
-  message("  1. download it into ", outdir, " as pbmc_multimodal_2023.rds, or")
-  message("  2. set REFERENCE_DIRECT_URL below and re-run.")
-  message("")
-  message("The object must retain the spca reduction, the wnn.umap reduction")
-  message("model, and the celltype.l1 and celltype.l2 metadata columns.")
+if (needs_staging(target, argv$force)) {
 
-  REFERENCE_DIRECT_URL <- Sys.getenv("PBMC_REFERENCE_URL", unset = "")
-  if (nzchar(REFERENCE_DIRECT_URL)) {
-    message("Downloading ", REFERENCE_DIRECT_URL)
-    download.file(REFERENCE_DIRECT_URL, ref_target, mode = "wb", quiet = FALSE)
-    write_source_record(
-      outdir, basename(ref_target), REFERENCE_DIRECT_URL, UPSTREAM,
-      notes = c("none, the reference as distributed",
-                paste0("Zenodo record: ", REFERENCE_URL),
-                "Hao, Hao et al. 2021, Cell, https://doi.org/10.1016/j.cell.2021.04.048"))
+  ## 1. Download the h5ad ------------------------------------------------------
+
+  h5ad <- file.path(outdir, "wilk_pbmc.h5ad")
+  if (file.exists(h5ad) && !argv$force) {
+    message("Reusing existing ", h5ad)
   } else {
-    message("PBMC_REFERENCE_URL is not set, so nothing was downloaded.")
+    message("Downloading ", H5AD_URL)
+    message("About 200 MB from CELLxGENE.")
+    download.file(H5AD_URL, h5ad, mode = "wb", quiet = FALSE)
   }
+
+  ## 2. Export raw counts and metadata with the pixi Python --------------------
+
+  # --raw: CELLxGENE stores SCT-normalized values in X and integer counts in
+  # raw. Seurat and the pseudobulk DE section both want the counts.
+  exchange <- file.path(tempdir(), "wilk_export")
+  run_pixi_python(file.path(.this_dir, "h5ad_to_mtx.py"),
+                  c("--raw", h5ad, exchange))
+
+  ## 3. Assemble a Seurat object in R -----------------------------------------
+
+  message("Reading the exported matrix into R ...")
+  counts <- Matrix::readMM(file.path(exchange, "matrix.mtx.gz"))
+  counts <- methods::as(counts, "CsparseMatrix")
+
+  obs <- read.csv(file.path(exchange, "obs.csv"),
+                  row.names = 1, check.names = FALSE)
+  var <- read.csv(file.path(exchange, "var.csv"),
+                  row.names = 1, check.names = FALSE)
+
+  # Gene ids are Ensembl. Use the human-readable symbol as the row name where
+  # one exists, which is what students expect to see and what marker lookups
+  # use. Fall back to the Ensembl id, and make the result unique.
+  gene_names <- if ("feature_name" %in% colnames(var)) {
+    ifelse(is.na(var$feature_name) | var$feature_name == "",
+           rownames(var), as.character(var$feature_name))
+  } else {
+    rownames(var)
+  }
+  rownames(counts) <- make.unique(gene_names)
+  colnames(counts) <- rownames(obs)
+
+  stopifnot(nrow(counts) == nrow(var), ncol(counts) == nrow(obs))
+
+  # The composition analysis indexes these by name. Fail here rather than mid
+  # workshop if the schema ever changes.
+  needed <- c("donor_id", "disease", "cell_type")
+  missing <- setdiff(needed, colnames(obs))
+  if (length(missing)) {
+    stop("Exported metadata is missing required columns: ",
+         paste(missing, collapse = ", "), call. = FALSE)
+  }
+
+  message("Building Seurat object ...")
+  object <- Seurat::CreateSeuratObject(counts = counts, meta.data = obs)
+
+  message("Cells: ", ncol(object), "  genes: ", nrow(object))
+  message("Disease levels: ", paste(sort(unique(object$disease)), collapse = ", "))
+  message("Donors per disease arm:")
+  donors_by_arm <- table(object$disease, object$donor_id) > 0
+  print(rowSums(donors_by_arm))
+
+  staging_save(object, target)
+
+  # Remove the intermediate h5ad. It is 200 MB and only the .rds is needed at
+  # workshop time. Keep it if you passed --outdir for inspection.
+  if (!nzchar(argv$outdir)) {
+    unlink(h5ad)
+    message("Removed the intermediate h5ad. Pass --outdir to keep it.")
+  }
+
+  write_source_record(
+    outdir, basename(target), H5AD_URL, UPSTREAM,
+    notes = c(
+      "Wilk et al. 2020 COVID-19 PBMCs, from CELLxGENE",
+      paste0("collection: ", DATASET_PAGE),
+      "h5ad_to_mtx.py --raw, so raw integer counts, not the SCT-normalized X",
+      "gene row names set to feature_name (symbol) where present, else Ensembl id, made unique",
+      "assembled into a Seurat object with Seurat::CreateSeuratObject",
+      "41,305 cells, 13 donors (7 COVID-19, 6 normal), 26 cell types",
+      "substitutes for the upstream 1.5M-cell query, which has no public download",
+      "Wilk et al. 2020, Nature Medicine, https://doi.org/10.1038/s41591-020-0944-y"))
 }
 
-## 2. The merged COVID query object ------------------------------------------
-
-query_target <- file.path(outdir, "merged_covid_object.rds")
-
-if (!file.exists(query_target)) {
-  message("")
-  message(strrep("=", 72))
-  message("MANUAL STEP REQUIRED: merged_covid_object.rds")
-  message(strrep("=", 72))
-  message("There is no public download for this file. Upstream reads it from")
-  message("  /brahms/mollag/seurat_v5/vignette_data/merged_covid_object.rds")
-  message("which is internal to the Satija lab.")
-  message("")
-  message("Options, roughly in order of effort:")
-  message("  1. Ask the Satija lab for a copy.")
-  message("  2. Rebuild it by following the BPCells interaction vignette:")
-  message("     ", BPCELLS_VIGNETTE)
-  message("     It merges three COVID PBMC collections from cellxgene:")
-  message("       Ahern:   https://cellxgene.cziscience.com/collections/8f126edf-5405-4731-8374-b5ce11f53e82")
-  message("       Jin:     https://cellxgene.cziscience.com/collections/b9fc3d70-5a72-4479-a046-c2cc1ab19efc")
-  message("       Yoshida: https://cellxgene.cziscience.com/collections/03f821b4-87be-4ff4-b65a-b5fc00061da7")
-  message("     That is 1,498,064 cells from 277 donors. Not a quick job.")
-  message("  3. Substitute a smaller COVID PBMC dataset and adapt the .qmd.")
-  message("     The composition analysis only needs donor_id, disease, and a")
-  message("     predicted cell type column, so a smaller object works fine for")
-  message("     teaching the point.")
-  message("")
-  message("Whichever you choose, the object must carry these metadata columns,")
-  message("because the composition analysis indexes them by name:")
-  message("  donor_id, disease (with literal levels 'normal' and 'COVID-19'),")
-  message("  cell_type, publication")
-  message(strrep("=", 72))
-}
-
-## 3. Optional: the post-mapping object --------------------------------------
-
-message("")
-message("Optional: stage merged_covid_object_mapped.rds to skip the slow")
-message("FindTransferAnchors + MapQuery step during the workshop. Run the")
-message("mapping section of the .qmd once, then saveRDS the result. It must")
-message("carry the ref.umap reduction and the predicted.celltype.l1 and")
-message("predicted.celltype.l2 columns.")
-
-message("\nDone. ", NAME, " (with manual steps outstanding, see above)")
+message("\nDone. ", NAME)

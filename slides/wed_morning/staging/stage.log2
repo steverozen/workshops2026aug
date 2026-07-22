@@ -1,0 +1,41 @@
+
+########################################################################
+# 1_a_slingshot
+########################################################################
+SKIP  GSE72857_umitab.rds already exists (28 Mb). Use --force to rebuild.
+
+Done. 1_a_slingshot
+
+########################################################################
+# 1_b_monocle3
+########################################################################
+Downloading https://zenodo.org/record/7455590/files/AnnData_filtered.h5ad
+trying URL 'https://zenodo.org/record/7455590/files/AnnData_filtered.h5ad'
+Content type 'application/octet-stream' length 21450827 bytes (20.5 MB)
+==================================================
+downloaded 20.5 MB
+
+Python: /home/steve/github/workshops2026aug/.pixi/envs/default/bin/python
+Script: /home/steve/github/workshops2026aug/slides/wed_morning/staging/h5ad_to_mtx.py
+Reading /tmp/RtmpBZqBZR/AnnData_filtered.h5ad
+AnnData: 8605 cells x 15395 genes
+Writing /tmp/RtmpBZqBZR/h5ad_export/matrix.mtx.gz  (15395 genes x 8605 cells)
+Writing /tmp/RtmpBZqBZR/h5ad_export/obs.csv  (19 columns)
+Writing /tmp/RtmpBZqBZR/h5ad_export/var.csv  (12 columns)
+obs columns: ['Barcode', 'emptyTotal', 'emptyLogProb', 'emptyPValue', 'emptyLimited', 'emptyFDR', 'batch', 'genotype', 'sex', 'n_genes_by_counts', 'log1p_n_genes_by_counts', 'total_counts', 'log1p_total_counts', 'pct_counts_in_top_50_genes', 'total_counts_mito', 'log1p_total_counts_mito', 'pct_counts_mito', 'n_genes', 'n_counts']
+var columns: ['ID', 'Symbol', 'NA.', 'mito', 'n_cells_by_counts', 'mean_counts', 'log1p_mean_counts', 'pct_dropout_by_counts', 'total_counts', 'log1p_total_counts', 'n_cells', 'n_counts']
+Done.
+Reading the exported matrix into R ...
+Renaming gene metadata column 'Symbol' to gene_short_name, as upstream does.
+Built cell_data_set: 15395 genes x 8605 cells.
+Saving /media/steve/USB/github/workshop2026aug_data/1_b_monocle3/AnnData_filtered_cds.rds ...
+WROTE AnnData_filtered_cds.rds  18 Mb
+Recorded provenance in /media/steve/USB/github/workshop2026aug_data/1_b_monocle3/SOURCE.md
+
+Done. 1_b_monocle3
+If the .qmd is too slow on the workshop machine, the next things worth
+precomputing here are preprocess_cds(num_dim = 210) and graph_test().
+
+########################################################################
+# 2_a_pseudobulk_de
+########################################################################

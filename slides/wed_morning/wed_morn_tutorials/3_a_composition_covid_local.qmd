@@ -1,5 +1,5 @@
 ---
-title: "Cell type composition: COVID PBMCs mapped to a healthy reference"
+title: "Cell type composition: COVID PBMCs, healthy versus infected"
 subtitle: "Local version, reads from the workshop data repo, no network access"
 date: today
 format:
@@ -19,52 +19,52 @@ Local rework of `3_a_composition_covid.html`.
 
 Upstream: <https://satijalab.org/seurat/articles/covid_sctmapping>
 
-The reference is the annotated CITE-seq PBMC reference of Hao, Hao, et al.,
-"Integrated analysis of multimodal single-cell data", Cell 2021,
-<https://doi.org/10.1016/j.cell.2021.04.048>, distributed via Zenodo,
-<https://zenodo.org/record/7779017>.
-
-The query is a merged object built from three public COVID-19 PBMC studies in
-the CZI cellxgene collections, <https://cellxgene.cziscience.com/collections>,
-totalling 1,498,064 cells from 277 donors.
-
 ::: {.callout-important}
-## Status: transcribed from upstream, not yet executed
+## This version substitutes a smaller, public dataset
 
-Every chunk below is transcribed from the upstream Seurat vignette and has
-**not** been run. This first render is the test. `error: true` is set in the
-YAML on purpose, so that the render completes and lists *all* the failures
-rather than stopping at the first one. Read the rendered HTML as a punch list.
+The upstream vignette maps a 1,498,064-cell COVID PBMC query onto a
+162,000-cell reference. **That query object has no public download**, it lives
+inside the Satija lab filesystem, so the vignette cannot be reproduced as
+written.
+
+We substitute a smaller public dataset that already carries the annotations the
+composition analysis needs, so no reference and no mapping step are required:
+
+Wilk et al. 2020, "A single-cell atlas of the peripheral immune response in
+patients with severe COVID-19", Nature Medicine,
+<https://doi.org/10.1038/s41591-020-0944-y>, distributed by CELLxGENE,
+<https://cellxgene.cziscience.com/collections/b9fc3d70-5a72-4479-a046-c2cc1ab19efc>.
+41,305 PBMCs, 13 donors (7 COVID-19, 6 healthy), 26 cell types.
+
+The teaching point is unchanged, and the headline result is the same: MAIT cells
+are reduced and plasmablasts increased in COVID-19.
 :::
 
 ::: {.callout-warning}
-## Teaching point: this vignette applies no statistical test
+## Teaching point: this analysis applies no statistical test
 
-The upstream "Differential composition analysis" section compares cell type
-proportions between healthy donors and COVID-19 patients by building a
-contingency table of donor by predicted cell type, converting the counts to
-per-donor relative abundances, and drawing two boxplots. It reports a reduction
-in MAIT cells and an increase in plasmablasts among COVID-19 patients. It never
-tests anything. There is no p-value, no confidence interval, and no correction
-for the many cell types that were looked at.
+Like the upstream vignette, the composition analysis below compares cell type
+proportions between healthy and COVID-19 donors with a table and boxplots. It
+reports reduced MAIT cells and increased plasmablasts. It never tests anything.
+No p-value, no confidence interval, no correction for the many cell types looked
+at.
 
 That is a reasonable first look, and it is exactly the setup for
 `3_b_composition_milo_local.qmd`, which does test. Make the gap explicit on the
 slide rather than letting students infer that eyeballing boxplots is the method.
+An optional propeller block at the end shows how little it takes to add a real
+test.
 :::
 
 ::: {.callout-note}
-## Local data files this document expects
+## Local data file this document expects
 
-Staged under `find_data_dir("3_a_composition_covid")`:
+Staged under `find_data_dir("3_a_composition_covid")` by
+`staging/stage_3_a_composition_covid.R`:
 
-| File | Contents |
-|---|---|
-| `pbmc_multimodal_2023.rds` | The Seurat CITE-seq PBMC reference, with the `spca` reduction and the `wnn.umap` reduction model, plus the `celltype.l1` and `celltype.l2` metadata columns. Upstream path `/brahms/hartmana/vignette_data/pbmc_multimodal_2023.rds`, public source <https://zenodo.org/record/7779017>. |
-| `merged_covid_object.rds` | The merged, un-normalized COVID PBMC query object from the three studies, built in the BPCells interaction vignette. Upstream path `/brahms/mollag/seurat_v5/vignette_data/merged_covid_object.rds`. |
-| `merged_covid_object_mapped.rds` | Optional. The query object *after* `MapQuery`, so the slow mapping step can be skipped. See the mapping section for what it must contain. |
-
-The staging script must use these exact filenames.
+- `covid_pbmc_wilk.rds`, a `Seurat` object of raw counts with the metadata
+  columns `donor_id`, `disease` (levels `normal` and `COVID-19`), and
+  `cell_type`.
 :::
 
 ## Setup
@@ -79,217 +79,187 @@ report_data_dir("3_a_composition_covid")
 ```{r}
 #| label: libraries
 library(Seurat)
-library(BPCells)
 library(dplyr)
 library(patchwork)
 library(ggplot2)
-options(future.globals.maxSize = 10 * 1024^3)
 ```
 
-## Introduction: Reference mapping analysis in Seurat v5
+## What upstream does, and why we skip it
 
-Reference mapping identifies consistent cell type labels across studies, which
-is what makes cross-dataset analysis possible. The individual datasets here are
-manageable, but their aggregate does not fit in memory, so the query matrices
-live on disk through BPCells and are never all loaded at once. The three studies
-also used different annotation ontologies. Mapping to one common reference
-replaces those with a single harmonized label set.
+The upstream vignette spends its first half on **reference mapping**: it projects
+a query of COVID PBMCs onto an annotated healthy PBMC reference, transferring a
+harmonized label (`predicted.celltype.l2`) onto every query cell. That is worth
+understanding, and `integration_mapping.html` in this folder covers the mechanics.
 
-## Load the PBMC Reference Dataset and Query Datasets
+We skip it here for one reason: the CELLxGENE distribution of the Wilk data
+already carries curated `cell_type` labels, so the annotations we would have
+obtained by mapping are simply present in the object. That lets the tutorial get
+straight to the composition question, which is what this session is about.
 
-Upstream reads both objects from the Satija lab filesystem. Locally we read the
-staged copies. The query object holds the three studies as three separate
-on-disk layers in its `RNA` assay.
+## Load the data
 
 ```{r}
 #| label: load
-reference <- readRDS(file.path(data_dir, "pbmc_multimodal_2023.rds"))
-object <- readRDS(file.path(data_dir, "merged_covid_object.rds"))
-object <- NormalizeData(object, verbose = FALSE)
+object <- readRDS(file.path(data_dir, "covid_pbmc_wilk.rds"))
+object
+
+table(object$disease)
+sort(table(object$cell_type), decreasing = TRUE)
 ```
 
-## Mapping
+## A quick standard pipeline for a UMAP
 
-Anchors are found between reference and query in the precomputed supervised PCA
-(`spca`), which is the recommended reduction for CITE-seq reference datasets.
-In Seurat v5 a single `FindTransferAnchors` plus `MapQuery` call maps all three
-datasets, because they all live in one query object.
-
-::: {.callout-tip}
-## Candidate for precomputing at staging time
-
-This is the slow step, 1.5 million query cells against a 162,000-cell reference.
-It is not what this session is about. If the workshop machine cannot afford the
-runtime, stage a post-mapping object as `merged_covid_object_mapped.rds` and
-have this section read that instead of recomputing.
-
-The staged post-mapping object needs to carry:
-
-- the `ref.umap` reduction, for the two `DimPlot` calls,
-- the metadata columns `predicted.celltype.l1` and `predicted.celltype.l2`,
-- the original metadata columns `cell_type`, `publication`, `donor_id`, and
-  `disease`, which the split UMAPs and the composition analysis depend on,
-- the `RNA` assay counts, if the pseudobulk differential expression section at
-  the end is also to be run.
-
-With that object staged, the reference itself is only needed for the mapping
-step and could be dropped from the workshop data repo entirely.
-:::
+The staged object is raw counts only, with no reduction. We run a compact
+standard Seurat pipeline so there is a UMAP to look at. None of this is the point
+of the session, it is just to see the annotations in a low-dimensional space.
 
 ```{r}
-#| label: mapping
-anchor <- FindTransferAnchors(
-  reference = reference,
-  query = object,
-  reference.reduction = 'spca',
-  normalization.method = 'SCT',
-  dims = 1:50)
-object <- MapQuery(
-  anchorset = anchor,
-  query = object,
-  reference = reference,
-  refdata = list(
-    celltype.l1 = "celltype.l1",
-    celltype.l2 = "celltype.l2"
-    ),
-  reduction.model = 'wnn.umap'
-)
-```
-
-## Explore the mapping results
-
-All cells from the three studies are projected into the UMAP space defined by
-the reference. Each cell gets an annotation at two levels of granularity,
-`predicted.celltype.l1` and `predicted.celltype.l2`. The first plot shows the
-original, study-specific annotations in `cell_type`. The second shows the
-harmonized annotations produced by mapping. The contrast between the two is the
-argument for mapping in the first place.
-
-```{r}
-#| label: dimplot-original-annotations
-DimPlot(object, reduction = 'ref.umap', group.by = 'cell_type', alpha = 0.1, label = TRUE, split.by = 'publication', ncol = 3, label.size = 3) + NoLegend()
+#| label: pipeline
+object <- NormalizeData(object)
+object <- FindVariableFeatures(object, nfeatures = 2000)
+object <- ScaleData(object)
+object <- RunPCA(object, npcs = 30)
+object <- RunUMAP(object, dims = 1:30)
 ```
 
 ```{r}
-#| label: dimplot-predicted-annotations
-DimPlot(object, reduction = 'ref.umap', group.by = 'predicted.celltype.l2', alpha = 0.1, label = TRUE, split.by = 'publication', ncol = 3, label.size = 3) + NoLegend()
+#| label: umap
+#| fig-width: 11
+#| fig-height: 6
+DimPlot(object, reduction = "umap", group.by = "cell_type",
+        label = TRUE, repel = TRUE, label.size = 3) + NoLegend()
+```
+
+```{r}
+#| label: umap-by-disease
+DimPlot(object, reduction = "umap", group.by = "disease",
+        cols = c("#377eb8", "#e41a1c"))
 ```
 
 ## Differential composition analysis
 
 This is the section the workshop is here for.
 
-The harmonized annotations are used to look for differences in the proportion of
-each cell type between healthy individuals and COVID-19 patients. Upstream
-reports a reduction in MAIT cells and an increase in plasmablasts among COVID-19
-patients.
-
-The recipe is: cross-tabulate donor against predicted cell type, drop donors
+We look for differences in the proportion of each cell type between healthy and
+COVID-19 donors. The recipe: cross-tabulate donor against cell type, drop donors
 with 50 or fewer cells, divide each donor's row by its row total to get relative
-abundances, then attach each donor's disease status from a second
-cross-tabulation.
+abundances, then attach each donor's disease status.
 
 ```{r}
 #| label: composition-table
-df_comp <- as.data.frame.matrix(table(object$donor_id, object$predicted.celltype.l2))
-select.donors <- rownames(df_comp)[rowSums(df_comp)> 50]
+df_comp <- as.data.frame.matrix(table(object$donor_id, object$cell_type))
+select.donors <- rownames(df_comp)[rowSums(df_comp) > 50]
 df_comp <- df_comp[select.donors, ]
-df_comp_relative <- sweep(x = df_comp, MARGIN = 1, STATS = rowSums(df_comp), FUN = '/')
+df_comp_relative <- sweep(x = df_comp, MARGIN = 1,
+                          STATS = rowSums(df_comp), FUN = "/")
 
-df_disease <-  as.data.frame.matrix(table(object$donor_id, object$disease))[select.donors, ]
+# This dataset splits plasmablasts into IgA and IgG subtypes. Collapse them into
+# one Plasmablast column so the comparison matches the upstream story.
+pb_cols <- grep("plasmablast", colnames(df_comp_relative),
+                value = TRUE, ignore.case = TRUE)
+df_comp_relative$Plasmablast <- rowSums(df_comp_relative[, pb_cols, drop = FALSE])
 
-df_comp_relative$disease <- 'other'
-df_comp_relative$disease[df_disease$normal!=0] <- 'normal'
-df_comp_relative$disease[df_disease$`COVID-19`!=0] <- 'COVID-19'
-df_comp_relative$disease <- factor(df_comp_relative$disease, levels = c('normal','COVID-19','other'))
-df_comp_relative <- df_comp_relative[df_comp_relative$disease %in% c('normal','COVID-19'),]
+# The MAIT population is spelled out in this dataset's ontology labels.
+mait_col <- "mucosal-associated invariant T cell"
+
+df_disease <- as.data.frame.matrix(table(object$donor_id, object$disease))[select.donors, ]
+
+df_comp_relative$disease <- "other"
+df_comp_relative$disease[df_disease$normal != 0] <- "normal"
+df_comp_relative$disease[df_disease$`COVID-19` != 0] <- "COVID-19"
+df_comp_relative$disease <- factor(df_comp_relative$disease,
+                                   levels = c("normal", "COVID-19", "other"))
+df_comp_relative <- df_comp_relative |>
+  dplyr::filter(disease %in% c("normal", "COVID-19"))
 ```
 
-The last line above is the vignette's own base-R subsetting. The `dplyr`
-equivalent, for students who prefer it, is
-`df_comp_relative <- dplyr::filter(df_comp_relative, disease %in% c('normal', 'COVID-19'))`.
-
-Note what the disease assignment does. A donor is labelled `normal` if any of
-its cells are tabulated under `normal`, then relabelled `COVID-19` if any of its
-cells are tabulated under `COVID-19`, so `COVID-19` wins for any donor that has
-both. Everything else stays `other` and is dropped on the last line.
+Note what the disease assignment does. A donor is labelled `normal` if any of its
+cells fall under `normal`, then relabelled `COVID-19` if any fall under
+`COVID-19`, so `COVID-19` wins for a donor with both. In this dataset each donor
+is one arm, so that is moot here, but it is the vignette's own logic and worth
+keeping visible.
 
 ```{r}
 #| label: composition-boxplots
-p1 <-  ggplot(data = df_comp_relative, mapping = aes(x = disease, y = MAIT, fill = disease)) +
-  geom_boxplot(outlier.shape  = NA) +
-  scale_fill_manual(values = c("#377eb8", "#e41a1c")) +
-  xlab("") + ylab('relative abundance') +
-  ggtitle('MAIT') +
-  geom_jitter(color="black", size=0.4, alpha=0.9 ) +
-  theme_bw() +
-  theme( axis.title = element_text(size = 12),
-         axis.text = element_text(size = 12),
-         plot.title = element_text(size = 15, hjust = 0.5, face = "bold")
-  )
+plot_abundance <- function(df, column, title) {
+  ggplot(df, aes(x = disease, y = .data[[column]], fill = disease)) +
+    geom_boxplot(outlier.shape = NA) +
+    geom_jitter(color = "black", size = 0.4, alpha = 0.9) +
+    scale_fill_manual(values = c("#377eb8", "#e41a1c")) +
+    xlab("") + ylab("relative abundance") + ggtitle(title) +
+    theme_bw() +
+    theme(axis.title = element_text(size = 12),
+          axis.text = element_text(size = 12),
+          plot.title = element_text(size = 15, hjust = 0.5, face = "bold"))
+}
 
-p2 <-  ggplot(data = df_comp_relative, mapping = aes(x = disease, y = Plasmablast, fill = disease)) +
-  geom_boxplot(outlier.shape  = NA) +
-  scale_fill_manual(values = c("#377eb8", "#e41a1c")) +
-  xlab("") + ylab('relative abundance') +
-    ggtitle('Plasmablast') +
-  geom_jitter(color="black", size=0.4, alpha=0.9 ) +
-  theme_bw() +
-  theme( axis.title = element_text(size = 12),
-         axis.text = element_text(size = 12),
-         plot.title = element_text(size = 15, hjust = 0.5, face = "bold")
-  )
-
+p1 <- plot_abundance(df_comp_relative, mait_col, "MAIT")
+p2 <- plot_abundance(df_comp_relative, "Plasmablast", "Plasmablast")
 p1 + p2 + plot_layout(ncol = 2)
 ```
 
-That is where the upstream section ends. Two boxplots, no test.
+MAIT cells are reduced and plasmablasts increased in COVID-19, the same result
+the upstream vignette reports. **And, like upstream, that is where it stops. Two
+boxplots, no test.**
+
+## Optional: add the test the vignette omits
+
+`propeller` turns these per-donor proportions into a real result with an FDR
+attached, in about three lines. It is a good place to make the point that the
+boxplots above are a picture, not an analysis.
+
+Phipson et al. 2022, "propeller: testing for differences in cell type
+proportions in single cell data", Bioinformatics,
+<https://doi.org/10.1093/bioinformatics/btac582>
+
+```{r}
+#| label: propeller
+#| eval: false
+# Not run by default, needs the speckle package. Remove eval:false to run it.
+library(speckle)
+propeller(clusters = object$cell_type,
+          sample   = object$donor_id,
+          group    = object$disease)
+```
 
 ## Differential expression analysis
 
-Beyond composition, an aggregation-based (pseudobulk) workflow explores
-differential genes between healthy individuals and COVID-19 donors. All cells
-sharing a cell type and a donor are aggregated with `AggregateExpression`. The
-result is a Seurat object in which each "cell" is the pseudobulk profile of one
-cell type in one individual.
+Beyond composition, an aggregation-based (pseudobulk) workflow looks at
+differential genes between healthy and COVID-19 donors. All cells sharing a cell
+type and a donor are aggregated with `AggregateExpression`, giving one profile
+per cell type per donor.
 
 ```{r}
 #| label: pseudobulk-aggregate
 bulk <- AggregateExpression(object,
   return.seurat = TRUE,
-  assays  = 'RNA',
-  group.by = c("predicted.celltype.l2", "donor_id", "disease")
-)
+  assays  = "RNA",
+  group.by = c("cell_type", "donor_id", "disease"))
 
-bulk <- subset(bulk, subset = disease %in% c('normal', 'COVID-19') )
-bulk <- subset(bulk, subset = predicted.celltype.l2 !=  'Doublet')
-bulk$disease <- factor(bulk$disease, levels = c('normal', 'COVID-19'))
+bulk <- subset(bulk, subset = disease %in% c("normal", "COVID-19"))
+bulk$disease <- factor(bulk$disease, levels = c("normal", "COVID-19"))
 ```
 
-With the pseudobulk object in hand, cell type-specific differential expression
-between healthy and COVID-19 donors becomes possible. Upstream only visualizes a
-few interferon-stimulated genes, which are typically upregulated during viral
-infection.
+With the pseudobulk object in hand, we can look at interferon-stimulated genes,
+which are typically upregulated during viral infection. As upstream does, this
+only visualizes them, it does not test.
 
 ```{r}
 #| label: pseudobulk-isg-violins
 #| fig-height: 12
-p1 <- VlnPlot(
-  object = bulk, features = 'IFI6', group.by = 'predicted.celltype.l2',
-  split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
-p2 <- VlnPlot(
-  object = bulk, features = c('ISG15'), group.by = 'predicted.celltype.l2',
-  split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
-p3 <- VlnPlot(
-  object = bulk, features = c('IFIT5'), group.by = 'predicted.celltype.l2',
-  split.by = 'disease', cols = c("#377eb8", "#e41a1c"))
+p1 <- VlnPlot(bulk, features = "IFI6", group.by = "cell_type",
+              split.by = "disease", cols = c("#377eb8", "#e41a1c"))
+p2 <- VlnPlot(bulk, features = "ISG15", group.by = "cell_type",
+              split.by = "disease", cols = c("#377eb8", "#e41a1c"))
+p3 <- VlnPlot(bulk, features = "IFIT3", group.by = "cell_type",
+              split.by = "disease", cols = c("#377eb8", "#e41a1c"))
 p1 + p2 + p3 + plot_layout(ncol = 1)
 ```
 
-Note that this section, like the composition section, stops at pictures. The
-violins are split by disease and no test is run on them either.
+Like the composition section, this stops at pictures. The violins are split by
+disease and no test is run on them either.
 
-## Session Info
+## Session info
 
 ```{r}
 #| label: sessioninfo

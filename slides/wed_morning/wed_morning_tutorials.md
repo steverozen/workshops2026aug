@@ -34,8 +34,9 @@
 > - **Seurat DE (2.b)** has two network dependencies, not one. `SeuratData` for
 >   `ifnb`, plus two demuxlet files from GitHub that supply the donor IDs the
 >   pseudobulk section needs.
-> - **COVID composition (3.a)** **cannot be fully staged.** Its query object has
->   no public download. See `staging/README.md`.
+> - **COVID composition (3.a)** substitutes a smaller public dataset (Wilk et al.
+>   2020, from CELLxGENE) for the upstream query object, which has no public
+>   download. Now stages automatically. See `staging/README.md`.
 >
 > Only `2_a_pseudobulk_de` is staged so far.
 >
@@ -122,35 +123,32 @@ gives the same result. Override for one run with `--outdir`.
 | 1.b monocle3 | yes | Needs Python with `anndata`, taken from the project pixi env, and `monocle3` in R. Doing the conversion once here is exactly what spares the students from needing Python. |
 | 2.a pseudobulk | yes, done | Already staged. One Dropbox `.rds`, no preprocessing. |
 | 2.b de_vignette | yes | Two downloads, not one. See below. |
-| 3.a covid | **no** | Blocked. See below. |
+| 3.a covid | yes | Substitutes Wilk et al. 2020 (CELLxGENE) for the query object that has no public download. Needs `Seurat` in R and Python `anndata`. See below. |
 | 3.b milo | yes | The big ExperimentHub download. The one that would otherwise break the room. |
 
-## 3.a cannot be staged, and needs a decision
+## 3.a substitutes a public dataset for the missing query
 
-The upstream vignette reads two objects from inside the Satija lab filesystem:
+The upstream vignette maps a 1,498,064-cell COVID PBMC query onto a healthy
+reference. **That query object has no public download**, it lives inside the
+Satija lab filesystem, so the vignette cannot be reproduced as written.
 
-```r
-reference <- readRDS("/brahms/hartmana/vignette_data/pbmc_multimodal_2023.rds")
-object    <- readRDS("/brahms/mollag/seurat_v5/vignette_data/merged_covid_object.rds")
-```
+Rather than chase it, 3.a now substitutes a smaller public dataset that already
+carries the labels the composition analysis needs: Wilk et al. 2020, from
+CELLxGENE. 41,305 cells, 13 donors (7 COVID-19, 6 healthy), 26 cell types. The
+CELLxGENE schema guarantees `donor_id`, `disease` with the literal levels
+`normal` and `COVID-19`, and `cell_type`, so no reference and no mapping are
+needed, the annotations come with the data. The headline result reproduces: MAIT
+cells down and plasmablasts up in COVID-19.
 
-The **reference** is public, on Zenodo at <https://zenodo.org/record/7779017>.
-The staging script does not guess the direct file URL, because it has changed
-between releases. Copy the link from the record page, then either drop the file
-in place as `pbmc_multimodal_2023.rds` or set `PBMC_REFERENCE_URL` and re-run.
+The `.qmd` was rewritten to match. It uses `cell_type` in place of the
+mapping-derived `predicted.celltype.l2`, collapses the two plasmablast subtypes
+this dataset distinguishes, and drops the reference-mapping half of the vignette,
+which `integration_mapping.html` still covers on its own. The rest of the
+teaching arc is unchanged, including the point that the analysis applies **no
+statistical test**, and the optional propeller block that adds one.
 
-The **query object** has no public URL at all. It is 1,498,064 cells from 277
-donors, built by the Seurat BPCells interaction vignette out of three cellxgene
-collections. Three options, in increasing order of sanity:
-
-1. Ask the Satija lab for a copy.
-2. Rebuild it from the BPCells vignette. Not a quick job.
-3. Substitute a smaller COVID PBMC dataset and adapt the `.qmd`.
-
-Option 3 is probably right for a workshop. That section only needs `donor_id`,
-`disease` with the literal levels `normal` and `COVID-19`, and a predicted cell
-type column. A far smaller object teaches the same point, and the point of the
-section is that the vignette applies **no statistical test**.
+If you ever want to teach the mapping half, the upstream reference is public on
+Zenodo at <https://zenodo.org/record/7779017>.
 
 ## 2.b has a second network dependency
 
@@ -282,19 +280,27 @@ faster than any amount of explanation.
 The only theme that tests changes in **composition**, meaning which cell types
 are present and in what proportion, as opposed to changes in expression.
 
-## 3.a COVID PBMCs mapped to a healthy reference
+## 3.a COVID PBMCs, healthy versus infected
 
-Maps COVID-19 PBMC query datasets onto a healthy PBMC reference, then compares
-cell type proportions between healthy donors and patients. Reports a reduction in
-MAIT cells and an increase in plasmablasts.
+Compares cell type proportions between healthy and COVID-19 donors, reporting a
+reduction in MAIT cells and an increase in plasmablasts.
 
-**It does this with a contingency table and a plot, with no statistical test.**
+**It does this with a contingency table and boxplots, with no statistical test.**
 That is the setup for 3.b. Make the gap explicit rather than letting students
 infer that eyeballing proportions is the method.
+
+The downloaded `.html` is the original vignette, which maps a query onto a
+reference to get its annotations. The `.qmd` we run substitutes Wilk et al. 2020
+from CELLxGENE (see the 3.a staging note above), which already carries
+`cell_type`, so it drops the mapping half and goes straight to composition. Same
+result, no unobtainable query object.
 
 [3_a_composition_covid.html](wed_morn_tutorials/3_a_composition_covid.html) ·
 [3_a_composition_covid_local.qmd](wed_morn_tutorials/3_a_composition_covid_local.qmd)
 Source: https://satijalab.org/seurat/articles/covid_sctmapping
+Substitute dataset: Wilk et al. 2020, "A single-cell atlas of the peripheral
+immune response in patients with severe COVID-19", Nature Medicine,
+https://doi.org/10.1038/s41591-020-0944-y
 
 ## 3.b Milo
 

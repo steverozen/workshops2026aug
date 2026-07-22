@@ -1,0 +1,95 @@
+
+########################################################################
+# 1_a_slingshot
+########################################################################
+Downloading ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE72nnn/GSE72857/suppl/GSE72857%5Fumitab%2Etxt%2Egz
+This is a few hundred MB uncompressed. Be patient.
+trying URL 'ftp://ftp.ncbi.nlm.nih.gov/geo/series/GSE72nnn/GSE72857/suppl/GSE72857%5Fumitab%2Etxt%2Egz'
+Content type 'unknown' length 16413252 bytes (15.7 MB)
+==================================================
+Decompressing ...
+Reading the count table. This is the slow step, several minutes.
+Read 27297 genes x 10368 cells.
+Saving /media/steve/USB/github/workshop2026aug_data/1_a_slingshot/GSE72857_umitab.rds ...
+WROTE GSE72857_umitab.rds  28 Mb
+Recorded provenance in /media/steve/USB/github/workshop2026aug_data/1_a_slingshot/SOURCE.md
+
+Done. 1_a_slingshot
+
+########################################################################
+# 1_b_monocle3
+########################################################################
+Error: Missing packages: monocle3
+Install them before staging.
+  remotes::install_github("cole-trapnell-lab/monocle3")   # monocle3
+Execution halted
+
+########################################################################
+# 2_a_pseudobulk_de
+########################################################################
+SKIP  scRNA-seq_input_data_for_DE.rds already exists (37.8 Mb). Use --force to rebuild.
+
+Done. 2_a_pseudobulk_de
+
+########################################################################
+# 2_b_de_vignette
+########################################################################
+Error: Missing packages: SeuratData
+Install them before staging.
+  remotes::install_github("satijalab/seurat-data")   # SeuratData
+Execution halted
+
+########################################################################
+# 3_a_composition_covid
+########################################################################
+Reusing existing /media/steve/USB/github/workshop2026aug_data/3_a_composition_covid/wilk_pbmc.h5ad
+Python: /home/steve/github/workshops2026aug/.pixi/envs/default/bin/python
+Script: /home/steve/github/workshops2026aug/slides/wed_morning/staging/h5ad_to_mtx.py
+Reading /media/steve/USB/github/workshop2026aug_data/3_a_composition_covid/wilk_pbmc.h5ad
+AnnData: 41305 cells x 24591 genes
+Using .raw: 24591 genes
+Writing /tmp/RtmpAVIL9j/wilk_export/matrix.mtx.gz  (24591 genes x 41305 cells)
+Writing /tmp/RtmpAVIL9j/wilk_export/obs.csv  (36 columns)
+Writing /tmp/RtmpAVIL9j/wilk_export/var.csv  (12 columns)
+obs columns: ['Admission', 'ClusterID', 'Ventilated', 'cell_type_coarse', 'cell_type_fine', 'Dataset', 'sample', 'disease_original', 'disease_general', 'COVID-19 Condition', 'Lineage', 'Cell.group', 'Cell.class_reannotated', 'n_genes', 'n_counts', 'percent_mito', 'tissue_original', 'tissue_ontology_term_id', 'assay_ontology_term_id', 'disease_ontology_term_id', 'donor_id', 'sex_ontology_term_id', 'cell_type_ontology_term_id', 'development_stage_ontology_term_id', 'self_reported_ethnicity_ontology_term_id', 'is_primary_data', 'suspension_type', 'tissue_type', 'cell_type', 'assay', 'disease', 'sex', 'tissue', 'self_reported_ethnicity', 'development_stage', 'observation_joinid']
+var columns: ['Selected', 'sct_detection_rate', 'sct_gmean', 'sct_residual_mean', 'sct_residual_variance', 'sct_variable', 'sct_variance', 'feature_name', 'feature_reference', 'feature_biotype', 'feature_length', 'feature_type']
+Done.
+Reading the exported matrix into R ...
+Building Seurat object ...
+Warning: Feature names cannot have underscores ('_'), replacing with dashes ('-')
+Cells: 41305  genes: 24591
+Disease levels: COVID-19, normal
+Donors per disease arm:
+COVID-19   normal 
+       7        6 
+Saving /media/steve/USB/github/workshop2026aug_data/3_a_composition_covid/covid_pbmc_wilk.rds ...
+WROTE covid_pbmc_wilk.rds  81.9 Mb
+Removed the intermediate h5ad. Pass --outdir to keep it.
+Recorded provenance in /media/steve/USB/github/workshop2026aug_data/3_a_composition_covid/SOURCE.md
+
+Done. 3_a_composition_covid
+
+########################################################################
+# 3_b_composition_milo
+########################################################################
+Error: Missing packages: MouseGastrulationData
+Install them before staging.
+  BiocManager::install(c("MouseGastrulationData"))
+Execution halted
+
+========================================================================
+Summary
+========================================================================
+  1_a_slingshot              ok
+  1_b_monocle3               FAILED (exit 1)
+  2_a_pseudobulk_de          ok
+  2_b_de_vignette            FAILED (exit 1)
+  3_a_composition_covid      ok
+  3_b_composition_milo       FAILED (exit 1)
+
+Some tutorials did not stage cleanly. Scroll up for the reason.
+Note that 3_a_composition_covid always needs a manual step, its query
+object has no public download.
+
+Now verify from R:
+  source("../../find_data_dir.R"); report_data_dir()

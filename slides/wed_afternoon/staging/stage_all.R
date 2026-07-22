@@ -1,14 +1,13 @@
 #!/usr/bin/env Rscript
 #
-# Run every staging script in turn.
+# Run every wed_afternoon staging script in turn.
 #
 # Each script is idempotent, so re-running this is cheap once things are in
-# place. A failure in one tutorial does not stop the others, the summary at the
-# end tells you what still needs attention.
+# place. A failure in one tutorial does not stop the others.
 #
-#   Rscript stage_all.R                      # everything not already staged
-#   Rscript stage_all.R --force              # re-download everything
-#   Rscript stage_all.R --only 3_b_composition_milo
+#   Rscript stage_all.R                          # everything not already staged
+#   Rscript stage_all.R --force                  # re-download everything
+#   Rscript stage_all.R --only spatial_visium
 #   Rscript stage_all.R --list
 
 suppressPackageStartupMessages(library(argparser))
@@ -21,14 +20,12 @@ this_dir <- tryCatch(
   })
 
 SCRIPTS <- c(
-  "1_a_slingshot",
-  "1_b_monocle3",
-  "2_a_pseudobulk_de",
-  "2_b_de_vignette",
-  "3_a_composition_covid",
-  "3_b_composition_milo")
+  "spatial_visium",
+  "spatial_visium_hd",
+  "spatial_visium_hd_segmentation",
+  "spatial_imaging")
 
-p <- arg_parser("Stage all workshop tutorial data")
+p <- arg_parser("Stage all wed_afternoon spatial tutorial data")
 p <- add_argument(p, "--force", flag = TRUE,
                   help = "Re-download and overwrite files that already exist")
 p <- add_argument(p, "--only", default = "",
@@ -66,14 +63,15 @@ for (name in todo) {
 
 cat("\n", strrep("=", 72), "\nSummary\n", strrep("=", 72), "\n", sep = "")
 for (name in names(results)) {
-  cat(sprintf("  %-26s %s\n", name, results[name]))
+  cat(sprintf("  %-34s %s\n", name, results[name]))
 }
 
 if (any(results != "ok")) {
   cat("\nSome tutorials did not stage cleanly. Scroll up for the reason.\n")
-  cat("Note that 3_a_composition_covid always needs a manual step, its query\n")
-  cat("object has no public download.\n")
 }
+cat("\nNote: spatial_imaging stages only its public parts (Xenium, CosMx\n")
+cat("annotations). Vizgen, raw CosMx, and Akoya need manual vendor downloads,\n")
+cat("printed by that script.\n")
 
 cat("\nNow verify from R:\n")
 cat('  source("../../find_data_dir.R"); report_data_dir()\n')
