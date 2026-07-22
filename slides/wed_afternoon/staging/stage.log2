@@ -1,0 +1,214 @@
+
+########################################################################
+# spatial_visium
+########################################################################
+Installing the stxBrain SeuratData package. This downloads.
+Installing package into ‘/home/steve/R/x86_64-pc-linux-gnu-library/4.6’
+(as ‘lib’ is unspecified)
+trying URL 'http://seurat.nygenome.org/src/contrib/stxBrain.SeuratData_0.1.2.tar.gz'
+Content type 'application/octet-stream' length 142661912 bytes (136.1 MB)
+==================================================
+downloaded 136.1 MB
+
+* installing *source* package ‘stxBrain.SeuratData’ ...
+** this is package ‘stxBrain.SeuratData’ version ‘0.1.2’
+** using staged installation
+** R
+** data
+*** moving datasets to lazyload DB
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (stxBrain.SeuratData)
+
+The downloaded source packages are in
+	‘/tmp/RtmpiB1lLx/downloaded_packages’
+Saving /media/steve/USB/github/workshop2026aug_data/spatial_visium/stxBrain_anterior1.rds ...
+Validating object structure
+Updating object slots
+Ensuring keys are in the proper structure
+Ensuring keys are in the proper structure
+Ensuring feature names don't have underscores or pipes
+Updating slots in Spatial
+Updating slots in anterior1
+Updated Centroids object ‘centroids’ in FOV ‘anterior1’
+Updated boundaries in FOV ‘anterior1’
+Validating object structure for Assay5 ‘Spatial’
+Validating object structure for VisiumV2 ‘anterior1’
+Object representation is consistent with the most current Seurat version
+WROTE stxBrain_anterior1.rds  34.9 Mb
+Saving /media/steve/USB/github/workshop2026aug_data/spatial_visium/stxBrain_posterior1.rds ...
+Validating object structure
+Updating object slots
+Ensuring keys are in the proper structure
+Ensuring keys are in the proper structure
+Ensuring feature names don't have underscores or pipes
+Updating slots in Spatial
+Updating slots in posterior1
+Updated Centroids object ‘centroids’ in FOV ‘posterior1’
+Updated boundaries in FOV ‘posterior1’
+Validating object structure for Assay5 ‘Spatial’
+Validating object structure for VisiumV2 ‘posterior1’
+Object representation is consistent with the most current Seurat version
+WROTE stxBrain_posterior1.rds  35.9 Mb
+Recorded provenance in /media/steve/USB/github/workshop2026aug_data/spatial_visium/SOURCE.md
+Warning messages:
+1: Not validating Centroids objects 
+2: Not validating Centroids objects 
+Installing the ssHippo SeuratData package. This downloads.
+Installing package into ‘/home/steve/R/x86_64-pc-linux-gnu-library/4.6’
+(as ‘lib’ is unspecified)
+trying URL 'http://seurat.nygenome.org/src/contrib/ssHippo.SeuratData_3.1.4.tar.gz'
+Content type 'application/octet-stream' length 45220173 bytes (43.1 MB)
+==================================================
+downloaded 43.1 MB
+
+* installing *source* package ‘ssHippo.SeuratData’ ...
+** this is package ‘ssHippo.SeuratData’ version ‘3.1.4’
+** using staged installation
+** R
+** data
+*** moving datasets to lazyload DB
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (ssHippo.SeuratData)
+
+The downloaded source packages are in
+	‘/tmp/RtmpiB1lLx/downloaded_packages’
+Saving /media/steve/USB/github/workshop2026aug_data/spatial_visium/ssHippo.rds ...
+Validating object structure
+Updating object slots
+Ensuring keys are in the proper structure
+Warning: Assay Spatial changing from Assay to Assay
+Ensuring keys are in the proper structure
+Ensuring feature names don't have underscores or pipes
+Updating slots in Spatial
+Updating slots in image
+Validating object structure for Assay ‘Spatial’
+Validating object structure for SlideSeq ‘image’
+Object representation is consistent with the most current Seurat version
+WROTE ssHippo.rds  94.1 Mb
+Recorded provenance in /media/steve/USB/github/workshop2026aug_data/spatial_visium/SOURCE.md
+Downloading https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1
+trying URL 'https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1'
+Content type 'application/binary' length 1038315197 bytes (990.2 MB)
+===================================
+downloaded 709.4 MB
+
+Error in download.file(ref$url, ref$path, mode = "wb", quiet = FALSE) : 
+  download from 'https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1' failed
+In addition: Warning messages:
+1: In download.file(ref$url, ref$path, mode = "wb", quiet = FALSE) :
+  downloaded length 743833600 != reported length 1038315197
+2: In download.file(ref$url, ref$path, mode = "wb", quiet = FALSE) :
+  URL 'https://uc4539001ea05d181d64202a7bcc.dl.dropboxusercontent.com/cd/0/get/DEwjFUoQOqeYCMoe8wuvi7ylq21mbX6Bjmh3WPTai1Q45SqOn24zq8wBe29ngKXbSvhjICEDMp0MiEb3dzYQ2JeOD3bvXOOwpIv0XYkbaHfUnAxjXVlEowz70TPx_1phSf1Ei7v7cWlPiatMMywF22tS/file?dl=1': status was 'Transferred a partial file'
+Execution halted
+
+########################################################################
+# spatial_visium_hd
+########################################################################
+Downloading https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Mouse_Brain/Visium_HD_Mouse_Brain_binned_outputs.tar.gz
+Visium HD is large, this is the slow part.
+trying URL 'https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Mouse_Brain/Visium_HD_Mouse_Brain_binned_outputs.tar.gz'
+Content type 'application/x-tar' length 4616239264 bytes (4402.4 MB)
+==================================================
+downloaded 4402.4 MB
+
+Extracting binned_outputs.tar.gz
+/usr/bin/tar: binned_outputs/square_008um/spatial/aligned_fiducials.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/aligned_fiducials.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_008um/spatial/aligned_tissue_image.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/aligned_tissue_image.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_008um/spatial/cytassist_image.tiff: Cannot hard link to ‘binned_outputs/square_002um/spatial/cytassist_image.tiff’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_008um/spatial/detected_tissue_image.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/detected_tissue_image.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_008um/spatial/tissue_hires_image.png: Cannot hard link to ‘binned_outputs/square_002um/spatial/tissue_hires_image.png’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_008um/spatial/tissue_lowres_image.png: Cannot hard link to ‘binned_outputs/square_002um/spatial/tissue_lowres_image.png’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/aligned_fiducials.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/aligned_fiducials.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/aligned_tissue_image.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/aligned_tissue_image.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/cytassist_image.tiff: Cannot hard link to ‘binned_outputs/square_002um/spatial/cytassist_image.tiff’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/detected_tissue_image.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/detected_tissue_image.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/tissue_hires_image.png: Cannot hard link to ‘binned_outputs/square_002um/spatial/tissue_hires_image.png’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/tissue_lowres_image.png: Cannot hard link to ‘binned_outputs/square_002um/spatial/tissue_lowres_image.png’: Operation not permitted
+/usr/bin/tar: Exiting with failure status due to previous errors
+Downloading https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Mouse_Brain/Visium_HD_Mouse_Brain_spatial.tar.gz
+Visium HD is large, this is the slow part.
+trying URL 'https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Mouse_Brain/Visium_HD_Mouse_Brain_spatial.tar.gz'
+Content type 'application/x-tar' length 70978529 bytes (67.7 MB)
+==================================================
+downloaded 67.7 MB
+
+Extracting spatial.tar.gz
+Extracted into /media/steve/USB/github/workshop2026aug_data/spatial_visium_hd/visium_hd_mouse_brain:
+[1] "binned_outputs" "spatial"       
+Warning message:
+In utils::untar(dest, exdir = dir) :
+  ‘/usr/bin/tar -xf '/media/steve/USB/github/workshop2026aug_data/spatial_visium_hd/visium_hd_mouse_brain/binned_outputs.tar.gz' -C '/media/steve/USB/github/workshop2026aug_data/spatial_visium_hd/visium_hd_mouse_brain'’ returned error code 2
+Downloading https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Mouse_Small_Intestine/Visium_HD_Mouse_Small_Intestine_binned_outputs.tar.gz
+Visium HD is large, this is the slow part.
+trying URL 'https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Mouse_Small_Intestine/Visium_HD_Mouse_Small_Intestine_binned_outputs.tar.gz'
+Content type 'application/x-tar' length 6034152093 bytes (5754.6 MB)
+==================================================
+downloaded 5754.6 MB
+
+Extracting binned_outputs.tar.gz
+/usr/bin/tar: binned_outputs/square_008um/spatial/aligned_fiducials.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/aligned_fiducials.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_008um/spatial/aligned_tissue_image.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/aligned_tissue_image.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_008um/spatial/cytassist_image.tiff: Cannot hard link to ‘binned_outputs/square_002um/spatial/cytassist_image.tiff’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_008um/spatial/detected_tissue_image.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/detected_tissue_image.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_008um/spatial/tissue_hires_image.png: Cannot hard link to ‘binned_outputs/square_002um/spatial/tissue_hires_image.png’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_008um/spatial/tissue_lowres_image.png: Cannot hard link to ‘binned_outputs/square_002um/spatial/tissue_lowres_image.png’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/aligned_fiducials.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/aligned_fiducials.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/aligned_tissue_image.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/aligned_tissue_image.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/cytassist_image.tiff: Cannot hard link to ‘binned_outputs/square_002um/spatial/cytassist_image.tiff’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/detected_tissue_image.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/detected_tissue_image.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/tissue_hires_image.png: Cannot hard link to ‘binned_outputs/square_002um/spatial/tissue_hires_image.png’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/tissue_lowres_image.png: Cannot hard link to ‘binned_outputs/square_002um/spatial/tissue_lowres_image.png’: Operation not permitted
+/usr/bin/tar: Exiting with failure status due to previous errors
+Downloading https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Mouse_Small_Intestine/Visium_HD_Mouse_Small_Intestine_spatial.tar.gz
+Visium HD is large, this is the slow part.
+trying URL 'https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Mouse_Small_Intestine/Visium_HD_Mouse_Small_Intestine_spatial.tar.gz'
+Content type 'application/x-tar' length 80950876 bytes (77.2 MB)
+==================================================
+downloaded 77.2 MB
+
+Extracting spatial.tar.gz
+Extracted into /media/steve/USB/github/workshop2026aug_data/spatial_visium_hd/visium_hd_mouse_small_intestine:
+[1] "binned_outputs" "spatial"       
+Warning message:
+In utils::untar(dest, exdir = dir) :
+  ‘/usr/bin/tar -xf '/media/steve/USB/github/workshop2026aug_data/spatial_visium_hd/visium_hd_mouse_small_intestine/binned_outputs.tar.gz' -C '/media/steve/USB/github/workshop2026aug_data/spatial_visium_hd/visium_hd_mouse_small_intestine'’ returned error code 2
+Downloading https://www.dropbox.com/scl/fi/qbs3j1alq33f0qz892ub3/cortex-hippocampus_coordinates.csv?rlkey=lsxglb15jhjdrircy9lb6n0rd&dl=1
+trying URL 'https://www.dropbox.com/scl/fi/qbs3j1alq33f0qz892ub3/cortex-hippocampus_coordinates.csv?rlkey=lsxglb15jhjdrircy9lb6n0rd&dl=1'
+Content type 'application/binary' length 761 bytes
+==================================================
+downloaded 761 bytes
+
+Downloading https://www.dropbox.com/scl/fi/r1mixf4eof2cot891n215/allen_scRNAseq_ref.Rds?rlkey=ynr6s6wu1efqsjsu3h40vitt7&dl=1
+trying URL 'https://www.dropbox.com/scl/fi/r1mixf4eof2cot891n215/allen_scRNAseq_ref.Rds?rlkey=ynr6s6wu1efqsjsu3h40vitt7&dl=1'
+Content type 'application/binary' length 1837100872 bytes (1752.0 MB)
+==================================================
+downloaded 1752.0 MB
+
+Allen reference read back OK: Seurat
+Recorded provenance in /media/steve/USB/github/workshop2026aug_data/spatial_visium_hd/SOURCE.md
+
+Done. spatial_visium_hd
+The .qmd also uses spacexr (RCTD) and SeuratWrappers + Banksy:
+  remotes::install_github('dmcable/spacexr')
+  remotes::install_github('satijalab/seurat-wrappers')
+
+########################################################################
+# spatial_visium_hd_segmentation
+########################################################################
+Downloading https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_binned_outputs.tar.gz
+trying URL 'https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_binned_outputs.tar.gz'
+Content type 'application/x-tar' length 6441848464 bytes (6143.4 MB)
+===========================

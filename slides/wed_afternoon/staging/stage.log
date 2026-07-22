@@ -1,0 +1,81 @@
+
+########################################################################
+# spatial_visium
+########################################################################
+Error: Missing packages: SeuratData
+Install them before staging.
+  remotes::install_github("satijalab/seurat-data")   # SeuratData
+Execution halted
+
+########################################################################
+# spatial_visium_hd
+########################################################################
+Downloading https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Mouse_Brain/Visium_HD_Mouse_Brain_binned_outputs.tar.gz
+Visium HD is large, this is the slow part.
+trying URL 'https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Mouse_Brain/Visium_HD_Mouse_Brain_binned_outputs.tar.gz'
+Content type 'application/x-tar' length 4616239264 bytes (4402.4 MB)
+====
+downloaded 389.7 MB
+
+Error in download.file(url, dest, mode = "wb", quiet = FALSE) : 
+  download from 'https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Mouse_Brain/Visium_HD_Mouse_Brain_binned_outputs.tar.gz' failed
+Calls: fetch_hd -> download.file
+In addition: Warning messages:
+1: In download.file(url, dest, mode = "wb", quiet = FALSE) :
+  downloaded length 408682269 != reported length 4616239264
+2: In download.file(url, dest, mode = "wb", quiet = FALSE) :
+  URL 'https://cf.10xgenomics.com/samples/spatial-exp/3.0.0/Visium_HD_Mouse_Brain/Visium_HD_Mouse_Brain_binned_outputs.tar.gz': Timeout of 60 seconds was reached
+Execution halted
+
+########################################################################
+# spatial_visium_hd_segmentation
+########################################################################
+Downloading https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_binned_outputs.tar.gz
+trying URL 'https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_binned_outputs.tar.gz'
+Content type 'application/x-tar' length 6441848464 bytes (6143.4 MB)
+===
+downloaded 376.7 MB
+
+Error in download.file(url, dest, mode = "wb", quiet = FALSE) : 
+  download from 'https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_binned_outputs.tar.gz' failed
+In addition: Warning messages:
+1: In download.file(url, dest, mode = "wb", quiet = FALSE) :
+  downloaded length 395015590 != reported length 6441848464
+2: In download.file(url, dest, mode = "wb", quiet = FALSE) :
+  URL 'https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_binned_outputs.tar.gz': Timeout of 60 seconds was reached
+Execution halted
+
+########################################################################
+# spatial_imaging
+########################################################################
+Downloading https://cf.10xgenomics.com/samples/xenium/1.0.2/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip
+trying URL 'https://cf.10xgenomics.com/samples/xenium/1.0.2/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip'
+Content type 'application/zip' length 3479544713 bytes (3318.4 MB)
+=====
+downloaded 384.3 MB
+
+Error in download.file(XENIUM_URL, zip, mode = "wb", quiet = FALSE) : 
+  download from 'https://cf.10xgenomics.com/samples/xenium/1.0.2/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip' failed
+In addition: Warning messages:
+1: In download.file(XENIUM_URL, zip, mode = "wb", quiet = FALSE) :
+  downloaded length 402939036 != reported length 3479544713
+2: In download.file(XENIUM_URL, zip, mode = "wb", quiet = FALSE) :
+  URL 'https://cf.10xgenomics.com/samples/xenium/1.0.2/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip': Timeout of 60 seconds was reached
+Execution halted
+
+========================================================================
+Summary
+========================================================================
+  spatial_visium                     FAILED (exit 1)
+  spatial_visium_hd                  FAILED (exit 1)
+  spatial_visium_hd_segmentation     FAILED (exit 1)
+  spatial_imaging                    FAILED (exit 1)
+
+Some tutorials did not stage cleanly. Scroll up for the reason.
+
+Note: spatial_imaging stages only its public parts (Xenium, CosMx
+annotations). Vizgen, raw CosMx, and Akoya need manual vendor downloads,
+printed by that script.
+
+Now verify from R:
+  source("../../find_data_dir.R"); report_data_dir()

@@ -39,8 +39,37 @@ target <- file.path(outdir, "ifnb.rds")
 
 if (needs_staging(target, argv$force)) {
 
-  message("Installing the ifnb SeuratData package. This downloads.")
-  SeuratData::InstallData("ifnb")
+  # The ifnb tarball is ~394 MB and comes from seurat.nygenome.org, which is
+  # slow and prone to truncating the transfer. The default download.file
+  # timeout of 60 seconds is nowhere near enough, so raise it well past the
+  # worst-case transfer time. install.packages(), which InstallData() calls,
+  # reads getOption("timeout").
+  old_timeout <- getOption("timeout")
+  options(timeout = max(3600, old_timeout))
+  on.exit(options(timeout = old_timeout), add = TRUE)
+
+  # Even with a generous timeout the server sometimes drops the connection
+  # mid-download, so retry a few times before giving up.
+  message("Installing the ifnb SeuratData package. This downloads ~394 MB.")
+  attempts <- 3L
+  for (i in seq_len(attempts)) {
+    ok <- tryCatch({
+      SeuratData::InstallData("ifnb")
+      TRUE
+    }, error = function(e) {
+      message("Install attempt ", i, " of ", attempts, " failed: ",
+              conditionMessage(e))
+      FALSE
+    })
+    if (ok) break
+    if (i == attempts) {
+      stop("Could not install ifnb.SeuratData after ", attempts,
+           " attempts. The seurat.nygenome.org server may be down or throttling.\n",
+           "Retry later, or download the tarball by hand and install it with\n",
+           "  install.packages('ifnb.SeuratData_3.1.0.tar.gz', repos = NULL, type = 'source')",
+           call. = FALSE)
+    }
+  }
 
   ifnb <- SeuratData::LoadData("ifnb")
   message("Loaded ifnb: ", nrow(ifnb), " features x ", ncol(ifnb), " cells.")

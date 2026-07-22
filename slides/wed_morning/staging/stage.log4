@@ -1,0 +1,117 @@
+
+########################################################################
+# 1_a_slingshot
+########################################################################
+SKIP  GSE72857_umitab.rds already exists (28 Mb). Use --force to rebuild.
+
+Done. 1_a_slingshot
+
+########################################################################
+# 1_b_monocle3
+########################################################################
+SKIP  AnnData_filtered_cds.rds already exists (18 Mb). Use --force to rebuild.
+
+Done. 1_b_monocle3
+If the .qmd is too slow on the workshop machine, the next things worth
+precomputing here are preprocess_cds(num_dim = 210) and graph_test().
+
+########################################################################
+# 2_a_pseudobulk_de
+########################################################################
+SKIP  scRNA-seq_input_data_for_DE.rds already exists (37.8 Mb). Use --force to rebuild.
+
+Done. 2_a_pseudobulk_de
+
+########################################################################
+# 2_b_de_vignette
+########################################################################
+Installing the ifnb SeuratData package. This downloads ~394 MB.
+Installing package into ‘/home/steve/R/x86_64-pc-linux-gnu-library/4.6’
+(as ‘lib’ is unspecified)
+trying URL 'http://seurat.nygenome.org/src/contrib/ifnb.SeuratData_3.1.0.tar.gz'
+Content type 'application/octet-stream' length 413266233 bytes (394.1 MB)
+==================================================
+downloaded 394.1 MB
+
+* installing *source* package ‘ifnb.SeuratData’ ...
+** this is package ‘ifnb.SeuratData’ version ‘3.1.0’
+** using staged installation
+** R
+** data
+*** moving datasets to lazyload DB
+** inst
+** byte-compile and prepare package for lazy loading
+** help
+*** installing help indices
+** building package indices
+** testing if installed package can be loaded from temporary location
+** testing if installed package can be loaded from final location
+** testing if installed package keeps a record of temporary installation path
+* DONE (ifnb.SeuratData)
+
+The downloaded source packages are in
+	‘/tmp/RtmpJqh7ep/downloaded_packages’
+Validating object structure
+Updating object slots
+Ensuring keys are in the proper structure
+Warning: Assay RNA changing from Assay to Assay
+Ensuring keys are in the proper structure
+Ensuring feature names don't have underscores or pipes
+Updating slots in RNA
+Validating object structure for Assay ‘RNA’
+Object representation is consistent with the most current Seurat version
+Warning: Assay RNA changing from Assay to Assay5
+Loaded ifnb: 14053 features x 13999 cells.
+Saving /media/steve/USB/github/workshop2026aug_data/2_b_de_vignette/ifnb.rds ...
+WROTE ifnb.rds  40.1 Mb
+Recorded provenance in /media/steve/USB/github/workshop2026aug_data/2_b_de_vignette/SOURCE.md
+Downloading https://raw.githubusercontent.com/yelabucsf/demuxlet_paper_code/master/fig3/ye1.ctrl.8.10.sm.best
+trying URL 'https://raw.githubusercontent.com/yelabucsf/demuxlet_paper_code/master/fig3/ye1.ctrl.8.10.sm.best'
+Content type 'text/plain; charset=utf-8' length 2357149 bytes (2.2 MB)
+==================================================
+downloaded 2.2 MB
+
+Read back OK: 14619 rows, 22 columns.
+Recorded provenance in /media/steve/USB/github/workshop2026aug_data/2_b_de_vignette/SOURCE.md
+Downloading https://raw.githubusercontent.com/yelabucsf/demuxlet_paper_code/master/fig3/ye2.stim.8.10.sm.best
+trying URL 'https://raw.githubusercontent.com/yelabucsf/demuxlet_paper_code/master/fig3/ye2.stim.8.10.sm.best'
+Content type 'text/plain; charset=utf-8' length 2338588 bytes (2.2 MB)
+==================================================
+downloaded 2.2 MB
+
+Read back OK: 14446 rows, 22 columns.
+Recorded provenance in /media/steve/USB/github/workshop2026aug_data/2_b_de_vignette/SOURCE.md
+
+Done. 2_b_de_vignette
+Optional extras for the alternative tests: BiocManager::install(c('DESeq2', 'MAST', 'limma'))
+and presto for the fast default wilcox path.
+
+########################################################################
+# 3_a_composition_covid
+########################################################################
+SKIP  covid_pbmc_wilk.rds already exists (81.9 Mb). Use --force to rebuild.
+
+Done. 3_a_composition_covid
+
+########################################################################
+# 3_b_composition_milo
+########################################################################
+SKIP  embryo_atlas_subset.rds already exists (51.8 Mb). Use --force to rebuild.
+
+Done. 3_b_composition_milo
+If calcNhoodDistance is too slow live, the next thing to precompute
+here is the Milo object with buildGraph, makeNhoods, countCells and
+calcNhoodDistance already applied.
+
+========================================================================
+Summary
+========================================================================
+  1_a_slingshot              ok
+  1_b_monocle3               ok
+  2_a_pseudobulk_de          ok
+  2_b_de_vignette            ok
+  3_a_composition_covid      ok
+  3_b_composition_milo       ok
+
+Now verify from R:
+  source("../../find_data_dir.R"); report_data_dir()

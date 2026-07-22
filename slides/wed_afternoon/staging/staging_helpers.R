@@ -12,6 +12,12 @@ suppressPackageStartupMessages({
   library(argparser)
 })
 
+# The 10x Genomics inputs are multi-GB files. R's default download.file()
+# timeout of 60 seconds is far too short and leaves them truncated. Raise it
+# here so every stage_*.R script that sources this file inherits the longer
+# timeout.
+options(timeout = max(3600, getOption("timeout")))
+
 # find_data_dir.R lives two directories up, at slides/find_data_dir.R.
 # Each stage_*.R script sources this file with an explicit path, so we can work
 # out where we are from that.

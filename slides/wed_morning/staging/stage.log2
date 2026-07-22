@@ -39,3 +39,190 @@ precomputing here are preprocess_cds(num_dim = 210) and graph_test().
 ########################################################################
 # 2_a_pseudobulk_de
 ########################################################################
+SKIP  scRNA-seq_input_data_for_DE.rds already exists (37.8 Mb). Use --force to rebuild.
+
+Done. 2_a_pseudobulk_de
+
+########################################################################
+# 2_b_de_vignette
+########################################################################
+Error: Missing packages: SeuratData
+Install them before staging.
+  remotes::install_github("satijalab/seurat-data")   # SeuratData
+Execution halted
+
+########################################################################
+# 3_a_composition_covid
+########################################################################
+SKIP  covid_pbmc_wilk.rds already exists (81.9 Mb). Use --force to rebuild.
+
+Done. 3_a_composition_covid
+
+########################################################################
+# 3_b_composition_milo
+########################################################################
+Fetching samples 2, 3, 6, 4, 10, 14 from the mouse gastrulation atlas.
+This downloads through ExperimentHub and is the slow, large step.
+ExperimentHub cache: /home/steve/.cache/R/ExperimentHub
+
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+see ?MouseGastrulationData and browseVignettes('MouseGastrulationData') for documentation
+downloading 1 resources
+retrieving 1 resource
+
+loading from cache
+Fetched: 29452 genes x 7558 cells.
+After dropping all-NA pca.corrected cells: 6875 cells.
+colData check passed: sample, stage, sequencing.batch, celltype
+    
+     E7.0 E7.5
+  2     0  321
+  3     0  400
+  4     0  255
+  6     0 2547
+  10 2166    0
+  14 1186    0
+Saving /media/steve/USB/github/workshop2026aug_data/3_b_composition_milo/embryo_atlas_subset.rds ...
+WROTE embryo_atlas_subset.rds  51.8 Mb
+Recorded provenance in /media/steve/USB/github/workshop2026aug_data/3_b_composition_milo/SOURCE.md
+
+Done. 3_b_composition_milo
+If calcNhoodDistance is too slow live, the next thing to precompute
+here is the Milo object with buildGraph, makeNhoods, countCells and
+calcNhoodDistance already applied.
+
+========================================================================
+Summary
+========================================================================
+  1_a_slingshot              ok
+  1_b_monocle3               ok
+  2_a_pseudobulk_de          ok
+  2_b_de_vignette            FAILED (exit 1)
+  3_a_composition_covid      ok
+  3_b_composition_milo       ok
+
+Some tutorials did not stage cleanly. Scroll up for the reason.
+Note that 3_a_composition_covid always needs a manual step, its query
+object has no public download.
+
+Now verify from R:
+  source("../../find_data_dir.R"); report_data_dir()
