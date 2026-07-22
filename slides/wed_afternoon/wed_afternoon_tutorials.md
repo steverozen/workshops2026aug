@@ -25,7 +25,7 @@ the most familiar platform to the least, and from one measurement paradigm
 > ```
 >
 > Status: three of the four stage fully and automatically. **The imaging
-> tutorial (4) stages only its public parts.** Vizgen, raw CosMx, and Akoya need
+> tutorial (4) stages only its public parts.** Vizgen and raw CosMx need
 > vendor registration and are printed as manual steps. Two vignettes also keep a
 > network call inside the render (a cloud Azimuth annotation, and GitHub package
 > installs); see `staging/README.md`.
@@ -37,7 +37,7 @@ the most familiar platform to the least, and from one measurement paradigm
 | 1 | Visium + Slide-seq | 10x Visium, Slide-seq v2 | sequencing-based |
 | 2 | Visium HD | 10x Visium HD | sequencing-based |
 | 3 | Visium HD cell segmentation | 10x Visium HD | sequencing-based |
-| 4 | Imaging platforms | Xenium, MERSCOPE, CosMx, CODEX | imaging-based |
+| 4 | Imaging platforms | Xenium, MERSCOPE, CosMx | imaging-based |
 
 The logic: start with **standard Visium** (1), which is spot-based and reads like
 scRNA-seq with coordinates attached, so it builds directly on the morning's
@@ -143,7 +143,7 @@ once and stage the annotated object. The `.qmd` flags this in a callout.
 
 The Seurat "Analysis of image-based spatial data" vignette. A different
 measurement paradigm: molecules imaged in place rather than sequenced. Surveys
-four platforms, 10x Xenium, Vizgen MERSCOPE, Nanostring CosMx, and Akoya CODEX,
+three platforms, 10x Xenium, Vizgen MERSCOPE, and Nanostring CosMx,
 and introduces the `FOV` object model for subcellular coordinates and
 segmentations, plus niche and neighborhood analysis.
 
@@ -153,8 +153,8 @@ Source: https://satijalab.org/seurat/articles/seurat5_spatial_vignette_2
 
 **Data is only partly public.** Staged automatically: the Xenium mouse brain
 subset (10x), the RCTD reference, and the precomputed CosMx annotations. Manual,
-vendor-gated, printed by the staging script: Vizgen MERSCOPE (registration), the
-raw CosMx directory (by request), and Akoya CODEX (HuBMAP via Globus). If you
+vendor-gated, printed by the staging script: Vizgen MERSCOPE (registration) and
+the raw CosMx directory (by request). If you
 skip the vendor data, teach the Xenium and CosMx sections, which are complete.
 The other sections error at their `Load*` call, which is expected.
 

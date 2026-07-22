@@ -70,7 +70,7 @@ if (any(results != "ok")) {
   cat("\nSome tutorials did not stage cleanly. Scroll up for the reason.\n")
 }
 cat("\nNote: spatial_imaging stages only its public parts (Xenium, CosMx\n")
-cat("annotations). Vizgen, raw CosMx, and Akoya need manual vendor downloads,\n")
+cat("annotations). Vizgen and raw CosMx need manual vendor downloads,\n")
 cat("printed by that script.\n")
 
 cat("\nNow verify from R:\n")

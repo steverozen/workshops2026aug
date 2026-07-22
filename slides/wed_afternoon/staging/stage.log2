@@ -211,4 +211,144 @@ The .qmd also uses spacexr (RCTD) and SeuratWrappers + Banksy:
 Downloading https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_binned_outputs.tar.gz
 trying URL 'https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_binned_outputs.tar.gz'
 Content type 'application/x-tar' length 6441848464 bytes (6143.4 MB)
-===========================
+==================================================
+downloaded 6143.4 MB
+
+Extracting binned_outputs.tar.gz
+/usr/bin/tar: binned_outputs/square_008um/spatial/aligned_fiducials.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/aligned_fiducials.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_008um/spatial/aligned_tissue_image.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/aligned_tissue_image.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_008um/spatial/cytassist_image.tiff: Cannot hard link to ‘binned_outputs/square_002um/spatial/cytassist_image.tiff’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_008um/spatial/detected_tissue_image.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/detected_tissue_image.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_008um/spatial/tissue_hires_image.png: Cannot hard link to ‘binned_outputs/square_002um/spatial/tissue_hires_image.png’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_008um/spatial/tissue_lowres_image.png: Cannot hard link to ‘binned_outputs/square_002um/spatial/tissue_lowres_image.png’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/aligned_fiducials.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/aligned_fiducials.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/aligned_tissue_image.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/aligned_tissue_image.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/cytassist_image.tiff: Cannot hard link to ‘binned_outputs/square_002um/spatial/cytassist_image.tiff’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/detected_tissue_image.jpg: Cannot hard link to ‘binned_outputs/square_002um/spatial/detected_tissue_image.jpg’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/tissue_hires_image.png: Cannot hard link to ‘binned_outputs/square_002um/spatial/tissue_hires_image.png’: Operation not permitted
+/usr/bin/tar: binned_outputs/square_016um/spatial/tissue_lowres_image.png: Cannot hard link to ‘binned_outputs/square_002um/spatial/tissue_lowres_image.png’: Operation not permitted
+/usr/bin/tar: Exiting with failure status due to previous errors
+Downloading https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_segmented_outputs.tar.gz
+trying URL 'https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_segmented_outputs.tar.gz'
+Content type 'application/x-tar' length 3907784171 bytes (3726.8 MB)
+==================================================
+downloaded 3726.8 MB
+
+Extracting segmented_outputs.tar.gz
+Downloading https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_spatial.tar.gz
+trying URL 'https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_spatial.tar.gz'
+Content type 'application/x-tar' length 80572597 bytes (76.8 MB)
+==================================================
+downloaded 76.8 MB
+
+Extracting spatial.tar.gz
+Downloading https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_barcode_mappings.parquet
+trying URL 'https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_barcode_mappings.parquet'
+Content type 'binary/octet-stream' length 114368188 bytes (109.1 MB)
+==================================================
+downloaded 109.1 MB
+
+Downloading https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_feature_slice.h5
+trying URL 'https://cf.10xgenomics.com/samples/spatial-exp/4.0.1/Visium_HD_Human_Kidney_FFPE/Visium_HD_Human_Kidney_FFPE_feature_slice.h5'
+Content type 'application/x-hdf5' length 510737530 bytes (487.1 MB)
+==================================================
+downloaded 487.1 MB
+
+Extracted contents of /media/steve/USB/github/workshop2026aug_data/spatial_visium_hd_segmentation:
+[1] "barcode_mappings.parquet" "binned_outputs"          
+[3] "feature_slice.h5"         "segmented_outputs"       
+[5] "SOURCE.md"                "spatial"                 
+Recorded provenance in /media/steve/USB/github/workshop2026aug_data/spatial_visium_hd_segmentation/SOURCE.md
+Warning message:
+In utils::untar(dest, exdir = outdir) :
+  ‘/usr/bin/tar -xf '/media/steve/USB/github/workshop2026aug_data/spatial_visium_hd_segmentation/binned_outputs.tar.gz' -C '/media/steve/USB/github/workshop2026aug_data/spatial_visium_hd_segmentation'’ returned error code 2
+
+Done. spatial_visium_hd_segmentation
+Note: the .qmd calls AzimuthAPI::CloudAzimuth(), which is a network
+call. To keep the workshop offline, run the annotation once and stage
+the annotated object. See the callout in the .qmd.
+
+########################################################################
+# spatial_imaging
+########################################################################
+Downloading https://cf.10xgenomics.com/samples/xenium/1.0.2/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip
+trying URL 'https://cf.10xgenomics.com/samples/xenium/1.0.2/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP/Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip'
+Content type 'application/zip' length 3479544713 bytes (3318.4 MB)
+==================================================
+downloaded 3318.4 MB
+
+Xenium extracted into /media/steve/USB/github/workshop2026aug_data/spatial_imaging/xenium_tiny_subset:
+ [1] "analysis"                     "analysis_summary.html"       
+ [3] "analysis.zarr.zip"            "cell_boundaries.csv.gz"      
+ [5] "cell_boundaries.parquet"      "cell_feature_matrix"         
+ [7] "cell_feature_matrix.h5"       "cell_feature_matrix.zarr.zip"
+ [9] "cells.csv.gz"                 "cells.parquet"               
+[11] "cells.zarr.zip"               "experiment.xenium"           
+[13] "gene_panel.json"              "metrics_summary.csv"         
+[15] "morphology_focus.ome.tif"     "morphology_mip.ome.tif"      
+[17] "morphology.ome.tif"           "nucleus_boundaries.csv.gz"   
+[19] "nucleus_boundaries.parquet"   "transcripts.csv.gz"          
+[21] "transcripts.parquet"          "transcripts.zarr.zip"        
+Downloading https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1
+trying URL 'https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1'
+Content type 'application/binary' length 1038315197 bytes (990.2 MB)
+==================================================
+downloaded 990.2 MB
+
+allen_cortex.rds read back OK.
+Downloading https://seurat.nygenome.org/vignette_data/spatial_vignette_2/nanostring_data.Rds
+trying URL 'https://seurat.nygenome.org/vignette_data/spatial_vignette_2/nanostring_data.Rds'
+Content type 'application/octet-stream' length 3082339 bytes (2.9 MB)
+==================================================
+downloaded 2.9 MB
+
+Downloading https://www.dropbox.com/scl/fi/aw2qa96jzhbzu670a5lod/Lung5_Rep1-polygons.csv?rlkey=a86qh3tx7f12bsb5gvf11eykr&dl=1
+trying URL 'https://www.dropbox.com/scl/fi/aw2qa96jzhbzu670a5lod/Lung5_Rep1-polygons.csv?rlkey=a86qh3tx7f12bsb5gvf11eykr&dl=1'
+Content type 'application/binary' length 119611512 bytes (114.1 MB)
+==================================================
+downloaded 114.1 MB
+
+Recorded provenance in /media/steve/USB/github/workshop2026aug_data/spatial_imaging/SOURCE.md
+
+========================================================================
+MANUAL STEPS: three platform datasets are not publicly downloadable
+========================================================================
+Each needs vendor registration and is large. Stage them by hand:
+
+Vizgen MERSCOPE mouse brain -> /media/steve/USB/github/workshop2026aug_data/spatial_imaging/vizgen_mouse_brain/s2r1/
+  Register at https://info.vizgen.com/mouse-brain-data and download
+  slice 2 replicate 1. LoadVizgen expects the MERSCOPE output files
+  (cell_by_gene.csv, cell_metadata.csv, detected_transcripts.csv, ...).
+
+Nanostring CosMx lung (raw) -> /media/steve/USB/github/workshop2026aug_data/spatial_imaging/nanostring_lung5_rep1/
+  From https://nanostring.com/products/cosmx-spatial-molecular-imager/ffpe-dataset/
+  Lung5 Rep1. The precomputed annotations are already staged, so this
+  raw directory is only needed to run LoadNanostring live.
+
+Akoya CODEX lymph node -> /media/steve/USB/github/workshop2026aug_data/spatial_imaging/akoya_lymph_node/
+  LN7910_20_008_11022020_reg001_compensated.csv, from the HuBMAP portal
+  via Globus.
+
+If you will not obtain these, present only the Xenium and CosMx
+sections, which are fully staged. The .qmd sections for the missing
+platforms will error at their Load* call, which is expected.
+========================================================================
+
+Done. spatial_imaging (public parts staged; manual steps above if any)
+
+========================================================================
+Summary
+========================================================================
+  spatial_visium                     FAILED (exit 1)
+  spatial_visium_hd                  ok
+  spatial_visium_hd_segmentation     ok
+  spatial_imaging                    ok
+
+Some tutorials did not stage cleanly. Scroll up for the reason.
+
+Note: spatial_imaging stages only its public parts (Xenium, CosMx
+annotations). Vizgen, raw CosMx, and Akoya need manual vendor downloads,
+printed by that script.
+
+Now verify from R:
+  source("../../find_data_dir.R"); report_data_dir()

@@ -4,7 +4,7 @@ The 10x Genomics files (Visium HD mouse brain, Visium HD human kidney, Xenium
 mouse brain) are NOT in this list. They download automatically once `stage_all.R`
 is re-run with the raised `download.file` timeout in `staging_helpers.R`.
 
-Only the three imaging platforms below need manual, registered downloads. They
+Only the two imaging platforms below need manual, registered downloads. They
 are not public in the exact subset the tutorial uses, and each is large. They
 belong under the `spatial_imaging` data directory (the `outdir` that
 `stage_spatial_imaging.R` reports), in the subdirectory named for each.
@@ -26,9 +26,3 @@ their `Load*` call, which is expected.
 - Download: https://nanostring.com/products/cosmx-spatial-molecular-imager/ffpe-dataset/
 - Take Lung5 Rep1. The precomputed annotations are already staged, so this raw
   directory is only needed to run `LoadNanostring` live.
-
-## 3. Akoya CODEX lymph node
-
-- Destination: `<spatial_imaging>/akoya_lymph_node/`
-- File: `LN7910_20_008_11022020_reg001_compensated.csv`
-- Source: HuBMAP portal, via Globus.

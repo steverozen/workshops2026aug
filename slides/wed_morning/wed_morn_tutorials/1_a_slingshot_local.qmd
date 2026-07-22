@@ -12,7 +12,7 @@ format:
 execute:
   warning: false
   message: true
-  error: true
+  error: false
 ---
 
 Local rework of `1_a_slingshot.html`.
@@ -24,13 +24,15 @@ Method: Street et al. 2018, "Slingshot: cell lineage and pseudotime inference
 for single-cell transcriptomics", BMC Genomics,
 <https://doi.org/10.1186/s12864-018-4772-9>
 
-::: {.callout-important}
-## Status: transcribed from upstream, first render is a test
+::: {.callout-note}
+## Status: transcribed from upstream, renders cleanly end to end
 
 The code below is transcribed from the upstream lab, with the GEO download
-replaced by a read from the staged data repo. It has not been executed yet.
-`error: true` is set in the YAML on purpose, so a test render reports every
-failure rather than stopping at the first one.
+replaced by a read from the staged data repo. Three changes were needed to run
+under current package versions: `buildSNNGraph()` no longer takes `assay.type`
+when a reduction is supplied, and `getLineages()` / `getCurves()` now return a
+`PseudotimeOrdering`, so they are wrapped in `SlingshotDataSet()` before the
+base-graphics `lines()` calls.
 :::
 
 ## Setup
@@ -105,7 +107,7 @@ data <- logNormCounts(data)
 var.fit <- modelGeneVar(data)
 top.hvgs <- getTopHVGs(var.fit, n = 2000)
 data <- runPCA(data, subset_row = top.hvgs)
-g <- buildSNNGraph(data, k = 5, use.dimred = "PCA", assay.type = "RNA")
+g <- buildSNNGraph(data, k = 5, use.dimred = "PCA")
 data$louvain_SNNk5 <- factor(igraph::cluster_louvain(g)$membership)
 data <- runUMAP(data, dimred = "PCA", n_dimred = 50, ncomponents = 2,
                 spread = 2, min_dist = 0.1, n_neighbors = 10, metric = "cosine")
@@ -166,7 +168,9 @@ lineages
 ```{r}
 #| label: plot-lineages
 plot(dimred, col = pal[clustering], asp = 1, pch = 16)
-lines(lineages, lwd = 3, col = "black")
+# getLineages() now returns a PseudotimeOrdering; the base-graphics lines()
+# method is defined for SlingshotDataSet, so convert before plotting.
+lines(SlingshotDataSet(lineages), lwd = 3, col = "black")
 ```
 
 ## Defining principal curves
@@ -186,7 +190,7 @@ curves
 ```{r}
 #| label: plot-curves
 plot(dimred, col = pal[clustering], asp = 1, pch = 16)
-lines(curves, lwd = 3, col = "black")
+lines(SlingshotDataSet(curves), lwd = 3, col = "black")
 ```
 
 ## Finding differentially expressed genes

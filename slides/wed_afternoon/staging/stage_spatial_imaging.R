@@ -16,7 +16,6 @@
 #
 #   Vizgen MERSCOPE     info.vizgen.com/mouse-brain-data (registration)
 #   Nanostring CosMx    nanostring.com FFPE dataset (raw dir, by request)
-#   Akoya CODEX         HuBMAP portal, via Globus
 #
 # This script stages the public pieces and prints instructions for the rest,
 # the same pattern as the COVID composition tutorial.
@@ -85,21 +84,20 @@ write_source_record(
     "nanostring_data.Rds precomputed CosMx Azimuth annotations, seurat.nygenome.org",
     "Lung5_Rep1-polygons.csv CosMx cell boundaries, Dropbox",
     "allen_cortex.rds RCTD reference is staged separately at the data-dir root, shared with the Visium tutorial",
-    "raw Vizgen / CosMx / Akoya directories are NOT staged, see the manual steps"))
+    "raw Vizgen / CosMx directories are NOT staged, see the manual steps"))
 
-## 3. The three vendor datasets that are not public --------------------------
+## 3. The two vendor datasets that are not public ---------------------------
 
 manual <- c(
   vizgen_mouse_brain = file.path(outdir, "vizgen_mouse_brain"),
-  nanostring_lung5_rep1 = file.path(outdir, "nanostring_lung5_rep1"),
-  akoya_lymph_node = file.path(outdir, "akoya_lymph_node"))
+  nanostring_lung5_rep1 = file.path(outdir, "nanostring_lung5_rep1"))
 
 pending <- manual[!dir.exists(manual)]
 
 if (length(pending)) {
   message("")
   message(strrep("=", 72))
-  message("MANUAL STEPS: three platform datasets are not publicly downloadable")
+  message("MANUAL STEPS: two platform datasets are not publicly downloadable")
   message(strrep("=", 72))
   message("Each needs vendor registration and is large. Stage them by hand:")
   message("")
@@ -112,10 +110,6 @@ if (length(pending)) {
   message("  From https://nanostring.com/products/cosmx-spatial-molecular-imager/ffpe-dataset/")
   message("  Lung5 Rep1. The precomputed annotations are already staged, so this")
   message("  raw directory is only needed to run LoadNanostring live.")
-  message("")
-  message("Akoya CODEX lymph node -> ", manual[["akoya_lymph_node"]], "/")
-  message("  LN7910_20_008_11022020_reg001_compensated.csv, from the HuBMAP portal")
-  message("  via Globus.")
   message("")
   message("If you will not obtain these, present only the Xenium and CosMx")
   message("sections, which are fully staged. The .qmd sections for the missing")

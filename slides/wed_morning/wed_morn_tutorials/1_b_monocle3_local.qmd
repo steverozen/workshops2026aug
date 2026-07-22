@@ -12,7 +12,7 @@ format:
 execute:
   warning: false
   message: true
-  error: true
+  error: false
 ---
 
 Transcribed from `1_b_monocle3.html`.
@@ -25,13 +25,12 @@ Data: a mouse model of fetal growth restriction, Bacon et al. 2018.
 Method: Cao et al. 2019, "The single-cell transcriptional landscape of
 mammalian organogenesis", Nature, <https://doi.org/10.1038/s41586-019-0969-x>
 
-::: {.callout-important}
-## Status: transcribed, not yet executed
+::: {.callout-note}
+## Status: transcribed, renders cleanly end to end
 
-Every chunk is transcribed from the upstream tutorial and none of them has been
-run in this repository. This first render is the test. `error: true` is set on
-purpose so that the render does not stop at the first failure and we get the
-full list of problems in one pass.
+Every chunk is transcribed from the upstream tutorial. The whole document renders
+without error against the staged `cell_data_set` and the current package
+versions, with no code changes needed.
 :::
 
 ::: {.callout-note}

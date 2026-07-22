@@ -52,7 +52,6 @@ vendor-gated:
 - **Vizgen MERSCOPE** mouse brain, from `info.vizgen.com/mouse-brain-data`.
 - **Nanostring CosMx** raw lung directory, by request from Nanostring. Only
   needed to run `LoadNanostring` live, since the annotations are already staged.
-- **Akoya CODEX** lymph node CSV, from HuBMAP via Globus.
 
 If you will not chase the vendor data, teach the Xenium and CosMx sections,
 which are fully staged. The other platform sections in the `.qmd` will error at
