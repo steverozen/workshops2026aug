@@ -23,9 +23,10 @@ source(file.path(.this_dir, "staging_helpers.R"))
 NAME     <- "spatial_visium"
 UPSTREAM <- "https://satijalab.org/seurat/articles/spatial_vignette"
 
-# The two scRNA-seq references are on the Satija lab's public Dropbox. dl=1
-# forces a file download rather than the HTML preview page.
-ALLEN_URL <- "https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1"
+# The hippocampus reference is on the Satija lab's public Dropbox. dl=1 forces a
+# file download rather than the HTML preview page. The Allen cortex reference
+# (allen_cortex.rds) is a large shared asset staged once at the data-dir root,
+# not by this script.
 HIPPO_URL <- "https://www.dropbox.com/s/cs6pii5my4p3ke3/mouse_hippocampus_reference.rds?dl=1"
 
 argv   <- staging_args(NAME, "Stage Visium + Slide-seq data and references")
@@ -67,28 +68,27 @@ if (needs_staging(sshippo, argv$force)) {
     notes = "Slide-seq v2 mouse hippocampus")
 }
 
-## 3. The two scRNA-seq references --------------------------------------------
+## 3. The hippocampus scRNA-seq reference -------------------------------------
 
-for (ref in list(list(path = file.path(outdir, "allen_cortex.rds"), url = ALLEN_URL),
-                 list(path = file.path(outdir, "mouse_hippocampus_reference.rds"),
-                      url = HIPPO_URL))) {
-  if (needs_staging(ref$path, argv$force)) {
-    message("Downloading ", ref$url)
-    download.file(ref$url, ref$path, mode = "wb", quiet = FALSE)
+# The Allen cortex reference is a large shared asset staged once at the data-dir
+# root, so it is not downloaded here. Only the hippocampus reference is.
+hippo <- file.path(outdir, "mouse_hippocampus_reference.rds")
+if (needs_staging(hippo, argv$force)) {
+  message("Downloading ", HIPPO_URL)
+  download.file(HIPPO_URL, hippo, mode = "wb", quiet = FALSE)
 
-    obj <- tryCatch(readRDS(ref$path), error = function(e) {
-      unlink(ref$path)
-      stop("Downloaded ", basename(ref$path), " is not a readable .rds. ",
-           "Dropbox may have served an interstitial page.\n", conditionMessage(e),
-           call. = FALSE)
-    })
-    message("Read back OK: ", class(obj)[1])
+  obj <- tryCatch(readRDS(hippo), error = function(e) {
+    unlink(hippo)
+    stop("Downloaded ", basename(hippo), " is not a readable .rds. ",
+         "Dropbox may have served an interstitial page.\n", conditionMessage(e),
+         call. = FALSE)
+  })
+  message("Read back OK: ", class(obj)[1])
 
-    write_source_record(
-      outdir, basename(ref$path), ref$url, UPSTREAM,
-      notes = c("scRNA-seq reference for label transfer / RCTD",
-                paste0("class: ", class(obj)[1])))
-  }
+  write_source_record(
+    outdir, basename(hippo), HIPPO_URL, UPSTREAM,
+    notes = c("scRNA-seq reference for label transfer / RCTD",
+              paste0("class: ", class(obj)[1])))
 }
 
 message("\nDone. ", NAME)

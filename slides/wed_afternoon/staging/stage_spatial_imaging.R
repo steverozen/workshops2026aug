@@ -5,9 +5,11 @@
 # Imaging-based spatial platforms. Only some of the data is public:
 #
 #   Xenium (10x)        public zip, staged automatically
-#   allen_cortex.rds    public Dropbox, staged automatically (RCTD reference)
 #   CosMx annotations   public on the Seurat server, staged automatically
 #   CosMx lung polygons public Dropbox, staged automatically
+#
+# The RCTD reference (allen_cortex.rds) is a large shared asset staged once at
+# the data-dir root, not by this script.
 #
 # The raw per-platform directories are NOT public in the exact subset the
 # vignette uses. Those need vendor registration and are large:
@@ -39,7 +41,6 @@ UPSTREAM <- "https://satijalab.org/seurat/articles/seurat5_spatial_vignette_2"
 XENIUM_URL <- paste0("https://cf.10xgenomics.com/samples/xenium/1.0.2/",
                      "Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP/",
                      "Xenium_V1_FF_Mouse_Brain_Coronal_Subset_CTX_HP_outs.zip")
-ALLEN_URL  <- "https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1"
 COSMX_ANNOT_URL <- "https://seurat.nygenome.org/vignette_data/spatial_vignette_2/nanostring_data.Rds"
 COSMX_POLY_URL  <- paste0("https://www.dropbox.com/scl/fi/aw2qa96jzhbzu670a5lod/",
                           "Lung5_Rep1-polygons.csv",
@@ -62,20 +63,7 @@ if (needs_staging(xenium_dir, argv$force)) {
   print(list.files(xenium_dir))
 }
 
-## 2. allen_cortex.rds, the RCTD reference (public) --------------------------
-
-allen <- file.path(outdir, "allen_cortex.rds")
-if (needs_staging(allen, argv$force)) {
-  message("Downloading ", ALLEN_URL)
-  download.file(ALLEN_URL, allen, mode = "wb", quiet = FALSE)
-  tryCatch(readRDS(allen), error = function(e) {
-    unlink(allen); stop("allen_cortex.rds unreadable: ", conditionMessage(e),
-                        call. = FALSE)
-  })
-  message("allen_cortex.rds read back OK.")
-}
-
-## 3. CosMx precomputed annotations and lung polygons (public) ---------------
+## 2. CosMx precomputed annotations and lung polygons (public) ---------------
 
 cosmx_annot <- file.path(outdir, "nanostring_data.Rds")
 if (needs_staging(cosmx_annot, argv$force)) {
@@ -90,16 +78,16 @@ if (needs_staging(cosmx_poly, argv$force)) {
 }
 
 write_source_record(
-  outdir, "xenium_tiny_subset, allen_cortex.rds, nanostring_data.Rds, Lung5_Rep1-polygons.csv",
+  outdir, "xenium_tiny_subset, nanostring_data.Rds, Lung5_Rep1-polygons.csv",
   XENIUM_URL, UPSTREAM,
   notes = c(
     "Xenium V1 mouse brain coronal subset, 10x public zip, extracted",
-    "allen_cortex.rds RCTD reference, Satija lab Dropbox",
     "nanostring_data.Rds precomputed CosMx Azimuth annotations, seurat.nygenome.org",
     "Lung5_Rep1-polygons.csv CosMx cell boundaries, Dropbox",
+    "allen_cortex.rds RCTD reference is staged separately at the data-dir root, shared with the Visium tutorial",
     "raw Vizgen / CosMx / Akoya directories are NOT staged, see the manual steps"))
 
-## 4. The three vendor datasets that are not public --------------------------
+## 3. The three vendor datasets that are not public --------------------------
 
 manual <- c(
   vizgen_mouse_brain = file.path(outdir, "vizgen_mouse_brain"),

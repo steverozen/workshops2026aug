@@ -57,6 +57,9 @@ layouts are stated in callouts in each section below.
 #| label: setup
 source(here::here("slides", "find_data_dir.R"))
 data_dir <- find_data_dir("spatial_imaging")
+# allen_cortex.rds is shared with the Visium tutorial and staged once at the
+# top level of the data dir, so read it from the root rather than data_dir.
+data_root <- find_data_dir()
 report_data_dir("spatial_imaging")
 ```
 
@@ -376,8 +379,9 @@ devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
 ::: {.callout-note}
 ## Expected staged file: Allen cortex reference
 
-The RCTD reference is a single `.rds`, staged at
-`spatial_imaging/allen_cortex.rds`. Upstream downloads it from
+The RCTD reference is a single `.rds`, staged once at the top level of the
+workshop data dir as `allen_cortex.rds` (shared with the Visium tutorial).
+Upstream downloads it from
 <https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1> and read it
 from `/brahms/shared/vignette-data/allen_cortex.rds`. This one is a plain
 Seurat scRNA-seq object, so a staged `.rds` is the natural format (no directory
@@ -395,7 +399,7 @@ coords$cell <- NULL
 query <- SpatialRNA(coords, query.counts, colSums(query.counts))
 # allen.cortex.ref can be downloaded from:
 # https://www.dropbox.com/s/cuowvm4vrf65pvq/allen_cortex.rds?dl=1
-allen.cortex.ref <- readRDS(file.path(data_dir, "allen_cortex.rds"))
+allen.cortex.ref <- readRDS(file.path(data_root, "allen_cortex.rds"))
 allen.cortex.ref <- UpdateSeuratObject(allen.cortex.ref)
 
 Idents(allen.cortex.ref) <- "subclass"

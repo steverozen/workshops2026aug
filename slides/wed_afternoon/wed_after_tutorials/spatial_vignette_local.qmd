@@ -78,6 +78,9 @@ on a staging machine and stage the resulting objects instead:
 #| label: setup
 source(here::here("slides", "find_data_dir.R"))
 data_dir <- find_data_dir("spatial_visium")
+# allen_cortex.rds is shared with the imaging tutorial and staged once at the
+# top level of the data dir, so read it from the root rather than data_dir.
+data_root <- find_data_dir()
 report_data_dir("spatial_visium")
 ```
 
@@ -363,7 +366,7 @@ Upstream reads the reference from
 
 ```{r}
 #| label: allen-reference
-allen_reference <- readRDS(file.path(data_dir, "allen_cortex.rds"))
+allen_reference <- readRDS(file.path(data_root, "allen_cortex.rds"))
 # Note: setting ncells=3000 normalizes the full dataset, but learns noise models on 3k cells
 # This speeds up SCTransform dramatically with no loss in performance
 allen_reference <- SCTransform(allen_reference, ncells = 3000, verbose = FALSE) %>%
