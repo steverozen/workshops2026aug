@@ -76,16 +76,18 @@ echo "Downloading the release manifest ..."
 fetch "${BASE_URL}/${version}/manifest.json" "${tmp}/manifest.json"
 
 # Pull this platform's expected SHA256 out of the manifest without needing jq.
-expected="$(python3 - "$platform" < "${tmp}/manifest.json" <<'PY'
+# Read the manifest by path (not via stdin) so it works regardless of shell
+# redirection.
+expected="$(python3 -c '
 import json, sys
-plat = sys.argv[1]
-m = json.load(sys.stdin)
+path, plat = sys.argv[1], sys.argv[2]
+with open(path) as f:
+    m = json.load(f)
 try:
     print(m["platforms"][plat]["checksum"])
 except KeyError:
     sys.exit(f"Platform {plat} not in manifest")
-PY
-)"
+' "${tmp}/manifest.json" "$platform")"
 
 mkdir -p "$DL_DIR"
 bin="${DL_DIR}/claude-${version}-${platform}"
