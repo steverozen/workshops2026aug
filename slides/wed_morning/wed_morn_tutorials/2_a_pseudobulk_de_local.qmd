@@ -97,7 +97,9 @@ library(scater)
 library(Seurat)
 library(tidyverse)
 library(cowplot)
-library(Matrix.utils)
+# library(Matrix.utils)  # archived on CRAN; not loaded. See the aggregation
+#                        # section, which shows aggregate.Matrix() failing and
+#                        # uses a Matrix-only replacement instead.
 library(edgeR)
 library(dplyr)
 library(magrittr)
@@ -114,9 +116,9 @@ library(DESeq2)
 library(RColorBrewer)
 ```
 
-The chunk above stops at the first package that is not installed. Since this is
-a test render, the chunk below reports every missing package at once, so a
-single pass is enough to build the install list.
+The table below records which packages the tutorial uses and their versions,
+including the archived `Matrix.utils`, which is intentionally not loaded above.
+It is a quick way to confirm the environment before running the analysis.
 
 ```{r}
 #| label: package-availability
@@ -266,13 +268,10 @@ hands-on job of QC.
 # Perform QC if not already performed
 dim(sce)
 
-# Calculate quality control (QC) metrics
+# Calculate quality control (QC) metrics. This is the upstream call, and it fails
+# on purpose: calculateQCMetrics() is defunct in current scater. The next chunk
+# computes the same is_outlier flag with scuttle, the modern equivalent.
 sce <- calculateQCMetrics(sce)
-
-# Get cells w/ few/many detected genes
-sce$is_outlier <- isOutlier(
-  metric = sce$total_features_by_counts,
-  nmads = 2, type = "both", log = TRUE)
 ```
 
 ::: {.callout-warning}
@@ -322,15 +321,12 @@ We take the sum of counts for each sample within each cell type.
 # Subset metadata to only include the cluster and sample IDs to aggregate across
 groups <- colData(sce)[, c("cluster_id", "sample_id")]
 
-# Aggregate across cluster-sample groups
+# Aggregate across cluster-sample groups. This is the upstream call, and it fails
+# on purpose: aggregate.Matrix() lived in the archived Matrix.utils. The
+# Matrix-only replacement two chunks down produces the same sums, and the chunk
+# after it inspects the result.
 pb <- aggregate.Matrix(t(counts(sce)),
                        groupings = groups, fun = "sum")
-
-class(pb)
-
-dim(pb)
-
-pb[1:6, 1:6]
 ```
 
 ::: {.callout-important}
@@ -624,15 +620,17 @@ res <- results(dds,
 
 res <- lfcShrink(dds,
                  contrast = contrast,
-                 res = res)
+                 res = res,
+                 type = "normal")
 res
 ```
 
 ::: {.callout-note}
-The `contrast =` form of `lfcShrink()` selects `type = "normal"`. That is still
-supported, but current DESeq2 prefers `type = "apeglm"` with a `coef =`
-argument. Left as upstream wrote it, since swapping it changes the reported fold
-changes.
+Current DESeq2 defaults `lfcShrink()` to `type = "apeglm"`, which shrinks a
+single `coef` and rejects a `contrast =` argument. Upstream relied on the older
+default of `type = "normal"`, so we now pass `type = "normal"` explicitly. The
+alternative, `type = "apeglm"` with `coef = resultsNames(dds)[2]`, is the modern
+recommendation but changes the reported fold changes.
 :::
 
 We will write out the significant genes and make a few plots.
@@ -874,7 +872,8 @@ get_dds_resultsAvsB <- function(x, A, B) {
 
   res <- lfcShrink(dds,
                    contrast = contrast,
-                   res = res)
+                   res = res,
+                   type = "normal")
   # Set thresholds
   padj_cutoff <- 0.05
 

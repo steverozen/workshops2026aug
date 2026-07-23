@@ -438,11 +438,37 @@ gg <- ggplot(midwest <- ggplot2::midwest, aes(x = area, y = poptotal)) +
 gg
 ```
 
-## Color by category + global fit --- tidyplots (code)
+## Color by category + global fit --- tidyplots first try (code)
 
 `color = state` in `tidyplot()` is inherited by **every** later layer, so a naive
-`add_curve_fit()` would fit one line per state. We drop the grouping just for
-the fit, via the escape hatch.
+`add_curve_fit()` fits **one line per state**, not the single global fit we wanted.
+
+```{r}
+#| label: bycat-tp-try-code
+#| output: false
+tp_try <- midwest |>
+  tidyplot(x = area, y = poptotal, color = state, width = NA, height = NA) |>
+  add_data_points(size = 3) |>
+  add_curve_fit(method = "lm", color = "firebrick") |>            # inherits color = state -> one fit per state
+  add(ggplot2::coord_cartesian(xlim = c(0, 0.1), ylim = c(0, 1000000))) |>
+  adjust_title("Area Vs Population") |>
+  adjust_x_axis_title("Area") |>
+  adjust_y_axis_title("Population")
+```
+
+## Color by category + global fit --- tidyplots first try (plot)
+
+```{r}
+#| label: bycat-tp-try-plot
+#| echo: false
+tp_try
+```
+
+
+## Color by category + global fit --- tidyplots fixed (code)
+
+As we saw, `color = state` in `tidyplot()` is inherited by **every** later layer, so
+`add_curve_fit()` fits one line per state. We use the `add(ggplot2::...` escape hatch.
 
 ```{r}
 #| label: bycat-tp-code
@@ -458,7 +484,7 @@ tp <- midwest |>
   adjust_y_axis_title("Population")
 ```
 
-## Color by category + global fit --- tidyplots (plot)
+## Color by category + global fit --- tidyplots fixed (plot)
 
 ```{r}
 #| label: bycat-tp-plot
@@ -466,8 +492,9 @@ tp <- midwest |>
 tp
 ```
 
-## Grouping by color: a real grammar difference
+## Grouping by color different in `ggplot2` vs `tidyplot`
 
+::: {style="font-size: 0.8em;"}
 - In **ggplot2**, a `geom_smooth()` with a fixed `col = "firebrick"` outside
   `aes()` carries **no grouping**, so it fits one global line even when points
   are coloured by `state`.
@@ -479,6 +506,7 @@ tp
 - If you actually want one fit per state, just write `add_curve_fit(method = "lm")`
   with no overrides. The ggplot2 equivalent moves `color = state` into the
   shared `aes()` so `geom_smooth()` inherits it.
+:::
 
 ## Faceting --- ggplot2
 
