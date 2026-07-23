@@ -24,15 +24,17 @@ This document is a transcription of the upstream HBC lesson
 adapted only so that it reads its input from the workshop data repo instead of
 a downloaded `data/` folder.
 
-It has not yet been executed. This first render is the test.
+The document renders end to end. Two chunks fail on purpose and are recovered by
+a fallback in the very next chunk, so the rendered page shows exactly two error
+blocks and then keeps going.
 
 The upstream page carries an **ARCHIVED** banner and the lesson script is dated
 **May 2020**. Expect API drift against current DESeq2, Seurat, and scater. Two
-calls are known to be affected. `scater::calculateQCMetrics()` was removed years
-ago, and `Matrix.utils` was archived on CRAN. Both are transcribed as the
-tutorial has them, each followed by a modern equivalent. `error: true` is set
-deliberately, so that a failure in one chunk still lets the rest of the document
-run and every failure gets listed in a single pass.
+calls are known to be affected. `scater::calculateQCMetrics()` is now defunct,
+and `Matrix.utils` was archived on CRAN so `aggregate.Matrix()` is unavailable.
+Both are transcribed as the tutorial has them, each followed by a modern
+equivalent. `error: true` is set deliberately, so that these two intended
+failures still let the rest of the document run rather than halting the render.
 :::
 
 ## Learning objectives
@@ -144,6 +146,33 @@ data.frame(
 # Read in the dataset
 sce <- readRDS(file.path(data_dir, "scRNA-seq_input_data_for_DE.rds"))
 sce
+```
+
+### Deriving the aggregation metadata
+
+::: {.callout-important}
+## The staged object is the raw Kang object, so we build the three key columns here
+
+The upstream lesson assumes `sce` already carries `cluster_id`, `sample_id`, and
+`group_id`. The object distributed for this workshop is the raw Kang et al. 2017
+`SingleCellExperiment`, whose `colData` instead has `cell` (cell type), `ind`
+(individual), and `stim` (condition). We derive the three columns the tutorial
+needs, exactly as `muscat::prepSCE()` would: `cluster_id` from the cell type,
+`group_id` from the condition, and `sample_id` from condition plus individual
+(so `ctrl` and individual `101` give sample `ctrl101`). Without this step every
+chunk below fails, because `sce$cluster_id` and friends are `NULL`.
+:::
+
+```{r}
+#| label: derive-metadata
+# Drop the handful of cells with no cell-type assignment.
+sce <- sce[, !is.na(sce$cell)]
+
+sce$cluster_id <- factor(sce$cell)
+sce$group_id   <- factor(sce$stim)
+sce$sample_id  <- factor(paste0(sce$stim, sce$ind))
+
+head(colData(sce)[, c("cluster_id", "sample_id", "group_id")])
 ```
 
 ## Exploring the dataset
