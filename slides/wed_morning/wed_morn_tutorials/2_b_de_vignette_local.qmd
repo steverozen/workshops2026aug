@@ -12,7 +12,7 @@ format:
 execute:
   warning: false
   message: true
-  error: true
+  error: false
 ---
 
 Local rework of `2_b_de_vignette.html`.
@@ -23,9 +23,9 @@ Upstream: <https://satijalab.org/seurat/articles/de_vignette>
 ## Status: transcribed from upstream, not yet executed
 
 Every chunk below is transcribed from the upstream Seurat vignette and has **not
-been run yet**. This first render is the test. `error: true` is set in the YAML
-on purpose so that the render completes and lists *all* failures, rather than
-stopping at the first one.
+been run yet**. This first render is the test. `error: false` is set in the
+YAML, so any chunk failure stops the render and is reported rather than being
+printed into the document and passed over.
 :::
 
 ::: {.callout-tip}

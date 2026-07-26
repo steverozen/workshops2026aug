@@ -12,7 +12,7 @@ format:
 execute:
   warning: false
   message: true
-  error: true
+  error: false
 ---
 
 Local rework of the Seurat vignette "Analysis, visualization, and integration of
@@ -24,10 +24,10 @@ Upstream: <https://satijalab.org/seurat/articles/spatial_vignette>
 ## Status: transcribed from upstream, not yet executed
 
 Every chunk below is transcribed from the upstream Seurat vignette and has **not
-been run yet**. This first render is the test. `error: true` is set in the YAML
-on purpose so that the render completes and lists *all* failures at once, rather
-than stopping at the first one. Every chunk has `eval: true`, so nothing is
-skipped.
+been run yet**. This first render is the test. `error: false` is set in the
+YAML, so any chunk failure stops the render and is reported rather than being
+printed into the document and passed over. Apart from the three interactive
+Shiny chunks noted below, every chunk has `eval: true`, so nothing is skipped.
 :::
 
 ::: {.callout-note}
@@ -216,9 +216,12 @@ SpatialDimPlot(brain,
 
 ::: {.callout-note}
 The interactive plots below (`interactive = TRUE`, and `LinkedDimPlot()`) open a
-Shiny session and block a non-interactive render. They are kept here as
-`eval: true` per the test-render brief, so expect them to error or hang under
-`quarto render`. If the render stalls, set these three chunks to `eval: false`.
+Shiny session, which blocks a non-interactive render forever. Confirmed on
+2026-07-26: `quarto render` hung on `brain-interactive-dim` for over an hour
+before being killed. All three chunks are therefore `eval: false`, and the code
+is shown but not run.
+
+To see them work, run the three chunks by hand in an interactive R session.
 :::
 
 Both `SpatialDimPlot()` and `SpatialFeaturePlot()` have an `interactive`
@@ -226,6 +229,7 @@ parameter that, when set to `TRUE`, opens an interactive Shiny environment.
 
 ```{r}
 #| label: brain-interactive-dim
+#| eval: false
 SpatialDimPlot(brain, interactive = TRUE)
 ```
 
@@ -235,6 +239,7 @@ plotted.
 
 ```{r}
 #| label: brain-interactive-feature
+#| eval: false
 SpatialFeaturePlot(brain, features = "Ttr", interactive = TRUE)
 ```
 
@@ -243,6 +248,7 @@ representation and allows for interactive selection.
 
 ```{r}
 #| label: brain-linked-dim
+#| eval: false
 LinkedDimPlot(brain)
 ```
 
@@ -675,8 +681,7 @@ Upstream installs it with
 `devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)`. That is a
 network call and is **not** run here. This section assumes `spacexr` is already
 installed on the machine doing the render. If it is not, the `library(spacexr)`
-chunk below will error (which, under `error: true`, is reported and the render
-continues).
+chunk below errors and, under `error: false`, stops the render.
 :::
 
 ::: {.callout-warning}

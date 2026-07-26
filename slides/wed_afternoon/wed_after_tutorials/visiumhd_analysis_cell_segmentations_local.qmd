@@ -12,7 +12,7 @@ format:
 execute:
   warning: false
   message: true
-  error: true
+  error: false
 ---
 
 Transcribed from `visiumhd_analysis_cell_segmentations.html`, the Seurat vignette
@@ -31,9 +31,9 @@ FFPE, Space Ranger 4.0.1, from the 10x data repository,
 ## Status: transcribed, not yet executed
 
 Every chunk is transcribed from the upstream vignette and none of them has been
-run in this repository. This first render is the test. `error: true` is set on
-purpose so that the render does not stop at the first failure and we get the
-full list of problems in one pass.
+run in this repository. This first render is the test. `error: false` is set, so
+the render stops at the first failure and reports it rather than printing the
+error into the document and continuing with undefined objects.
 :::
 
 ::: {.callout-note}
@@ -307,10 +307,17 @@ ontology and provides confidence scores for each annotation. The original
 implementation of this tool is in Python as `panhumanpy`. In R, we can access
 Pan-human Azimuth through the `AzimuthAPI` package:
 
+`AzimuthAPI` comes from GitHub (<https://github.com/satijalab/AzimuthAPI>) and
+must already be installed. Installing it here would mean a network call during
+the session.
+
 ```{r}
-#| label: install-azimuthapi
+#| label: load-azimuthapi
 if (!requireNamespace("AzimuthAPI", quietly = TRUE)) {
-  remotes::install_github("satijalab/AzimuthAPI")
+  stop(
+    "AzimuthAPI is not installed. Install it before the workshop, it is not ",
+    "installed during a session."
+  )
 }
 
 library(AzimuthAPI)

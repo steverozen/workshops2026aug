@@ -12,7 +12,7 @@ format:
 execute:
   warning: false
   message: true
-  error: true
+  error: false
 ---
 
 Local rework of `visiumhd_analysis_vignette.html`.
@@ -32,9 +32,9 @@ an scRNA-seq reference via RCTD deconvolution.
 
 The code below is transcribed verbatim from the upstream Seurat vignette, with the
 hardcoded `/brahms/...` input paths replaced by reads from the staged workshop data
-repo. It has not been executed yet. `error: true` is set in the YAML on purpose, so
-a first test render reports every failure at once rather than stopping at the first
-one. Every chunk has `eval: true`.
+repo. It has not been executed yet. `error: false` is set in the YAML, so any chunk
+failure stops the render and is reported rather than being printed into the
+document and passed over. Every chunk has `eval: true`.
 :::
 
 ::: {.callout-warning}
@@ -67,14 +67,19 @@ report_data_dir("spatial_visium_hd")
 The upstream vignette lists `hdf5r` and `arrow` as required for reading Visium HD
 output, plus the core analysis packages. `hdf5r` reads the `.h5` count matrices and
 `arrow` reads the parquet tissue-position files that spaceranger writes for Visium
-HD. On a workshop machine these should already be installed, so the two
-`install.packages()` calls below are normally no-ops.
+HD. Both must already be installed. Upstream calls `install.packages()` here,
+which would be a network call during the session, so this document only checks.
 
 ```{r}
-#| label: install-core
-# packages required for Visium HD
-install.packages("hdf5r")
-install.packages("arrow")
+#| label: check-core
+for (pkg in c("hdf5r", "arrow")) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    stop(
+      pkg, " is not installed. Install it before the workshop, it is not ",
+      "installed during a session."
+    )
+  }
+}
 ```
 
 ```{r}
@@ -308,10 +313,19 @@ expression levels in a spot's broader neighborhood. BANKSY is compatible with
 Seurat via the SeuratWrappers framework, which requires separate installation of
 the Banksy package.
 
+`Banksy` comes from GitHub (<https://github.com/prabhakarlab/Banksy>, `devel`
+branch) and must already be installed, along with `SeuratWrappers`. Installing
+either here would mean a network call during the session.
+
 ```{r}
-#| label: banksy-install
-if (!requireNamespace("Banksy", quietly = TRUE)) {
-  remotes::install_github("prabhakarlab/Banksy@devel")
+#| label: banksy-load
+for (pkg in c("SeuratWrappers", "Banksy")) {
+  if (!requireNamespace(pkg, quietly = TRUE)) {
+    stop(
+      pkg, " is not installed. Install it before the workshop, it is not ",
+      "installed during a session."
+    )
+  }
 }
 library(SeuratWrappers)
 library(Banksy)
@@ -386,10 +400,17 @@ computational approach to deconvolve spot-level data from spatial datasets when
 provided with an scRNA-seq reference. To run RCTD we install the `spacexr` package
 from GitHub, following the RCTD vignette.
 
+`spacexr` comes from GitHub (<https://github.com/dmcable/spacexr>) and must
+already be installed. Installing it here would mean a network call during the
+session.
+
 ```{r}
-#| label: spacexr-install
+#| label: spacexr-load
 if (!requireNamespace("spacexr", quietly = TRUE)) {
-  devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
+  stop(
+    "spacexr is not installed. Install it before the workshop, it is not ",
+    "installed during a session."
+  )
 }
 library(spacexr)
 ```

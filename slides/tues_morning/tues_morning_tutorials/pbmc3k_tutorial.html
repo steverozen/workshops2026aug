@@ -106,7 +106,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">2026-06-21 20:53</p>
+      <p class="date">2026-07-26 10:28</p>
     </div>
   </div>
   
@@ -130,15 +130,19 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>save_rds_in_dir <span class="ot">&lt;-</span> <span class="cf">function</span>(object, file, ...) {</span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dir.create</span>(<span class="fu">dirname</span>(file), <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">saveRDS</span>(object, <span class="at">file =</span> file, ...)</span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>ggsave_in_dir <span class="ot">&lt;-</span> <span class="cf">function</span>(filename, ...) {</span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dir.create</span>(<span class="fu">dirname</span>(filename), <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">ggsave</span>(<span class="at">filename =</span> filename, ...)</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Where the pre-staged workshop data lives. See slides/find_data_dir.R.</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(here<span class="sc">::</span><span class="fu">here</span>(<span class="st">"slides"</span>, <span class="st">"find_data_dir.R"</span>))</span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>data_dir <span class="ot">&lt;-</span> <span class="fu">find_data_dir</span>()</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>save_rds_in_dir <span class="ot">&lt;-</span> <span class="cf">function</span>(object, file, ...) {</span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dir.create</span>(<span class="fu">dirname</span>(file), <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">saveRDS</span>(object, <span class="at">file =</span> file, ...)</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>ggsave_in_dir <span class="ot">&lt;-</span> <span class="cf">function</span>(filename, ...) {</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">dir.create</span>(<span class="fu">dirname</span>(filename), <span class="at">recursive =</span> <span class="cn">TRUE</span>, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  ggplot2<span class="sc">::</span><span class="fu">ggsave</span>(<span class="at">filename =</span> filename, ...)</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="load-data" class="level2">
@@ -146,14 +150,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Read the 10X Genomics Cell Ranger output and create a Seurat object. Genes detected in fewer than 3 cells and cells with fewer than 200 detected genes are excluded.</p>
 <div class="cell">
 <div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb2"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Suppress warning about underscores in feature names (10X format uses them)</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>pbmc.data <span class="ot">&lt;-</span> <span class="fu">Read10X</span>(<span class="at">data.dir =</span> <span class="st">"filtered_gene_bc_matrices/hg19/"</span>)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">CreateSeuratObject</span>(</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">counts  =</span> pbmc.data,</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">project =</span> <span class="st">"pbmc3k"</span>,</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">min.cells    =</span> <span class="dv">3</span>,</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">min.features =</span> <span class="dv">200</span></span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>pbmc</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>pbmc.data <span class="ot">&lt;-</span> <span class="fu">Read10X</span>(</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">data.dir =</span> <span class="fu">file.path</span>(data_dir, <span class="st">"pbmc3k_filtered_gene_bc_matrices"</span>, <span class="st">"hg19"</span>)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">CreateSeuratObject</span>(</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">counts  =</span> pbmc.data,</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">project =</span> <span class="st">"pbmc3k"</span>,</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">min.cells    =</span> <span class="dv">3</span>,</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">min.features =</span> <span class="dv">200</span></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>pbmc</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>An object of class Seurat 
 13714 features across 2700 samples within 1 assay 
@@ -431,8 +437,19 @@ Levels: 0 1 2 3 4 5 6 7 8</code></pre>
 <section id="cluster-2-markers" class="level3">
 <h3 class="anchored" data-anchor-id="cluster-2-markers">Cluster 2 markers</h3>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>cluster2.markers <span class="ot">&lt;-</span> <span class="fu">FindMarkers</span>(pbmc, <span class="at">ident.1 =</span> <span class="dv">2</span>)</span>
-<span id="cb35-2"><a href="#cb35-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cluster2.markers, <span class="at">n =</span> <span class="dv">5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>cluster2.markers <span class="ot">&lt;-</span> <span class="fu">FindMarkers</span>(pbmc, <span class="at">ident.1 =</span> <span class="dv">2</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>For a (much!) faster implementation of the Wilcoxon Rank Sum Test,
+(default method for FindMarkers) please install the presto package
+--------------------------------------------
+install.packages('devtools')
+devtools::install_github('immunogenomics/presto')
+--------------------------------------------
+After installation of presto, Seurat will automatically use the more 
+efficient implementation (no further action necessary).
+This message will be shown once per session</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cluster2.markers, <span class="at">n =</span> <span class="dv">5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>            p_val avg_log2FC pct.1 pct.2    p_val_adj
 IL32 2.892340e-90  1.3070772 0.947 0.465 3.966555e-86
@@ -446,8 +463,8 @@ LDHB 1.642480e-67  0.9911924 0.954 0.614 2.252497e-63</code></pre>
 <section id="cluster-5-vs.-clusters-0-and-3" class="level3">
 <h3 class="anchored" data-anchor-id="cluster-5-vs.-clusters-0-and-3">Cluster 5 vs.&nbsp;clusters 0 and 3</h3>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>cluster5.markers <span class="ot">&lt;-</span> <span class="fu">FindMarkers</span>(pbmc, <span class="at">ident.1 =</span> <span class="dv">5</span>, <span class="at">ident.2 =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">3</span>))</span>
-<span id="cb37-2"><a href="#cb37-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cluster5.markers, <span class="at">n =</span> <span class="dv">5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>cluster5.markers <span class="ot">&lt;-</span> <span class="fu">FindMarkers</span>(pbmc, <span class="at">ident.1 =</span> <span class="dv">5</span>, <span class="at">ident.2 =</span> <span class="fu">c</span>(<span class="dv">0</span>, <span class="dv">3</span>))</span>
+<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cluster5.markers, <span class="at">n =</span> <span class="dv">5</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>                      p_val avg_log2FC pct.1 pct.2     p_val_adj
 FCGR3A        8.246578e-205   6.794969 0.975 0.040 1.130936e-200
@@ -461,10 +478,10 @@ RP11-290F20.3 2.513244e-186   6.297999 0.840 0.017 3.446663e-182</code></pre>
 <section id="all-cluster-markers" class="level3">
 <h3 class="anchored" data-anchor-id="all-cluster-markers">All cluster markers</h3>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>pbmc.markers <span class="ot">&lt;-</span> <span class="fu">FindAllMarkers</span>(pbmc, <span class="at">only.pos =</span> <span class="cn">TRUE</span>)</span>
-<span id="cb39-2"><a href="#cb39-2" aria-hidden="true" tabindex="-1"></a>pbmc.markers <span class="sc">%&gt;%</span></span>
-<span id="cb39-3"><a href="#cb39-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(cluster) <span class="sc">%&gt;%</span></span>
-<span id="cb39-4"><a href="#cb39-4" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(avg_log2FC <span class="sc">&gt;</span> <span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>pbmc.markers <span class="ot">&lt;-</span> <span class="fu">FindAllMarkers</span>(pbmc, <span class="at">only.pos =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>pbmc.markers <span class="sc">%&gt;%</span></span>
+<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(cluster) <span class="sc">%&gt;%</span></span>
+<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(avg_log2FC <span class="sc">&gt;</span> <span class="dv">1</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code># A tibble: 7,019 × 7
 # Groups:   cluster [9]
@@ -487,14 +504,14 @@ RP11-290F20.3 2.513244e-186   6.297999 0.840 0.017 3.446663e-182</code></pre>
 <section id="roc-test-for-cluster-0" class="level3">
 <h3 class="anchored" data-anchor-id="roc-test-for-cluster-0">ROC test for cluster 0</h3>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>cluster0.markers <span class="ot">&lt;-</span> <span class="fu">FindMarkers</span>(</span>
-<span id="cb41-2"><a href="#cb41-2" aria-hidden="true" tabindex="-1"></a>  pbmc,</span>
-<span id="cb41-3"><a href="#cb41-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">ident.1        =</span> <span class="dv">0</span>,</span>
-<span id="cb41-4"><a href="#cb41-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">logfc.threshold =</span> <span class="fl">0.25</span>,</span>
-<span id="cb41-5"><a href="#cb41-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">test.use       =</span> <span class="st">"roc"</span>,</span>
-<span id="cb41-6"><a href="#cb41-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">only.pos       =</span> <span class="cn">TRUE</span></span>
-<span id="cb41-7"><a href="#cb41-7" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb41-8"><a href="#cb41-8" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cluster0.markers)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>cluster0.markers <span class="ot">&lt;-</span> <span class="fu">FindMarkers</span>(</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a>  pbmc,</span>
+<span id="cb43-3"><a href="#cb43-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">ident.1        =</span> <span class="dv">0</span>,</span>
+<span id="cb43-4"><a href="#cb43-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">logfc.threshold =</span> <span class="fl">0.25</span>,</span>
+<span id="cb43-5"><a href="#cb43-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">test.use       =</span> <span class="st">"roc"</span>,</span>
+<span id="cb43-6"><a href="#cb43-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">only.pos       =</span> <span class="cn">TRUE</span></span>
+<span id="cb43-7"><a href="#cb43-7" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb43-8"><a href="#cb43-8" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(cluster0.markers)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>      myAUC  avg_diff power avg_log2FC pct.1 pct.2
 RPS12 0.827 0.5059247 0.654  0.7387061 1.000 0.991
@@ -512,7 +529,7 @@ RPS25 0.803 0.5196163 0.606  0.7689940 0.997 0.975</code></pre>
 <section id="violin-plots" class="level3">
 <h3 class="anchored" data-anchor-id="violin-plots">Violin plots</h3>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">VlnPlot</span>(pbmc, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"MS4A1"</span>, <span class="st">"CD79A"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">VlnPlot</span>(pbmc, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"MS4A1"</span>, <span class="st">"CD79A"</span>))</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -522,10 +539,10 @@ RPS25 0.803 0.5196163 0.606  0.7689940 0.997 0.975</code></pre>
 </div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Suppress "default search for data layer" warning (expected when requesting counts layer)</span></span>
-<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressWarnings</span>(</span>
-<span id="cb44-3"><a href="#cb44-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">VlnPlot</span>(pbmc, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"NKG7"</span>, <span class="st">"PF4"</span>), <span class="at">layer =</span> <span class="st">"counts"</span>, <span class="at">log =</span> <span class="cn">TRUE</span>))</span>
-<span id="cb44-4"><a href="#cb44-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Suppress "default search for data layer" warning (expected when requesting counts layer)</span></span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a><span class="fu">suppressWarnings</span>(</span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span>(<span class="fu">VlnPlot</span>(pbmc, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"NKG7"</span>, <span class="st">"PF4"</span>), <span class="at">layer =</span> <span class="st">"counts"</span>, <span class="at">log =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -538,11 +555,11 @@ RPS25 0.803 0.5196163 0.606  0.7689940 0.997 0.975</code></pre>
 <section id="feature-plots-on-umap" class="level3">
 <h3 class="anchored" data-anchor-id="feature-plots-on-umap">Feature plots on UMAP</h3>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(</span>
-<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a>  pbmc,</span>
-<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"MS4A1"</span>, <span class="st">"GNLY"</span>, <span class="st">"CD3E"</span>, <span class="st">"CD14"</span>,</span>
-<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>               <span class="st">"FCER1A"</span>, <span class="st">"FCGR3A"</span>, <span class="st">"LYZ"</span>, <span class="st">"PPBP"</span>, <span class="st">"CD8A"</span>)</span>
-<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>  pbmc,</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"MS4A1"</span>, <span class="st">"GNLY"</span>, <span class="st">"CD3E"</span>, <span class="st">"CD14"</span>,</span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>               <span class="st">"FCER1A"</span>, <span class="st">"FCGR3A"</span>, <span class="st">"LYZ"</span>, <span class="st">"PPBP"</span>, <span class="st">"CD8A"</span>)</span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -555,13 +572,13 @@ RPS25 0.803 0.5196163 0.606  0.7689940 0.997 0.975</code></pre>
 <section id="marker-heatmap" class="level3">
 <h3 class="anchored" data-anchor-id="marker-heatmap">Marker heatmap</h3>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a>pbmc.markers <span class="sc">%&gt;%</span></span>
-<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(cluster) <span class="sc">%&gt;%</span></span>
-<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(avg_log2FC <span class="sc">&gt;</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">10</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="ot">-&gt;</span> top10_markers</span>
-<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb46-7"><a href="#cb46-7" aria-hidden="true" tabindex="-1"></a><span class="fu">DoHeatmap</span>(pbmc, <span class="at">features =</span> top10_markers<span class="sc">$</span>gene) <span class="sc">+</span> <span class="fu">NoLegend</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>pbmc.markers <span class="sc">%&gt;%</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(cluster) <span class="sc">%&gt;%</span></span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">filter</span>(avg_log2FC <span class="sc">&gt;</span> <span class="dv">1</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">slice_head</span>(<span class="at">n =</span> <span class="dv">10</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>() <span class="ot">-&gt;</span> top10_markers</span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a><span class="fu">DoHeatmap</span>(pbmc, <span class="at">features =</span> top10_markers<span class="sc">$</span>gene) <span class="sc">+</span> <span class="fu">NoLegend</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -576,15 +593,15 @@ RPS25 0.803 0.5196163 0.606  0.7689940 0.997 0.975</code></pre>
 <h2 class="anchored" data-anchor-id="assign-cell-type-identity">Assign Cell Type Identity</h2>
 <p>Map clusters to cell types based on canonical markers.</p>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a>new.cluster.ids <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
-<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Naive CD4 T"</span>, <span class="st">"CD14+ Mono"</span>, <span class="st">"Memory CD4 T"</span>, <span class="st">"B"</span>,</span>
-<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"CD8 T"</span>, <span class="st">"FCGR3A+ Mono"</span>, <span class="st">"NK"</span>, <span class="st">"DC"</span>, <span class="st">"Platelet"</span></span>
-<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(new.cluster.ids) <span class="ot">&lt;-</span> <span class="fu">levels</span>(pbmc)</span>
-<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">RenameIdents</span>(pbmc, new.cluster.ids)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>new.cluster.ids <span class="ot">&lt;-</span> <span class="fu">c</span>(</span>
+<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">"Naive CD4 T"</span>, <span class="st">"CD14+ Mono"</span>, <span class="st">"Memory CD4 T"</span>, <span class="st">"B"</span>,</span>
+<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>  <span class="st">"CD8 T"</span>, <span class="st">"FCGR3A+ Mono"</span>, <span class="st">"NK"</span>, <span class="st">"DC"</span>, <span class="st">"Platelet"</span></span>
+<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(new.cluster.ids) <span class="ot">&lt;-</span> <span class="fu">levels</span>(pbmc)</span>
+<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">RenameIdents</span>(pbmc, new.cluster.ids)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(pbmc, <span class="at">reduction =</span> <span class="st">"umap"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>, <span class="at">pt.size =</span> <span class="fl">0.5</span>) <span class="sc">+</span> <span class="fu">NoLegend</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(pbmc, <span class="at">reduction =</span> <span class="st">"umap"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>, <span class="at">pt.size =</span> <span class="fl">0.5</span>) <span class="sc">+</span> <span class="fu">NoLegend</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -597,17 +614,17 @@ RPS25 0.803 0.5196163 0.606  0.7689940 0.997 0.975</code></pre>
 <section id="publication-quality-figure" class="level2">
 <h2 class="anchored" data-anchor-id="publication-quality-figure">Publication-Quality Figure</h2>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>base_size <span class="ot">&lt;-</span> <span class="dv">14</span></span>
-<span id="cb49-2"><a href="#cb49-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb49-3"><a href="#cb49-3" aria-hidden="true" tabindex="-1"></a>plot <span class="ot">&lt;-</span> <span class="fu">DimPlot</span>(pbmc, <span class="at">reduction =</span> <span class="st">"umap"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>,</span>
-<span id="cb49-4"><a href="#cb49-4" aria-hidden="true" tabindex="-1"></a>                <span class="at">label.size =</span> <span class="fl">0.7</span> <span class="sc">*</span> base_size <span class="sc">/</span> ggplot2<span class="sc">::</span>.pt) <span class="sc">+</span></span>
-<span id="cb49-5"><a href="#cb49-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"UMAP 1"</span>) <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">"UMAP 2"</span>) <span class="sc">+</span></span>
-<span id="cb49-6"><a href="#cb49-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
-<span id="cb49-7"><a href="#cb49-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title  =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="fu">rel</span>(<span class="fl">1.3</span>)),</span>
-<span id="cb49-8"><a href="#cb49-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="fu">rel</span>(<span class="fl">1.3</span>))</span>
-<span id="cb49-9"><a href="#cb49-9" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb49-10"><a href="#cb49-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">guides</span>(<span class="at">colour =</span> <span class="fu">guide_legend</span>(<span class="at">override.aes =</span> <span class="fu">list</span>(<span class="at">size =</span> <span class="dv">10</span>)))</span>
-<span id="cb49-11"><a href="#cb49-11" aria-hidden="true" tabindex="-1"></a>plot</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a>base_size <span class="ot">&lt;-</span> <span class="dv">14</span></span>
+<span id="cb51-2"><a href="#cb51-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb51-3"><a href="#cb51-3" aria-hidden="true" tabindex="-1"></a>plot <span class="ot">&lt;-</span> <span class="fu">DimPlot</span>(pbmc, <span class="at">reduction =</span> <span class="st">"umap"</span>, <span class="at">label =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb51-4"><a href="#cb51-4" aria-hidden="true" tabindex="-1"></a>                <span class="at">label.size =</span> <span class="fl">0.7</span> <span class="sc">*</span> base_size <span class="sc">/</span> ggplot2<span class="sc">::</span>.pt) <span class="sc">+</span></span>
+<span id="cb51-5"><a href="#cb51-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">"UMAP 1"</span>) <span class="sc">+</span> <span class="fu">ylab</span>(<span class="st">"UMAP 2"</span>) <span class="sc">+</span></span>
+<span id="cb51-6"><a href="#cb51-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb51-7"><a href="#cb51-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title  =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="fu">rel</span>(<span class="fl">1.3</span>)),</span>
+<span id="cb51-8"><a href="#cb51-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">legend.text =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="fu">rel</span>(<span class="fl">1.3</span>))</span>
+<span id="cb51-9"><a href="#cb51-9" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb51-10"><a href="#cb51-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">guides</span>(<span class="at">colour =</span> <span class="fu">guide_legend</span>(<span class="at">override.aes =</span> <span class="fu">list</span>(<span class="at">size =</span> <span class="dv">10</span>)))</span>
+<span id="cb51-11"><a href="#cb51-11" aria-hidden="true" tabindex="-1"></a>plot</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -615,17 +632,17 @@ RPS25 0.803 0.5196163 0.606  0.7689940 0.997 0.975</code></pre>
 </figure>
 </div>
 </div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave_in_dir</span>(</span>
-<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">filename =</span> <span class="st">"output/images/pbmc3k_umap.jpg"</span>,</span>
-<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">height =</span> <span class="dv">7</span>, <span class="at">width =</span> <span class="dv">12</span>,</span>
-<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">plot =</span> plot, <span class="at">quality =</span> <span class="dv">50</span></span>
-<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="fu">ggsave_in_dir</span>(</span>
+<span id="cb52-2"><a href="#cb52-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">filename =</span> <span class="st">"output/images/pbmc3k_umap.jpg"</span>,</span>
+<span id="cb52-3"><a href="#cb52-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">height =</span> <span class="dv">7</span>, <span class="at">width =</span> <span class="dv">12</span>,</span>
+<span id="cb52-4"><a href="#cb52-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">plot =</span> plot, <span class="at">quality =</span> <span class="dv">50</span></span>
+<span id="cb52-5"><a href="#cb52-5" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="save-final-object" class="level2">
 <h2 class="anchored" data-anchor-id="save-final-object">Save Final Object</h2>
 <div class="cell">
-<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="fu">save_rds_in_dir</span>(pbmc, <span class="at">file =</span> <span class="st">"output/pbmc3k_final.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="fu">save_rds_in_dir</span>(pbmc, <span class="at">file =</span> <span class="st">"output/pbmc3k_final.rds"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </div>
 </section>
 <section id="references" class="level2">
@@ -650,7 +667,7 @@ RPS25 0.803 0.5196163 0.606  0.7689940 0.997 0.975</code></pre>
 <div class="cell-output cell-output-stdout">
 <pre><code>─ Session info ───────────────────────────────────────────────────────────────
  setting  value
- version  R version 4.5.3 (2026-03-11)
+ version  R version 4.6.0 (2026-04-24)
  os       Zorin OS 18.1
  system   x86_64, linux-gnu
  ui       X11
@@ -658,134 +675,138 @@ RPS25 0.803 0.5196163 0.606  0.7689940 0.997 0.975</code></pre>
  collate  en_US.UTF-8
  ctype    en_US.UTF-8
  tz       America/New_York
- date     2026-06-21
+ date     2026-07-26
  pandoc   3.8.3 @ /usr/share/positron/resources/app/quarto/bin/tools/x86_64/ (via rmarkdown)
  quarto   1.8.27 @ /opt/quarto/bin/quarto
 
 ─ Packages ───────────────────────────────────────────────────────────────────
- package          * version   date (UTC) lib source
- abind              1.4-8     2024-09-12 [1] RSPM (R 4.5.0)
- cli                3.6.6     2026-04-09 [1] CRAN (R 4.5.3)
- cluster            2.1.8.2   2026-02-05 [1] RSPM (R 4.5.0)
- codetools          0.2-20    2024-03-31 [1] CRAN (R 4.5.2)
- cowplot            1.2.0     2025-07-07 [1] RSPM (R 4.5.0)
- data.table         1.18.2.1  2026-01-27 [1] RSPM (R 4.5.0)
- deldir             2.0-4     2024-02-28 [1] RSPM (R 4.5.0)
- dichromat          2.0-0.1   2022-05-02 [1] RSPM (R 4.5.0)
- digest             0.6.39    2025-11-19 [1] RSPM (R 4.5.0)
- dotCall64          1.2       2024-10-04 [1] RSPM (R 4.5.0)
- dplyr            * 1.2.1     2026-04-03 [1] CRAN (R 4.5.3)
- evaluate           1.0.5     2025-08-27 [1] RSPM (R 4.5.0)
- farver             2.1.2     2024-05-13 [1] RSPM (R 4.5.0)
- fastDummies        1.7.5     2025-01-20 [1] RSPM (R 4.5.0)
- fastmap            1.2.0     2024-05-15 [1] RSPM (R 4.5.0)
- fitdistrplus       1.2-6     2026-01-24 [1] RSPM (R 4.5.0)
- future           * 1.70.0    2026-03-14 [1] CRAN (R 4.5.3)
- future.apply       1.20.2    2026-02-20 [1] RSPM (R 4.5.0)
- generics           0.1.4     2025-05-09 [1] RSPM (R 4.5.0)
- ggplot2          * 4.0.3     2026-04-22 [1] CRAN (R 4.5.3)
- ggrepel            0.9.8     2026-03-17 [1] CRAN (R 4.5.3)
- ggridges           0.5.7     2025-08-27 [1] RSPM (R 4.5.0)
- globals            0.19.1    2026-03-13 [1] CRAN (R 4.5.3)
- glue               1.8.1     2026-04-17 [1] CRAN (R 4.5.3)
- goftest            1.2-3     2021-10-07 [1] RSPM (R 4.5.0)
- gridExtra          2.3       2017-09-09 [1] RSPM (R 4.5.0)
- gtable             0.3.6     2024-10-25 [1] RSPM (R 4.5.0)
- htmltools          0.5.9     2025-12-04 [1] RSPM (R 4.5.0)
- htmlwidgets        1.6.4     2023-12-06 [1] RSPM (R 4.5.0)
- httpuv             1.6.17    2026-03-18 [1] CRAN (R 4.5.3)
- httr               1.4.8     2026-02-13 [1] RSPM (R 4.5.0)
- ica                1.0-3     2022-07-08 [1] RSPM (R 4.5.0)
- igraph             2.2.2     2026-02-12 [1] RSPM (R 4.5.0)
- irlba              2.3.7     2026-01-30 [1] CRAN (R 4.5.2)
- jsonlite           2.0.0     2025-03-27 [1] RSPM (R 4.5.0)
- KernSmooth         2.23-26   2025-01-01 [1] CRAN (R 4.5.2)
- knitr              1.51      2025-12-20 [1] RSPM (R 4.5.0)
- labeling           0.4.3     2023-08-29 [1] RSPM (R 4.5.0)
- later              1.4.8     2026-03-05 [1] RSPM (R 4.5.0)
- lattice            0.22-9    2026-02-09 [2] CRAN (R 4.5.3)
- lazyeval           0.2.2     2019-03-15 [1] RSPM (R 4.5.0)
- lifecycle          1.0.5     2026-01-08 [1] RSPM (R 4.5.0)
- limma              3.66.0    2025-10-29 [1] Bioconductor 3.22 (R 4.5.2)
- listenv            0.10.1    2026-03-10 [1] CRAN (R 4.5.3)
- lmtest             0.9-40    2022-03-21 [1] RSPM (R 4.5.0)
- magrittr           2.0.5     2026-04-04 [1] CRAN (R 4.5.3)
- MASS               7.3-65    2025-02-28 [1] CRAN (R 4.5.2)
- Matrix             1.7-4     2025-08-28 [1] CRAN (R 4.5.2)
- matrixStats        1.5.0     2025-01-07 [1] RSPM (R 4.5.0)
- mime               0.13      2025-03-17 [1] RSPM (R 4.5.0)
- miniUI             0.1.2     2025-04-17 [1] RSPM (R 4.5.0)
- nlme               3.1-168   2025-03-31 [1] CRAN (R 4.5.2)
- otel               0.2.0     2025-08-29 [1] RSPM (R 4.5.0)
- parallelly         1.46.1    2026-01-08 [1] RSPM (R 4.5.0)
- patchwork        * 1.3.2     2025-08-25 [1] RSPM (R 4.5.0)
- pbapply            1.7-4     2025-07-20 [1] RSPM (R 4.5.0)
- pillar             1.11.1    2025-09-17 [1] RSPM (R 4.5.0)
- pkgconfig          2.0.3     2019-09-22 [1] RSPM (R 4.5.0)
- plotly             4.12.0    2026-01-24 [1] RSPM (R 4.5.0)
- plyr               1.8.9     2023-10-02 [1] RSPM (R 4.5.2)
- png                0.1-9     2026-03-15 [1] CRAN (R 4.5.3)
- polyclip           1.10-7    2024-07-23 [1] RSPM (R 4.5.0)
- presto             1.0.0     2025-12-17 [1] Github (immunogenomics/presto@7636b3d)
- progressr          0.18.0    2025-11-06 [1] RSPM (R 4.5.0)
- promises           1.5.0     2025-11-01 [1] RSPM (R 4.5.0)
- purrr              1.2.1     2026-01-09 [1] RSPM (R 4.5.0)
- R.methodsS3        1.8.2     2022-06-13 [1] RSPM (R 4.5.0)
- R.oo               1.27.1    2025-05-02 [1] RSPM (R 4.5.0)
- R.utils            2.13.0    2025-02-24 [1] RSPM (R 4.5.0)
- R6                 2.6.1     2025-02-15 [1] RSPM (R 4.5.0)
- ragg               1.5.1     2026-03-06 [1] RSPM (R 4.5.0)
- RANN               2.6.2     2024-08-25 [1] RSPM (R 4.5.0)
- RColorBrewer       1.1-3     2022-04-03 [1] RSPM (R 4.5.0)
- Rcpp               1.1.1-1.1 2026-04-24 [1] CRAN (R 4.5.3)
- RcppAnnoy          0.0.23    2026-01-12 [1] RSPM (R 4.5.0)
- RcppHNSW           0.6.0     2024-02-04 [1] RSPM (R 4.5.2)
- reshape2           1.4.5     2025-11-12 [1] RSPM (R 4.5.2)
- reticulate         1.45.0    2026-02-13 [1] RSPM (R 4.5.0)
- rlang              1.2.0     2026-04-06 [1] CRAN (R 4.5.3)
- rmarkdown          2.30      2025-09-28 [1] RSPM (R 4.5.0)
- ROCR               1.0-12    2026-01-23 [1] RSPM (R 4.5.0)
- RSpectra           0.16-2    2024-07-18 [1] RSPM (R 4.5.2)
- Rtsne              0.17      2023-12-07 [1] RSPM (R 4.5.2)
- S7                 0.2.2     2026-04-22 [1] CRAN (R 4.5.3)
- scales             1.4.0     2025-04-24 [1] RSPM (R 4.5.0)
- scattermore        1.2       2023-06-12 [1] RSPM (R 4.5.0)
- sctransform        0.4.3     2026-01-10 [1] RSPM (R 4.5.0)
- sessioninfo        1.2.3     2025-02-05 [1] RSPM (R 4.5.0)
- Seurat           * 5.4.0     2025-12-14 [1] CRAN (R 4.5.2)
- SeuratObject     * 5.3.0     2025-12-12 [1] CRAN (R 4.5.3)
- shiny              1.13.0    2026-02-20 [1] RSPM (R 4.5.0)
- sp               * 2.2-1     2026-02-13 [1] CRAN (R 4.5.3)
- spam               2.11-3    2026-01-08 [1] RSPM (R 4.5.0)
- spatstat.data      3.1-9     2025-10-18 [1] RSPM (R 4.5.0)
- spatstat.explore   3.7-0     2026-01-22 [1] RSPM (R 4.5.0)
- spatstat.geom      3.7-0     2026-01-20 [1] RSPM (R 4.5.0)
- spatstat.random    3.4-4     2026-01-21 [1] RSPM (R 4.5.0)
- spatstat.sparse    3.1-0     2024-06-21 [1] RSPM (R 4.5.0)
- spatstat.univar    3.1-7     2026-03-18 [1] CRAN (R 4.5.3)
- spatstat.utils     3.2-2     2026-03-10 [1] CRAN (R 4.5.3)
- statmod            1.5.1     2025-10-09 [1] RSPM (R 4.5.0)
- stringi            1.8.7     2025-03-27 [1] RSPM (R 4.5.0)
- stringr            1.6.0     2025-11-04 [1] RSPM (R 4.5.0)
- survival           3.8-6     2026-01-16 [1] RSPM (R 4.5.0)
- systemfonts        1.3.2     2026-03-05 [1] RSPM (R 4.5.0)
- tensor             1.5.1     2025-06-17 [1] RSPM (R 4.5.0)
- textshaping        1.0.5     2026-03-06 [1] RSPM (R 4.5.0)
- tibble             3.3.1     2026-01-11 [1] CRAN (R 4.5.2)
- tidyr              1.3.2     2025-12-19 [1] RSPM (R 4.5.0)
- tidyselect         1.2.1     2024-03-11 [1] RSPM (R 4.5.0)
- utf8               1.2.6     2025-06-08 [1] RSPM (R 4.5.0)
- uwot               0.2.4     2025-11-10 [1] RSPM (R 4.5.2)
- vctrs              0.7.3     2026-04-11 [1] CRAN (R 4.5.3)
- viridisLite        0.4.3     2026-02-04 [1] CRAN (R 4.5.2)
- withr              3.0.2     2024-10-28 [1] RSPM (R 4.5.0)
- xfun               0.57      2026-03-20 [1] CRAN (R 4.5.3)
- xtable             1.8-8     2026-02-22 [1] RSPM (R 4.5.0)
- yaml               2.3.12    2025-12-10 [1] RSPM (R 4.5.0)
- zoo                1.8-15    2025-12-15 [1] CRAN (R 4.5.2)
+ package          * version date (UTC) lib source
+ abind              1.4-8   2024-09-12 [1] CRAN (R 4.6.0)
+ beeswarm           0.4.0   2021-06-01 [1] CRAN (R 4.6.0)
+ cli                3.6.6   2026-04-09 [1] CRAN (R 4.6.0)
+ cluster            2.1.8.2 2026-02-05 [2] CRAN (R 4.6.0)
+ codetools          0.2-20  2024-03-31 [2] CRAN (R 4.6.0)
+ cowplot            1.2.0   2025-07-07 [1] CRAN (R 4.6.0)
+ data.table         1.18.4  2026-05-06 [1] CRAN (R 4.6.0)
+ deldir             2.0-4   2024-02-28 [1] CRAN (R 4.6.0)
+ dichromat          2.0-1   2026-07-22 [1] CRAN (R 4.6.0)
+ digest             0.6.39  2025-11-19 [1] CRAN (R 4.6.0)
+ dotCall64          1.2     2024-10-04 [1] CRAN (R 4.6.0)
+ dplyr            * 1.2.1   2026-04-03 [1] CRAN (R 4.6.0)
+ evaluate           1.0.5   2025-08-27 [1] CRAN (R 4.6.0)
+ farver             2.1.2   2024-05-13 [1] CRAN (R 4.6.0)
+ fastDummies        1.7.6   2026-04-22 [1] CRAN (R 4.6.0)
+ fastmap            1.2.0   2024-05-15 [1] CRAN (R 4.6.0)
+ fitdistrplus       1.2-6   2026-01-24 [1] CRAN (R 4.6.0)
+ future           * 1.75.0  2026-07-20 [1] CRAN (R 4.6.0)
+ future.apply       1.20.2  2026-02-20 [1] CRAN (R 4.6.0)
+ generics           0.1.4   2025-05-09 [1] CRAN (R 4.6.0)
+ ggbeeswarm         0.7.3   2025-11-29 [1] CRAN (R 4.6.0)
+ ggplot2          * 4.0.3   2026-04-22 [1] CRAN (R 4.6.0)
+ ggrastr            1.0.2   2023-06-01 [1] CRAN (R 4.6.0)
+ ggrepel            0.9.8   2026-03-17 [1] CRAN (R 4.6.0)
+ ggridges           0.5.7   2025-08-27 [1] CRAN (R 4.6.0)
+ globals            0.19.1  2026-03-13 [1] CRAN (R 4.6.0)
+ glue               1.8.1   2026-04-17 [1] CRAN (R 4.6.0)
+ goftest            1.2-3   2021-10-07 [1] CRAN (R 4.6.0)
+ gridExtra          2.3.1   2026-06-25 [1] CRAN (R 4.6.0)
+ gtable             0.3.6   2024-10-25 [1] CRAN (R 4.6.0)
+ here               1.0.2   2025-09-15 [1] CRAN (R 4.6.0)
+ htmltools          0.5.9   2025-12-04 [1] CRAN (R 4.6.0)
+ htmlwidgets        1.6.4   2023-12-06 [1] CRAN (R 4.6.0)
+ httpuv             1.6.17  2026-03-18 [1] CRAN (R 4.6.0)
+ httr               1.4.8   2026-02-13 [1] CRAN (R 4.6.0)
+ ica                1.0-3   2022-07-08 [1] CRAN (R 4.6.0)
+ igraph             2.3.3   2026-06-26 [1] CRAN (R 4.6.0)
+ irlba              2.3.7   2026-01-30 [1] CRAN (R 4.6.0)
+ jsonlite           2.0.0   2025-03-27 [1] CRAN (R 4.6.0)
+ KernSmooth         2.23-26 2025-01-01 [2] CRAN (R 4.6.0)
+ knitr              1.51    2025-12-20 [1] CRAN (R 4.6.0)
+ labeling           0.4.3   2023-08-29 [1] CRAN (R 4.6.0)
+ later              1.4.8   2026-03-05 [1] CRAN (R 4.6.0)
+ lattice            0.22-9  2026-02-09 [2] CRAN (R 4.6.0)
+ lifecycle          1.0.5   2026-01-08 [1] CRAN (R 4.6.0)
+ limma              3.68.4  2026-05-31 [1] Bioconductor 3.23 (R 4.6.0)
+ listenv            1.0.0   2026-06-22 [1] CRAN (R 4.6.0)
+ lmtest             0.9-40  2022-03-21 [1] CRAN (R 4.6.0)
+ magrittr           2.0.5   2026-04-04 [1] CRAN (R 4.6.0)
+ MASS               7.3-66  2026-07-15 [1] CRAN (R 4.6.0)
+ Matrix             1.7-5   2026-03-21 [2] CRAN (R 4.6.0)
+ matrixStats        1.5.0   2025-01-07 [1] RSPM (R 4.6.0)
+ mime               0.13    2025-03-17 [1] CRAN (R 4.6.0)
+ miniUI             0.1.2   2025-04-17 [1] CRAN (R 4.6.0)
+ nlme               3.1-170 2026-07-15 [1] CRAN (R 4.6.0)
+ otel               0.2.0   2025-08-29 [1] CRAN (R 4.6.0)
+ parallelly         1.48.0  2026-06-29 [1] RSPM (R 4.6.0)
+ patchwork        * 1.3.2   2025-08-25 [1] CRAN (R 4.6.0)
+ pbapply            1.7-4   2025-07-20 [1] CRAN (R 4.6.0)
+ pillar             1.11.1  2025-09-17 [1] CRAN (R 4.6.0)
+ pkgconfig          2.0.3   2019-09-22 [1] CRAN (R 4.6.0)
+ plotly             4.12.1  2026-07-22 [1] CRAN (R 4.6.0)
+ plyr               1.8.9   2023-10-02 [1] RSPM (R 4.6.0)
+ png                0.1-9   2026-03-15 [1] CRAN (R 4.6.0)
+ polyclip           1.10-7  2024-07-23 [1] RSPM (R 4.6.0)
+ progressr          1.0.0   2026-07-04 [1] CRAN (R 4.6.0)
+ promises           1.5.0   2025-11-01 [1] CRAN (R 4.6.0)
+ purrr              1.2.2   2026-04-10 [1] CRAN (R 4.6.0)
+ R.methodsS3        1.8.2   2022-06-13 [1] CRAN (R 4.6.0)
+ R.oo               1.27.1  2025-05-02 [1] CRAN (R 4.6.0)
+ R.utils            2.13.0  2025-02-24 [1] CRAN (R 4.6.0)
+ R6                 2.6.1   2025-02-15 [1] CRAN (R 4.6.0)
+ ragg               1.5.2   2026-03-23 [1] CRAN (R 4.6.0)
+ RANN               2.6.2   2024-08-25 [1] CRAN (R 4.6.0)
+ RColorBrewer       1.1-3   2022-04-03 [1] CRAN (R 4.6.0)
+ Rcpp               1.1.2   2026-07-05 [1] CRAN (R 4.6.0)
+ RcppAnnoy          0.0.23  2026-01-12 [1] CRAN (R 4.6.0)
+ RcppHNSW           0.7.0   2026-05-26 [1] CRAN (R 4.6.0)
+ reshape2           1.4.5   2025-11-12 [1] RSPM (R 4.6.0)
+ reticulate         1.46.0  2026-04-09 [1] CRAN (R 4.6.0)
+ rlang              1.3.0   2026-07-05 [1] CRAN (R 4.6.0)
+ rmarkdown          2.31    2026-03-26 [1] CRAN (R 4.6.0)
+ ROCR               1.0-12  2026-01-23 [1] CRAN (R 4.6.0)
+ rprojroot          2.1.1   2025-08-26 [1] CRAN (R 4.6.0)
+ RSpectra           0.16-2  2024-07-18 [1] CRAN (R 4.6.0)
+ Rtsne              0.17    2023-12-07 [1] CRAN (R 4.6.0)
+ S7                 0.2.2   2026-04-22 [1] CRAN (R 4.6.0)
+ scales             1.4.0   2025-04-24 [1] CRAN (R 4.6.0)
+ scattermore        1.2     2023-06-12 [1] CRAN (R 4.6.0)
+ sctransform        0.4.3   2026-01-10 [1] CRAN (R 4.6.0)
+ sessioninfo        1.2.4   2026-06-04 [1] CRAN (R 4.6.0)
+ Seurat           * 5.5.1   2026-06-26 [1] CRAN (R 4.6.0)
+ SeuratObject     * 5.4.0   2026-04-11 [1] CRAN (R 4.6.0)
+ shiny              1.14.0  2026-06-21 [1] CRAN (R 4.6.0)
+ sp               * 2.2-3   2026-07-19 [1] CRAN (R 4.6.0)
+ spam               2.11-4  2026-05-29 [1] CRAN (R 4.6.0)
+ spatstat.data      3.1-9   2025-10-18 [1] CRAN (R 4.6.0)
+ spatstat.explore   3.8-1   2026-05-24 [1] CRAN (R 4.6.0)
+ spatstat.geom      3.8-1   2026-05-23 [1] CRAN (R 4.6.0)
+ spatstat.random    3.5-0   2026-05-24 [1] CRAN (R 4.6.0)
+ spatstat.sparse    3.2-0   2026-05-21 [1] CRAN (R 4.6.0)
+ spatstat.univar    3.2-0   2026-05-18 [1] CRAN (R 4.6.0)
+ spatstat.utils     3.2-4   2026-07-16 [1] CRAN (R 4.6.0)
+ statmod            1.5.2   2026-05-17 [1] RSPM (R 4.6.0)
+ stringi            1.8.7   2025-03-27 [1] CRAN (R 4.6.0)
+ stringr            1.6.0   2025-11-04 [1] CRAN (R 4.6.0)
+ survival           3.8-9   2026-07-08 [1] CRAN (R 4.6.0)
+ systemfonts        1.3.2   2026-03-05 [1] CRAN (R 4.6.0)
+ tensor             1.5.1   2025-06-17 [1] CRAN (R 4.6.0)
+ textshaping        1.0.5   2026-03-06 [1] CRAN (R 4.6.0)
+ tibble             3.3.1   2026-01-11 [1] CRAN (R 4.6.0)
+ tidyr              1.3.2   2025-12-19 [1] CRAN (R 4.6.0)
+ tidyselect         1.2.1   2024-03-11 [1] CRAN (R 4.6.0)
+ utf8               1.2.6   2025-06-08 [1] CRAN (R 4.6.0)
+ uwot               0.2.4   2025-11-10 [1] CRAN (R 4.6.0)
+ vctrs              0.7.3   2026-04-11 [1] CRAN (R 4.6.0)
+ vipor              0.4.7   2023-12-18 [1] CRAN (R 4.6.0)
+ viridisLite        0.4.3   2026-02-04 [1] CRAN (R 4.6.0)
+ withr              3.0.3   2026-06-19 [1] CRAN (R 4.6.0)
+ xfun               0.60    2026-07-09 [1] CRAN (R 4.6.0)
+ xtable             1.8-8   2026-02-22 [1] CRAN (R 4.6.0)
+ yaml               2.3.12  2025-12-10 [1] CRAN (R 4.6.0)
+ zoo                1.8-15  2025-12-15 [1] CRAN (R 4.6.0)
 
- [1] /home/steve/R/x86_64-pc-linux-gnu-library/4.5
- [2] /opt/R/4.5.3/lib/R/library
+ [1] /home/steve/R/x86_64-pc-linux-gnu-library/4.6
+ [2] /opt/R/4.6.0/lib/R/library
  * ── Packages attached to the search path.
 
 ─ External software ──────────────────────────────────────────────────────────
@@ -796,12 +817,13 @@ RPS25 0.803 0.5196163 0.606  0.7689940 0.997 0.975</code></pre>
  png            1.6.43
  jpeg           8.0
  tiff           LIBTIFF, Version 4.5.1
- tcl            8.6.14
+ tcl            8.6
  curl           8.5.0
  zlib           1.3
  bzlib          1.0.8, 13-Jul-2019
  xz             5.4.5
  deflate        1.19
+ zstd           1.5.5
  PCRE           10.42 2022-12-11
  ICU            74.2
  TRE            TRE 0.8.0 R_fixes (BSD)

@@ -33,6 +33,10 @@ library(Seurat)
 library(patchwork)
 library(ggplot2)
 
+# Where the pre-staged workshop data lives. See slides/find_data_dir.R.
+source(here::here("slides", "find_data_dir.R"))
+data_dir <- find_data_dir()
+
 save_rds_in_dir <- function(object, file, ...) {
   dir.create(dirname(file), recursive = TRUE, showWarnings = FALSE)
   saveRDS(object, file = file, ...)
@@ -54,7 +58,9 @@ genes are excluded.
 #| label: load-data
 #| warning: false
 # Suppress warning about underscores in feature names (10X format uses them)
-pbmc.data <- Read10X(data.dir = "filtered_gene_bc_matrices/hg19/")
+pbmc.data <- Read10X(
+  data.dir = file.path(data_dir, "pbmc3k_filtered_gene_bc_matrices", "hg19")
+)
 pbmc <- CreateSeuratObject(
   counts  = pbmc.data,
   project = "pbmc3k",

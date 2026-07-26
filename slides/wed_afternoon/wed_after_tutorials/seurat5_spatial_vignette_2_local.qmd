@@ -12,7 +12,7 @@ format:
 execute:
   warning: false
   message: true
-  error: true
+  error: false
 ---
 
 Local rework of `seurat5_spatial_vignette_2.html`, the Seurat vignette
@@ -35,9 +35,9 @@ The R code below is transcribed verbatim from the upstream vignette, in order,
 with the hardcoded `/brahms/...` input paths replaced by reads from the staged
 workshop data repo. The one substantive departure is the Vizgen section, which
 reads a pre-built Seurat object rather than calling `LoadVizgen()`, for the
-reasons given there. It has **not** been executed yet. `error: true` is set in
-the YAML on purpose, so this first test render reports every failure at once
-rather than stopping at the first one. All chunks are `eval: true`.
+reasons given there. It has **not** been executed yet. `error: false` is set in
+the YAML, so any chunk failure stops the render and is reported rather than
+being printed into the document and passed over. All chunks are `eval: true`.
 :::
 
 ::: {.callout-warning}
@@ -91,7 +91,29 @@ library(ggplot2)
 # global and raises an error. Keeping it near the per-worker copy we can afford
 # turns "silently make 3 copies and get OOM-killed" into an informative error.
 # The upstream vignette's 10 GB silences exactly the warning students need.
-options(future.globals.maxSize = 2 * 1024^3)
+#
+# 3 GiB rather than the 2 GiB first tried here: `SCTransform()` legitimately
+# exports a little over 2 GiB on the smaller objects in this document, so 2 GiB
+# tripped on work that is fine. It is still far below the 10 GiB that would let
+# the Vizgen object through and OOM a 16 GB machine.
+options(future.globals.maxSize = 3 * 1024^3)
+
+#' Run an expression with parallel workers disabled
+#'
+#' `SCTransform()` ships its whole model-fitting closure to every worker. On the
+#' Vizgen object that closure measured 3.02 GiB, so on a 16 GB machine two
+#' workers means three resident copies and an OOM kill. Raising
+#' `future.globals.maxSize` past that would hide the problem rather than fix it,
+#' so the expensive normalizations run sequentially instead. They are not the
+#' slow part of this document.
+#'
+#' @param expr Expression to evaluate with `plan("sequential")`.
+#' @return The value of `expr`.
+without_workers <- function(expr) {
+  old_plan <- plan("sequential")
+  on.exit(plan(old_plan), add = TRUE)
+  force(expr)
+}
 ```
 
 ## Mouse Brain: Vizgen MERSCOPE
@@ -186,7 +208,10 @@ clustering.
 
 ```{r}
 #| label: vizgen-cluster
-vizgen.obj <- SCTransform(vizgen.obj, assay = "Vizgen", clip.range = c(-10, 10))
+# Sequential: this is the call whose exported closure measured 3.02 GiB.
+vizgen.obj <- without_workers(
+  SCTransform(vizgen.obj, assay = "Vizgen", clip.range = c(-10, 10))
+)
 vizgen.obj <- RunPCA(vizgen.obj, npcs = 30, features = rownames(vizgen.obj))
 vizgen.obj <- RunUMAP(vizgen.obj, dims = 1:30)
 vizgen.obj <- FindNeighbors(vizgen.obj, reduction = "pca", dims = 1:30)
@@ -368,7 +393,7 @@ SCTransform normalization, dimensional reduction, and clustering:
 
 ```{r}
 #| label: xenium-cluster
-xenium.obj <- SCTransform(xenium.obj, assay = "Xenium")
+xenium.obj <- without_workers(SCTransform(xenium.obj, assay = "Xenium"))
 xenium.obj <- RunPCA(xenium.obj, npcs = 30, features = rownames(xenium.obj))
 xenium.obj <- RunUMAP(xenium.obj, dims = 1:30)
 xenium.obj <- FindNeighbors(xenium.obj, reduction = "pca", dims = 1:30)
@@ -414,11 +439,21 @@ p2
 
 Seurat v5 supports Robust Cell Type Decomposition (RCTD) to deconvolve spatial
 data using an scRNA-seq reference. RCTD is implemented in the `spacexr`
-package, installed from GitHub:
+package, which comes from GitHub rather than CRAN
+(<https://github.com/dmcable/spacexr>).
+
+`spacexr` must already be installed on the machine running this tutorial.
+Installing it here would mean a network call during the session, so this
+document only checks for it.
 
 ```{r}
-#| label: xenium-install-spacexr
-devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)
+#| label: xenium-check-spacexr
+if (!requireNamespace("spacexr", quietly = TRUE)) {
+  stop(
+    "spacexr is not installed. Install it before the workshop, it is not ",
+    "installed during a session."
+  )
+}
 ```
 
 ::: {.callout-note}
@@ -550,7 +585,9 @@ nano.obj <- AddMetaData(nano.obj, metadata = azimuth.data$annotations)
 nano.obj[["proj.umap"]] <- azimuth.data$umap
 Idents(nano.obj) <- nano.obj$predicted.annotation.l1
 
-nano.obj <- SCTransform(nano.obj, assay = "Nanostring", clip.range = c(-10, 10), verbose = FALSE)
+nano.obj <- without_workers(
+  SCTransform(nano.obj, assay = "Nanostring", clip.range = c(-10, 10), verbose = FALSE)
+)
 
 # text display of annotations and prediction scores
 head(slot(object = nano.obj, name = "meta.data")[2:5])

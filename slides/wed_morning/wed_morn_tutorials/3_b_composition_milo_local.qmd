@@ -12,7 +12,7 @@ format:
 execute:
   warning: false
   message: true
-  error: true
+  error: false
 ---
 
 Local rework of `3_b_composition_milo.html`.
@@ -32,8 +32,8 @@ gastrulation and early organogenesis", Nature,
 
 The code below is transcribed from the upstream vignette, with the
 `EmbryoAtlasData()` download replaced by a read from the staged data repo. It has
-not been executed yet. `error: true` is set in the YAML on purpose, so a test
-render reports every failure rather than stopping at the first one.
+not been executed yet. `error: false` is set in the YAML, so any chunk failure
+stops the render and is reported rather than being buried in the output.
 :::
 
 ::: {.callout-caution}

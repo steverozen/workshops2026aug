@@ -12,7 +12,7 @@ format:
 execute:
   warning: false
   message: true
-  error: true
+  error: false
 ---
 
 ::: {.callout-important}
@@ -33,8 +33,10 @@ The upstream page carries an **ARCHIVED** banner and the lesson script is dated
 calls are known to be affected. `scater::calculateQCMetrics()` is now defunct,
 and `Matrix.utils` was archived on CRAN so `aggregate.Matrix()` is unavailable.
 Both are transcribed as the tutorial has them, each followed by a modern
-equivalent. `error: true` is set deliberately, so that these two intended
-failures still let the rest of the document run rather than halting the render.
+equivalent. The document sets `error: false`, so any unexpected failure stops
+the render and is reported. These two chunks, `qc-tutorial` and
+`aggregate-tutorial`, carry a chunk-level `error: true` because their failure
+is the point being taught.
 :::
 
 ## Learning objectives
@@ -265,6 +267,7 @@ hands-on job of QC.
 
 ```{r}
 #| label: qc-tutorial
+#| error: true
 # Perform QC if not already performed
 dim(sce)
 
@@ -316,6 +319,7 @@ We take the sum of counts for each sample within each cell type.
 
 ```{r}
 #| label: aggregate-tutorial
+#| error: true
 # Aggregate the counts per sample_id and cluster_id
 
 # Subset metadata to only include the cluster and sample IDs to aggregate across
