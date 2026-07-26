@@ -313,9 +313,27 @@ expression levels in a spot's broader neighborhood. BANKSY is compatible with
 Seurat via the SeuratWrappers framework, which requires separate installation of
 the Banksy package.
 
-`Banksy` comes from GitHub (<https://github.com/prabhakarlab/Banksy>, `devel`
-branch) and must already be installed, along with `SeuratWrappers`. Installing
+`Banksy` must already be installed, along with `SeuratWrappers`. Installing
 either here would mean a network call during the session.
+
+::: {.callout-warning}
+## Install the Bioconductor release of Banksy, not the devel branch
+
+Upstream says to install `prabhakarlab/Banksy@devel` from GitHub. Do not.
+Measured 2026-07-26: Banksy 1.9.1 from that branch fails inside `RunBanksy()`
+with
+
+```
+Error in getClass(): "zgeMatrix" is not a defined class
+```
+
+`zgeMatrix` is a complex dense matrix class that no released `Matrix` provides.
+Installed `Matrix` was 1.7.5 and the newest on CRAN was 1.7-6, neither of which
+defines it, so the devel branch cannot work against a released stack.
+
+The Bioconductor release, Banksy 1.8.1, predates that dependency and works:
+`BiocManager::install("Banksy")`.
+:::
 
 ```{r}
 #| label: banksy-load

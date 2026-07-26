@@ -193,6 +193,22 @@ html_errors <- function(html) {
   list(n = n, first = first)
 }
 
+#' Count chunks that are meant to fail
+#'
+#' A document can set `error: false` at the top and still mark an individual
+#' chunk `#| error: true` when the failure is the thing being taught, as
+#' 2_a_pseudobulk_de_local.qmd does for the defunct `calculateQCMetrics()` and
+#' the archived `aggregate.Matrix()`. Those errors are expected output, so they
+#' are subtracted before deciding whether a document is broken.
+#'
+#' @param qmd Path to the tutorial source.
+#' @return Number of chunks carrying a chunk-level `error: true`.
+intentional_errors <- function(qmd) {
+  if (!file.exists(qmd)) return(0L)
+  lines <- readLines(qmd, warn = FALSE)
+  sum(grepl("^#\\|\\s*error:\\s*true\\s*$", lines))
+}
+
 #' Pull the informative lines out of a failed render log
 #'
 #' Quarto prints the R condition after a line starting with "Error", and the
@@ -259,21 +275,32 @@ for (qmd in qmds) {
   html <- collect_output(qmd, html_dir)
 
   errs <- html_errors(html)
+  expected <- intentional_errors(qmd)
+  unexpected <- max(0L, errs$n - expected)
 
   outcome <- if (status == 124L || status == 137L) {
     "TIMEOUT"
   } else if (status != 0L) {
     "FAIL"
-  } else if (errs$n > 0L) {
+  } else if (unexpected > 0L) {
     # Rendered to completion, but with error: true swallowing broken chunks.
     "ERRORS"
   } else {
     "PASS"
   }
   detail <- if (outcome == "PASS") {
-    if (is.na(html)) "rendered, but no .html found" else basename(html)
+    if (is.na(html)) {
+      "rendered, but no .html found"
+    } else if (errs$n > 0L) {
+      sprintf("%s (%d intentional error chunks)", basename(html), errs$n)
+    } else {
+      basename(html)
+    }
   } else if (outcome == "ERRORS") {
-    sprintf("%d error blocks in the .html; first: %s", errs$n, errs$first)
+    sprintf(
+      "%d unexpected error blocks in the .html (%d intentional); first: %s",
+      unexpected, expected, errs$first
+    )
   } else if (outcome == "TIMEOUT") {
     sprintf("exceeded %s minutes", args$timeout_min)
   } else {

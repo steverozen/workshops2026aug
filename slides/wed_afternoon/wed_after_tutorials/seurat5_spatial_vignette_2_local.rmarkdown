@@ -275,13 +275,49 @@ plotting over large areas. We can zoom into a region by creating a new field of
 view, then switch `DefaultBoundary()` to show full cell segmentations, and
 optionally `Simplify()` the polygons to speed up plotting.
 
+::: {.callout-important}
+## The crop is pre-computed, and why
+
+`Crop()` on this 83,546-cell FOV overflows R's pointer protection stack:
+
+```
+Error: protect(): protection stack overflow
+  1. SeuratObject::Crop(...) -> ... -> sp::SpatialPolygons(...)
+```
+
+Measured 2026-07-26 with sp 2.2.3 and SeuratObject 5.4.0. It does not depend on
+how much the crop keeps: windows holding 2997, 1729, and 832 cells all fail, as
+do simplify-then-crop, subset-then-crop, and cropping with centroids as the
+default boundary. The only fix is starting R with `--max-ppsize=500000`, which
+is a startup flag, and students reach R through OnDemand RStudio, which starts
+`rsession` for them with no way to pass it.
+
+So the crop and the `Simplify()` are done once at staging time by
+`slides/wed_afternoon/staging/stage_vizgen_hippo_fov.R`, and this document reads
+the result. The chunk below shows the upstream code, unrun, for reference.
+:::
+
 ```{r}
 #| label: vizgen-crop
+#| eval: false
 # create a Crop
 cropped.coords <- Crop(vizgen.obj[["s2r1"]], x = c(1750, 3000), y = c(3750, 5250), coords = "plot")
-# set a new field of view (fov)
-vizgen.obj[["hippo"]] <- cropped.coords
+cropped.coords[["simplified.segmentations"]] <- Simplify(
+  coords = cropped.coords[["segmentation"]], tol = 3
+)
+```
 
+```{r}
+#| label: vizgen-crop-staged
+# The staged FOV is the result of the chunk above, cropped to
+# x 1750-3000, y 3750-5250, with segmentations simplified at tol = 3.
+vizgen.obj[["hippo"]] <- readRDS(
+  file.path(data_dir, "vizgen_mouse_brain_s2r1_hippo_fov.rds")
+)
+```
+
+```{r}
+#| label: vizgen-hippo-plots
 # visualize FOV using default settings (no cell boundaries)
 p1 <- ImageDimPlot(vizgen.obj, fov = "hippo", axes = TRUE, size = 0.7, border.color = "white", cols = "polychrome",
     coord.fixed = FALSE)
@@ -291,12 +327,8 @@ DefaultBoundary(vizgen.obj[["hippo"]]) <- "segmentation"
 p2 <- ImageDimPlot(vizgen.obj, fov = "hippo", axes = TRUE, border.color = "white", border.size = 0.1,
     cols = "polychrome", coord.fixed = FALSE)
 
-# simplify cell segmentations
-vizgen.obj[["hippo"]][["simplified.segmentations"]] <- Simplify(coords = vizgen.obj[["hippo"]][["segmentation"]],
-    tol = 3)
-DefaultBoundary(vizgen.obj[["hippo"]]) <- "simplified.segmentations"
-
-# visualize FOV with simplified cell segmentations
+# The simplified segmentations came with the staged FOV, computed at tol = 3,
+# so there is nothing to recompute here. Just switch to that boundary.
 DefaultBoundary(vizgen.obj[["hippo"]]) <- "simplified.segmentations"
 p3 <- ImageDimPlot(vizgen.obj, fov = "hippo", axes = TRUE, border.color = "white", border.size = 0.1,
     cols = "polychrome", coord.fixed = FALSE)
