@@ -71,7 +71,9 @@ if (any(results != "ok")) {
 }
 cat("\nNote: spatial_imaging stages only its public parts (Xenium, CosMx\n")
 cat("annotations). Vizgen and raw CosMx need manual vendor downloads,\n")
-cat("printed by that script.\n")
+cat("printed by that script. The Vizgen download then feeds\n")
+cat("stage_vizgen_object.R, which is not part of stage_all.R because it\n")
+cat("takes about 45 minutes.\n")
 
 cat("\nNow verify from R:\n")
 cat('  source("../../find_data_dir.R"); report_data_dir()\n')

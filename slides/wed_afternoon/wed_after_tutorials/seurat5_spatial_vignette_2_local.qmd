@@ -33,7 +33,9 @@ section:
 
 The R code below is transcribed verbatim from the upstream vignette, in order,
 with the hardcoded `/brahms/...` input paths replaced by reads from the staged
-workshop data repo. It has **not** been executed yet. `error: true` is set in
+workshop data repo. The one substantive departure is the Vizgen section, which
+reads a pre-built Seurat object rather than calling `LoadVizgen()`, for the
+reasons given there. It has **not** been executed yet. `error: true` is set in
 the YAML on purpose, so this first test render reports every failure at once
 rather than stopping at the first one. All chunks are `eval: true`.
 :::
@@ -80,30 +82,54 @@ slices of the mouse brain, three biological replicates per slice). The gene
 panel has 483 targets. Here we analyze one sample, slice 2 replicate 1
 (`s2r1`). The median number of transcripts detected per cell is 206.
 
-We read the dataset with `LoadVizgen()`, which parses the output of the Vizgen
-analysis pipeline. The resulting Seurat object holds a count matrix (483
-transcripts per cell, stored in the `Vizgen` assay), plus imaging-specific
+Upstream, the dataset is read with `LoadVizgen()`, which parses the output of
+the Vizgen analysis pipeline. The resulting Seurat object holds a count matrix
+(483 transcripts per cell, stored in the `Vizgen` assay), plus imaging-specific
 slots for cell centroids, cell segmentation boundaries, and individual
 molecule positions.
+
+We read a pre-built copy of exactly that object instead, for the reasons in the
+callout below.
+
+::: {.callout-important}
+## Why this section reads a staged object rather than calling `LoadVizgen()`
+
+`LoadVizgen()` on this dataset takes about **41 minutes** and peaks near
+**16 GiB** of memory, almost all of it spent parsing 1242 `HDF5` cell-boundary
+files one at a time. It also overflows R's pointer protection stack while
+assembling the segmentation polygons, and dies with
+`protect(): protection stack overflow` unless R is started with
+`--max-ppsize=500000`. That flag can only be set when R starts, so no chunk in
+this document could fix it.
+
+`slides/wed_afternoon/staging/stage_vizgen_object.R` does that work once and
+saves the result. Reading it back takes about a minute.
+:::
 
 ::: {.callout-note}
 ## Expected staged layout: Vizgen MERSCOPE
 
-The loader wants a **directory** of MERSCOPE pipeline outputs. Stage it at
-`spatial_imaging/vizgen_mouse_brain/s2r1/`. `LoadVizgen()` expects the standard
-Vizgen files inside that directory: the cell-by-gene matrix
+This tutorial needs one file, `spatial_imaging/vizgen_mouse_brain_s2r1.rds`.
+
+To rebuild it you need the raw MERSCOPE pipeline outputs, which are gated
+behind vendor registration, staged at
+`spatial_imaging/vizgen_mouse_brain/s2r1/`: the cell-by-gene matrix
 (`cell_by_gene.csv`), cell metadata (`cell_metadata.csv`), the detected
 transcripts / molecule positions (`detected_transcripts.csv`), and the cell
 boundary polygons (an `HDF5` `cell_boundaries/` subdirectory or the newer
-`cell_boundaries.parquet`). Upstream original path was
+`cell_boundaries.parquet`). See `staging/MANUAL_DOWNLOADS.md`. Those raw files
+total about 9.5 GiB and are **not** part of the workshop distribution, the
+saved object is. Upstream original path was
 `/brahms/hartmana/vignette_data/vizgen/s2r1/`.
 :::
 
 ```{r}
 #| label: vizgen-load
-# Loading segmentations is a slow process and multi processing with the future package is
-# recommended
-vizgen.obj <- LoadVizgen(data.dir = file.path(data_dir, "vizgen_mouse_brain", "s2r1"), fov = "s2r1")
+# Upstream calls LoadVizgen() here. See the callout above for why we do not.
+#   vizgen.obj <- LoadVizgen(data.dir = file.path(data_dir, "vizgen_mouse_brain", "s2r1"),
+#                            fov = "s2r1")
+vizgen.obj <- readRDS(file.path(data_dir, "vizgen_mouse_brain_s2r1.rds"))
+vizgen.obj
 ```
 
 Cell centroids, one row per cell:

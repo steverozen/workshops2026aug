@@ -26,7 +26,9 @@ the most familiar platform to the least, and from one measurement paradigm
 >
 > Status: three of the four stage fully and automatically. **The imaging
 > tutorial (4) stages only its public parts.** Vizgen and raw CosMx need
-> vendor registration and are printed as manual steps. Two vignettes also keep a
+> vendor registration and are printed as manual steps. The Vizgen raw files are
+> needed only to rebuild the object the tutorial reads, see
+> `staging/stage_vizgen_object.R`. Two vignettes also keep a
 > network call inside the render (a cloud Azimuth annotation, and GitHub package
 > installs); see `staging/README.md`.
 
@@ -154,9 +156,16 @@ Source: https://satijalab.org/seurat/articles/seurat5_spatial_vignette_2
 **Data is only partly public.** Staged automatically: the Xenium mouse brain
 subset (10x), the RCTD reference, and the precomputed CosMx annotations. Manual,
 vendor-gated, printed by the staging script: Vizgen MERSCOPE (registration) and
-the raw CosMx directory (by request). If you
-skip the vendor data, teach the Xenium and CosMx sections, which are complete.
-The other sections error at their `Load*` call, which is expected.
+the raw CosMx directory (by request). If you skip the raw CosMx directory, teach
+the Xenium and Vizgen sections, which are complete. The CosMx section errors at
+its `LoadNanostring` call, which is expected.
+
+The Vizgen section reads a pre-built Seurat object,
+`spatial_imaging/vizgen_mouse_brain_s2r1.rds`, produced once by
+`staging/stage_vizgen_object.R`. Calling `LoadVizgen()` live takes about 41
+minutes, peaks near 16 GiB, and needs R started with `--max-ppsize=500000` to
+avoid a protection stack overflow, so it cannot be done in the session. The
+vendor download is needed only to rebuild that object.
 
 ---
 

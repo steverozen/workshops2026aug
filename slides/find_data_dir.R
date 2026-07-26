@@ -18,8 +18,7 @@
 #' 1. The `WORKSHOP2026AUG_DATA` environment variable, when set. This is the
 #'    hook for the workshop machines. Set it once in `~/.Renviron` and every
 #'    tutorial follows, with no edits to any file in this repo.
-#' 2. `/media/steve/USB/github/workshop2026aug_data`, the USB drive that holds
-#'    the master copy. Skipped automatically when the drive is not mounted.
+#' 2. `~/MEGA/workshop_data`, the master copy on the internal drive.
 #' 3. `~/github/workshop2026aug_data`, a local checkout, if one exists.
 #' 4. `workshop2026aug_data` as a sibling of this code repo, which is what a
 #'    student gets if they clone both repos side by side.
@@ -42,16 +41,16 @@
 #'                   "scRNA-seq_input_data_for_DE.rds"))
 #' }
 find_data_dir <- function(subdir = NULL, check = TRUE) {
-
   candidates <- c(
     Sys.getenv("WORKSHOP2026AUG_DATA", unset = NA_character_),
-    # Master copy. dir.exists() is FALSE when the drive is not mounted, so an
-    # unplugged USB just falls through to the next candidate.
-    "/media/steve/USB/github/workshop2026aug_data",
+    # Master copy, on the internal drive.
+    path.expand("~/MEGA/workshop_data"),
     path.expand("~/github/workshop2026aug_data"),
     # Sibling of the code repo. this_dir is slides/, so up two levels.
-    file.path(dirname(dirname(find_data_dir_this_dir())),
-              "workshop2026aug_data")
+    file.path(
+      dirname(dirname(find_data_dir_this_dir())),
+      "workshop2026aug_data"
+    )
   )
   candidates <- candidates[!is.na(candidates) & nzchar(candidates)]
 
@@ -66,9 +65,10 @@ find_data_dir <- function(subdir = NULL, check = TRUE) {
   if (is.null(root)) {
     stop(
       "Could not find the workshop data directory.\n",
-      "Looked in:\n  ", paste(candidates, collapse = "\n  "), "\n",
-      "If the USB drive holds the data, check that it is mounted. Otherwise\n",
-      "clone the workshop2026aug_data repo, or set the WORKSHOP2026AUG_DATA\n",
+      "Looked in:\n  ",
+      paste(candidates, collapse = "\n  "),
+      "\n",
+      "Clone the workshop2026aug_data repo, or set the WORKSHOP2026AUG_DATA\n",
       "environment variable to point at wherever the data actually is.",
       call. = FALSE
     )
@@ -78,9 +78,15 @@ find_data_dir <- function(subdir = NULL, check = TRUE) {
 
   if (check && !dir.exists(out)) {
     stop(
-      "Data directory does not exist: ", out, "\n",
-      "The data root resolved to ", root, ", so the root is fine and it is\n",
-      "the '", subdir, "' subdirectory that is missing. Either the data has\n",
+      "Data directory does not exist: ",
+      out,
+      "\n",
+      "The data root resolved to ",
+      root,
+      ", so the root is fine and it is\n",
+      "the '",
+      subdir,
+      "' subdirectory that is missing. Either the data has\n",
       "not been downloaded yet, or the checkout is incomplete.",
       call. = FALSE
     )
@@ -98,11 +104,11 @@ find_data_dir <- function(subdir = NULL, check = TRUE) {
 #' @return A path, as a length-one character vector.
 #' @keywords internal
 find_data_dir_this_dir <- function() {
-
   # source() sets ofile in the calling frames.
   for (i in seq_len(sys.nframe())) {
-    ofile <- tryCatch(get("ofile", envir = sys.frame(i)),
-                      error = function(e) NULL)
+    ofile <- tryCatch(get("ofile", envir = sys.frame(i)), error = function(e) {
+      NULL
+    })
     if (is.character(ofile) && length(ofile) == 1L && nzchar(ofile)) {
       return(dirname(normalizePath(ofile, mustWork = FALSE)))
     }
@@ -111,8 +117,10 @@ find_data_dir_this_dir <- function() {
   # Rscript --file=
   file_arg <- grep("^--file=", commandArgs(trailingOnly = FALSE), value = TRUE)
   if (length(file_arg) == 1L) {
-    return(dirname(normalizePath(sub("^--file=", "", file_arg),
-                                 mustWork = FALSE)))
+    return(dirname(normalizePath(
+      sub("^--file=", "", file_arg),
+      mustWork = FALSE
+    )))
   }
 
   if (requireNamespace("here", quietly = TRUE)) {
@@ -140,11 +148,15 @@ report_data_dir <- function(subdir = NULL) {
   } else {
     info <- file.info(files)
     for (i in seq_along(files)) {
-      message(sprintf("  %-50s %s",
-                      basename(files[i]),
-                      if (isTRUE(info$isdir[i])) "<dir>"
-                      else format(structure(info$size[i], class = "object_size"),
-                                  units = "auto")))
+      message(sprintf(
+        "  %-50s %s",
+        basename(files[i]),
+        if (isTRUE(info$isdir[i])) {
+          "<dir>"
+        } else {
+          format(structure(info$size[i], class = "object_size"), units = "auto")
+        }
+      ))
     }
   }
   invisible(path)

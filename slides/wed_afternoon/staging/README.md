@@ -49,13 +49,31 @@ vendor-gated:
 
 **Manual, printed by the script** (vendor registration, large):
 
-- **Vizgen MERSCOPE** mouse brain, from `info.vizgen.com/mouse-brain-data`.
+- **Vizgen MERSCOPE** mouse brain, from `info.vizgen.com/mouse-brain-data`. Only
+  needed to rebuild `vizgen_mouse_brain_s2r1.rds` with `stage_vizgen_object.R`,
+  since the `.qmd` reads that object rather than calling `LoadVizgen()`.
 - **Nanostring CosMx** raw lung directory, by request from Nanostring. Only
   needed to run `LoadNanostring` live, since the annotations are already staged.
 
-If you will not chase the vendor data, teach the Xenium and CosMx sections,
-which are fully staged. The other platform sections in the `.qmd` will error at
-their `Load*` call, which is expected and harmless under `error: true`.
+If you will not chase the vendor data, teach the Xenium and Vizgen sections,
+which are fully staged. The CosMx section in the `.qmd` will error at its
+`LoadNanostring` call, which is expected and harmless under `error: true`.
+
+### `stage_vizgen_object.R`
+
+Separate from `stage_all.R`, because it needs the vendor download above and
+takes about 45 minutes. It runs `LoadVizgen()` once and saves the result:
+
+```bash
+Rscript stage_vizgen_object.R
+```
+
+It restarts itself with `--max-ppsize=500000`. `ReadVizgen()` overflows R's
+pointer protection stack while assembling roughly 1.2 million segmentation
+polygons, and that flag can only be set when R starts, so neither a `.qmd`
+chunk nor an `options()` call can work around it. Peak memory is near 16 GiB.
+Output is about 405 MB, versus 9.5 GiB of raw input that then does not need to
+be distributed.
 
 ## Two things that stay network-bound inside the `.qmd`
 

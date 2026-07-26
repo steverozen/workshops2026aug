@@ -17,6 +17,10 @@
 #   Vizgen MERSCOPE     info.vizgen.com/mouse-brain-data (registration)
 #   Nanostring CosMx    nanostring.com FFPE dataset (raw dir, by request)
 #
+# The Vizgen raw download feeds stage_vizgen_object.R, which builds the Seurat
+# object the tutorial reads. Once that object exists the raw files are no
+# longer needed, so this script stops asking for them.
+#
 # This script stages the public pieces and prints instructions for the rest,
 # the same pattern as the COVID composition tutorial.
 #
@@ -94,26 +98,47 @@ manual <- c(
 
 pending <- manual[!dir.exists(manual)]
 
+# The Vizgen raw directory is an input to stage_vizgen_object.R, not to the
+# tutorial. Once that script has produced the object, the raw download is no
+# longer needed and there is nothing to nag about.
+if (file.exists(file.path(outdir, "vizgen_mouse_brain_s2r1.rds"))) {
+  pending <- pending[names(pending) != "vizgen_mouse_brain"]
+}
+
 if (length(pending)) {
   message("")
   message(strrep("=", 72))
-  message("MANUAL STEPS: two platform datasets are not publicly downloadable")
+  message("MANUAL STEPS: ", length(pending),
+          " platform dataset(s) are not publicly downloadable")
   message(strrep("=", 72))
-  message("Each needs vendor registration and is large. Stage them by hand:")
-  message("")
-  message("Vizgen MERSCOPE mouse brain -> ", manual[["vizgen_mouse_brain"]], "/s2r1/")
-  message("  Register at https://info.vizgen.com/mouse-brain-data and download")
-  message("  slice 2 replicate 1. LoadVizgen expects the MERSCOPE output files")
-  message("  (cell_by_gene.csv, cell_metadata.csv, detected_transcripts.csv, ...).")
-  message("")
-  message("Nanostring CosMx lung (raw) -> ", manual[["nanostring_lung5_rep1"]], "/")
-  message("  From https://nanostring.com/products/cosmx-spatial-molecular-imager/ffpe-dataset/")
-  message("  Lung5 Rep1. The precomputed annotations are already staged, so this")
-  message("  raw directory is only needed to run LoadNanostring live.")
-  message("")
-  message("If you will not obtain these, present only the Xenium and CosMx")
-  message("sections, which are fully staged. The .qmd sections for the missing")
-  message("platforms will error at their Load* call, which is expected.")
+  message("Each needs vendor registration and is large. Stage by hand:")
+
+  # Report only what is actually missing. Printing both every time trains you
+  # to skim past the block, which is how a real missing dataset gets through.
+  if ("vizgen_mouse_brain" %in% names(pending)) {
+    message("")
+    message("Vizgen MERSCOPE mouse brain -> ", manual[["vizgen_mouse_brain"]], "/s2r1/")
+    message("  Register at https://info.vizgen.com/mouse-brain-data and download")
+    message("  slice 2 replicate 1. LoadVizgen expects the MERSCOPE output files")
+    message("  (cell_by_gene.csv, cell_metadata.csv, detected_transcripts.csv,")
+    message("  and a cell_boundaries/ directory of HDF5 files). Then build the")
+    message("  object the tutorial actually reads:")
+    message("    Rscript stage_vizgen_object.R")
+    message("  ONLY needed to rebuild vizgen_mouse_brain_s2r1.rds. If that file")
+    message("  is already staged, the Vizgen section runs without this download.")
+  }
+
+  if ("nanostring_lung5_rep1" %in% names(pending)) {
+    message("")
+    message("Nanostring CosMx lung (raw) -> ", manual[["nanostring_lung5_rep1"]], "/")
+    message("  From https://nanostring.com/products/cosmx-spatial-molecular-imager/ffpe-dataset/")
+    message("  Lung5 Rep1. The precomputed annotations are already staged, so this")
+    message("  raw directory is only needed to run LoadNanostring live.")
+    message("")
+    message("  Without it, teach the Xenium and Vizgen sections, which are fully")
+    message("  staged. The CosMx section will error at its LoadNanostring call,")
+    message("  which is expected.")
+  }
   message(strrep("=", 72))
 }
 
