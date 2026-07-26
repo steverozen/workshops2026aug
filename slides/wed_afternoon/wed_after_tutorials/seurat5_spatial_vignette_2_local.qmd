@@ -68,10 +68,30 @@ report_data_dir("spatial_imaging")
 #| label: libraries
 library(Seurat)
 library(future)
-plan("multisession", workers = 10)
+
+# The CGU teaching cluster gives each OnDemand RStudio session 4 logical CPUs
+# (= 2 physical cores, the nodes are 2 sockets x 10 cores x 2 threads) and a
+# 16 GB memory reservation. Match `workers` to physical cores, not threads.
+#
+# `multisession` workers are separate R processes with no shared memory, so
+# `future` serializes every global referenced in a parallel expression and
+# ships a full copy to each worker. N workers therefore means N + 1 resident
+# copies of the Seurat object. At the upstream vignette's `workers = 10` a
+# 1.5 GB object already exceeds 16 GB.
+#
+# Slurm is not enforcing per-job memory limits on these nodes (no
+# /etc/slurm/cgroup.conf on the compute nodes, JobAcctGatherType unset), so
+# overshooting is not a clean per-job kill. The node-level OOM killer fires
+# and can take out the other students sharing the node.
+workers_n <- 2
+plan("multisession", workers = workers_n)
 library(ggplot2)
 
-options(future.globals.maxSize = 10 * 1024^3)
+# Guardrail, not a cap. This is the size at which `future` refuses to export a
+# global and raises an error. Keeping it near the per-worker copy we can afford
+# turns "silently make 3 copies and get OOM-killed" into an informative error.
+# The upstream vignette's 10 GB silences exactly the warning students need.
+options(future.globals.maxSize = 2 * 1024^3)
 ```
 
 ## Mouse Brain: Vizgen MERSCOPE
@@ -495,12 +515,25 @@ detected transcripts per cell is 249.
 ## Expected staged layout: Nanostring CosMx
 
 `LoadNanostring()` wants a **directory** of CosMx outputs, staged at
-`spatial_imaging/nanostring_lung5_rep1/`. It expects the exprMat file
-(`..._exprMat_file.csv`), the cell metadata (`..._metadata_file.csv`), the
-per-transcript / molecule table (`..._tx_file.csv`), and the FOV positions
-(`..._fov_positions_file.csv`). The cell boundary polygons
-(`..._polygons.csv`) are provided by Nanostring on request. Upstream original
-path was `/brahms/hartmana/vignette_data/nanostring/lung5_rep1`.
+`spatial_imaging/nanostring_lung5_rep1/`. It matches four files by pattern, and
+all four must be in that one directory:
+
+| Pattern | File here |
+|---|---|
+| `*_exprMat_file.csv` | `Lung5_Rep1_exprMat_file.csv`, 198 MB |
+| `*_metadata_file.csv` | `Lung5_Rep1_metadata_file.csv`, 11.5 MB |
+| `*_tx_file.csv` | `Lung5_Rep1_tx_file.csv`, 3.40 GB |
+| `*-polygons.csv` | `Lung5_Rep1-polygons.csv`, 120 MB |
+
+The first three come from the vendor download, which needs registration. The
+cell boundary polygons come from elsewhere, a public Dropbox link, and are also
+staged one level up at `spatial_imaging/Lung5_Rep1-polygons.csv` for
+convenience. The copy inside the directory is a hard link to that one, because
+`ReadNanostring()` will only look in `data.dir`. `..._fov_positions_file.csv`
+ships with the download but is not one of the four the loader reads.
+
+Upstream original path was
+`/brahms/hartmana/vignette_data/nanostring/lung5_rep1`.
 
 The precomputed Azimuth annotations are a single `.Rds` staged at
 `spatial_imaging/nanostring_data.Rds` (a list with `$annotations` and `$umap`).
