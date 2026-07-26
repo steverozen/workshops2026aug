@@ -14,7 +14,8 @@ students and researchers, so favor runnable, well-commented R.
 
 The workshop data lives at `~/MEGA/workshop_data`, on the internal drive. That
 path is also in `WORKSHOP2026AUG_DATA` (set in `~/.Renviron`, `~/.profile`, and
-`~/.bashrc`), which is the first candidate `find_data_dir()` checks.
+`~/.bashrc`), which is the first candidate `find_data_dir()` checks. On the remote
+machine we will just hard code the path into find_data_dir().
 
 **The data is not going on GitHub.** It is about 39 GB, and several individual
 files exceed the 2 GB per-file git-lfs limit on GitHub Pro, for example the
