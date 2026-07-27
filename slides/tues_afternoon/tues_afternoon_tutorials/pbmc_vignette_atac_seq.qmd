@@ -45,12 +45,15 @@ directory, and in class each one is loaded, not computed. Loading is seconds
 and the loaded object is a few GB. The `eval: false` staging blocks are what
 produced those checkpoints, run once ahead of the workshop.
 
-Two things must be true before the session, or students will silently fall
-into the recompute path:
+Three things must be true before the session:
 
 1. The four `pbmc_atac_ck*.rds` files are present in the data directory.
+   Otherwise students silently fall into the recompute path.
 2. `presto` is installed. Without it `FindMarkers` falls back to a much
    slower implementation. `remotes::install_github("immunogenomics/presto")`.
+3. `..._fragments.tsv.gz` **and its `.tbi` index** are present. The
+   checkpoints do not contain fragment data, they only reference the file,
+   so the plotting steps read it directly.
 :::
 
 Checkpoints are read from the workshop data directory. If one is missing, the
@@ -83,14 +86,32 @@ if (!requireNamespace("presto", quietly = TRUE)) {
     "presto is NOT installed. FindMarkers will be slow if it has to run."
   )
 }
+
+# A ChromatinAssay stores the absolute path of the fragments file, so a
+# checkpoint .rds carries the path of whatever machine built it. Anywhere else
+# that path does not resolve and every Signac call that reads fragments
+# (FragmentHistogram, GeneActivity, CoveragePlot) dies with "Fragment file is
+# not indexed". Re-point the Fragment objects at this machine's data directory
+# after each load. UpdatePath() re-checks the md5 sum, which takes about 15
+# seconds on the 2.6 GB fragments file.
+repoint_fragments <- function(object, assay = "peaks") {
+  frags <- lapply(Fragments(object[[assay]]), function(f) {
+    UpdatePath(
+      f,
+      new.path = file.path(data_dir, basename(GetFragmentData(f, "path"))),
+      verbose = FALSE
+    )
+  })
+  Fragments(object[[assay]]) <- NULL
+  Fragments(object[[assay]]) <- frags
+  object
+}
 ```
 
 The large 10x Genomics ATAC files (h5 peak matrix, fragments.tsv.gz +
 index, ~3 GB total) and the reference scRNA-seq object (`pbmc_10k_v3.rds`)
-belong in the workshop data directory, not in this repository. As of
-2026-07-26 only the h5 peak matrix and `singlecell.csv.gz` are staged there,
-so the block below is what stages the rest. Run it ahead of the workshop, never
-during a session.
+belong in the workshop data directory, not in this repository. The block below
+is what put them there. Run it ahead of the workshop, never during a session.
 
 ```{r}
 #| eval: false
@@ -121,6 +142,7 @@ blacklist ratio per cell. The resulting object is cached to `ck_qc`.
 ```{r}
 if (file.exists(ck_qc)) {
   pbmc <- readRDS(ck_qc)
+  pbmc <- repoint_fragments(pbmc)
   message("Loaded pbmc from ", ck_qc)
 } else {
   counts <- Read10X_h5(
@@ -197,10 +219,14 @@ granges(pbmc)
 ### QC plots
 
 ```{r}
+#| label: density-scatter
+
 DensityScatter(pbmc, x = "nCount_peaks", y = "TSS.enrichment", log_x = TRUE, quantiles = TRUE)
 ```
 
 ```{r}
+#| label: fragment-histogrm
+
 pbmc$nucleosome_group <- ifelse(pbmc$nucleosome_signal > 4, "NS > 4", "NS < 4")
 FragmentHistogram(object = pbmc, group.by = "nucleosome_group")
 ```
@@ -219,8 +245,11 @@ VlnPlot(
 Cached to `ck_dimred`.
 
 ```{r}
+#| label: filter-norm-dim-red
+
 if (file.exists(ck_dimred)) {
   pbmc <- readRDS(ck_dimred)
+  pbmc <- repoint_fragments(pbmc)
   message("Loaded pbmc from ", ck_dimred)
 } else {
   pbmc <- subset(
@@ -282,6 +311,8 @@ Cached to `ck_labeled` (the relabeled `pbmc`). The reference `pbmc_rna` is
 loaded fresh because it is a separate object.
 
 ```{r}
+#| label: read-scrna-seq
+
 pbmc_rna <- readRDS(file.path(data_dir, "pbmc_10k_v3.rds"))
 pbmc_rna <- UpdateSeuratObject(pbmc_rna)
 ```
@@ -289,6 +320,7 @@ pbmc_rna <- UpdateSeuratObject(pbmc_rna)
 ```{r}
 if (file.exists(ck_labeled)) {
   pbmc <- readRDS(ck_labeled)
+  pbmc <- repoint_fragments(pbmc)
   message("Loaded pbmc from ", ck_labeled)
 } else {
   transfer.anchors <- FindTransferAnchors(
