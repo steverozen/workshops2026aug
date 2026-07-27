@@ -608,9 +608,38 @@ Upstream original path was `/brahms/hartmana/vignette_data/nanostring_data.Rds`,
 downloadable from the Seurat vignette data site.
 :::
 
+::: {.callout-important}
+## The Nanostring load is pre-computed, for the same reason as the Vizgen crop
+
+`LoadNanostring()` builds an `sp::SpatialPolygons` object from the cell
+segmentations and overflows R's pointer protection stack, exactly as `Crop()`
+does earlier in this document:
+
+```
+Error: protect(): protection stack overflow
+  1. Seurat::LoadNanostring(...)
+  2. SeuratObject::CreateSegmentation(data$segmentations)
+  4. sp::SpatialPolygons(Srl = coords)
+```
+
+Measured 2026-07-26 with sp 2.2.3 and SeuratObject 5.4.0. The fix is
+`--max-ppsize=500000`, a startup flag students cannot set in OnDemand RStudio,
+so the load is done once by
+`slides/wed_afternoon/staging/stage_nanostring_object.R` and this document reads
+the result. The Azimuth annotations and the `SCTransform()` below still run
+here, they are part of the lesson and they are cheap.
+:::
+
+```{r}
+#| label: nanostring-load-upstream
+#| eval: false
+# The upstream call, shown but not run. This is what produced the staged object.
+nano.obj <- LoadNanostring(data.dir = file.path(data_dir, "nanostring_lung5_rep1"), fov = "lung5.rep1")
+```
+
 ```{r}
 #| label: nanostring-load
-nano.obj <- LoadNanostring(data.dir = file.path(data_dir, "nanostring_lung5_rep1"), fov = "lung5.rep1")
+nano.obj <- readRDS(file.path(data_dir, "nanostring_lung5_rep1.rds"))
 # add in precomputed Azimuth annotations
 azimuth.data <- readRDS(file.path(data_dir, "nanostring_data.Rds"))
 nano.obj <- AddMetaData(nano.obj, metadata = azimuth.data$annotations)

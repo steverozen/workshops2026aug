@@ -14,7 +14,12 @@ node_modules/
 .pixi/*
 !.pixi/config.toml
 
-# Downloaded tutorial HTML. Kept out of git because students fetch these from
-# the upstream URLs listed in wed_morning_tutorials.md.
-slides/wed_morning/wed_morn_tutorials/*.html
-slides/wed_afternoon/wed_after_tutorials/*.html
+
+
+# Rendered Quarto HTML for the spatial tutorials, 31 MB to 147 MB each,
+# at or over GitHub's file-size warning and hard limits. The smaller
+# rendered tutorials (all under 10 MB) are still tracked.
+slides/wed_afternoon/wed_after_tutorials/seurat5_spatial_vignette_2.html
+slides/wed_afternoon/wed_after_tutorials/spatial_vignette.html
+slides/wed_afternoon/wed_after_tutorials/visiumhd_analysis_vignette.html
+slides/wed_afternoon/wed_after_tutorials/visiumhd_analysis_cell_segmentations.html

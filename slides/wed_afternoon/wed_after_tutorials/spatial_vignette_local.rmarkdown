@@ -1,0 +1,754 @@
+---
+title: "Spatial transcriptomics with Seurat: sequencing-based (Visium, Slide-seq)"
+subtitle: "Local version, reads from the workshop data repo, no network access"
+date: today
+format:
+  html:
+    toc: true
+    toc-depth: 3
+    embed-resources: true
+    fig-width: 8
+    fig-height: 6
+execute:
+  warning: false
+  message: true
+  error: false
+---
+
+Local rework of the Seurat vignette "Analysis, visualization, and integration of
+spatial datasets with Seurat" (sequencing-based platforms).
+
+Upstream: <https://satijalab.org/seurat/articles/spatial_vignette>
+
+::: {.callout-important}
+## Status: transcribed from upstream, not yet executed
+
+Every chunk below is transcribed from the upstream Seurat vignette and has **not
+been run yet**. This first render is the test. `error: false` is set in the
+YAML, so any chunk failure stops the render and is reported rather than being
+printed into the document and passed over. Apart from the three interactive
+Shiny chunks noted below, every chunk has `eval: true`, so nothing is skipped.
+:::
+
+::: {.callout-note}
+## Data files this document expects
+
+Upstream loads data through `SeuratData` (`InstallData()` / `LoadData()`) and
+through absolute paths on the Satija Lab file server
+(`/brahms/shared/vignette-data/...`). Both are network / server calls, so they
+are replaced here by plain `readRDS()` from the workshop data directory.
+
+The staging script must place these files in the data directory for
+`spatial_visium`:
+
+- `stxBrain_anterior1.rds` , the `stxBrain` `Seurat` object for the anterior1
+  sagittal mouse brain slice, i.e. `saveRDS(SeuratData::LoadData("stxBrain",
+  type = "anterior1"), ...)` run on a machine with network access.
+- `stxBrain_posterior1.rds` , the same for `type = "posterior1"`.
+- `allen_cortex.rds` , the ~14k cell Allen Institute adult mouse cortex
+  SMART-Seq2 scRNA-seq reference (`Seurat` object). Upstream reads this from
+  `/brahms/shared/vignette-data/allen_cortex.rds`.
+- `mouse_hippocampus_reference.rds` , the processed mouse hippocampus scRNA-seq
+  reference `Seurat` object (Saunders, Macosko et al. 2018). Upstream reads this
+  from `/brahms/shared/vignette-data/mouse_hippocampus_reference.rds`.
+- `ssHippo.rds` , the `ssHippo` `Seurat` object (Slide-seq v2 mouse
+  hippocampus), i.e. `saveRDS(SeuratData::LoadData("ssHippo"), ...)`.
+:::
+
+::: {.callout-warning}
+## Slow steps that could be precomputed at staging time
+
+Several steps are slow. If the first test render takes too long, precompute them
+on a staging machine and stage the resulting objects instead:
+
+- `SCTransform()` on each brain slice and on the Allen reference.
+- `FindSpatiallyVariableFeatures(selection.method = "moransi")`, run three times
+  (brain genes, cortex prediction scores, Slide-seq genes). This is the slowest
+  family of calls. Installing the optional `Rfast2` package speeds up the
+  Slide-seq binning path.
+- The anchor-based integration (`FindTransferAnchors()` / `TransferData()`),
+  run for both the Visium cortex and the Slide-seq puck.
+- RCTD deconvolution (`create.RCTD()` / `run.RCTD()`), which also needs the
+  `spacexr` package installed from GitHub.
+:::
+
+## Setup
+
+```{r}
+#| label: setup
+source(here::here("slides", "find_data_dir.R"))
+data_dir <- find_data_dir("spatial_visium")
+# allen_cortex.rds is shared with the imaging tutorial and staged once at the
+# top level of the data dir, so read it from the root rather than data_dir.
+data_root <- find_data_dir()
+report_data_dir("spatial_visium")
+```
+
+```{r}
+#| label: libraries
+library(Seurat)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+```
+
+# 10x Visium
+
+## Dataset
+
+We will be using a dataset of sagittal mouse brain slices generated using the
+Visium v1 chemistry. There are two serial anterior sections and two (matched)
+serial posterior sections.
+
+Upstream downloads the data with `SeuratData::InstallData("stxBrain")` and then
+`LoadData("stxBrain", type = "anterior1")`. Here we read the staged object
+instead.
+
+```{r}
+#| label: load-brain
+brain <- readRDS(file.path(data_dir, "stxBrain_anterior1.rds"))
+brain
+```
+
+## Data preprocessing
+
+The initial preprocessing steps we perform on the spot-by-gene expression data
+are similar to a typical scRNA-seq experiment. We first normalize the data to
+account for variance in sequencing depth across data points. The variance in
+molecular counts per spot can be substantial for spatial datasets, particularly
+if there are differences in cell density across the tissue.
+
+```{r}
+#| label: brain-qc-plots
+plot1 <- VlnPlot(brain, features = "nCount_Spatial", pt.size = 0.1) + NoLegend()
+
+plot2 <- SpatialFeaturePlot(brain, features = "nCount_Spatial") + theme(legend.position = "right")
+
+wrap_plots(plot1, plot2)
+```
+
+We proceed with `sctransform` (Hafemeister and Satija, Genome Biology 2019,
+<https://doi.org/10.1186/s13059-019-1874-1>) for normalization, which builds
+regularized negative binomial models of gene expression to account for technical
+artifacts while preserving biological variance.
+
+```{r}
+#| label: brain-sctransform
+brain <- SCTransform(brain, assay = "Spatial", verbose = FALSE)
+```
+
+## Gene expression visualization
+
+`SpatialFeaturePlot()` extends `FeaturePlot()`, and can overlay molecular data on
+top of tissue histology. In this mouse brain data set, `Hpca` is a strong
+hippocampus marker and `Ttr` is a marker of the choroid plexus.
+
+```{r}
+#| label: brain-spatial-features
+SpatialFeaturePlot(brain, features = c("Hpca", "Ttr"))
+```
+
+The spatial plotting functions return `ggplot2` objects, so additional layers
+can be added for customization.
+
+```{r}
+#| label: brain-custom-plot
+custom_plot <- SpatialFeaturePlot(brain, features = c("Ttr")) +
+                theme(legend.text = element_text(size = 0),
+                      legend.title = element_text(size = 20),
+                      legend.key.size = unit(1, "cm"))
+
+custom_plot
+```
+
+Users can also adjust the size of the spots (and their transparency) to improve
+visualization of the histology image. Below we try a different scale factor for
+point size and set `alpha = c(0.1, 1)`, to downweight the transparency of points
+with lower expression.
+
+```{r}
+#| label: brain-pt-size-alpha
+p1 <- SpatialFeaturePlot(brain, features = "Ttr", pt.size.factor = 1)
+
+p2 <- SpatialFeaturePlot(brain, features = "Ttr", alpha = c(0.1, 1))
+
+p1 + p2
+```
+
+## Dimensionality reduction, clustering, and visualization
+
+We proceed to run dimensionality reduction and clustering on the RNA expression
+data, using the same workflow as for scRNA-seq analysis.
+
+```{r}
+#| label: brain-cluster
+brain <- RunPCA(brain, assay = "SCT", verbose = FALSE)
+brain <- FindNeighbors(brain, reduction = "pca", dims = 1:30)
+brain <- FindClusters(brain, verbose = FALSE)
+brain <- RunUMAP(brain, reduction = "pca", dims = 1:30)
+```
+
+We can visualize the clustering either in UMAP space (with `DimPlot()`) or
+overlaid on the image with `SpatialDimPlot()`.
+
+```{r}
+#| label: brain-dimplot
+p1 <- DimPlot(brain, reduction = "umap", label = TRUE)
+
+p2 <- SpatialDimPlot(brain, label = TRUE, label.size = 3)
+
+p1 + p2
+```
+
+The `cells.highlight` parameter can demarcate particular cells of interest on a
+`SpatialDimPlot()`, useful for distinguishing the spatial localization of
+individual clusters.
+
+```{r}
+#| label: brain-cells-highlight
+SpatialDimPlot(brain,
+               cells.highlight = CellsByIdentities(object = brain, idents = c(2, 1, 4, 3, 5, 8)),
+               facet.highlight = TRUE,
+               ncol = 3) & theme(plot.margin = unit(c(1, 1, 1, 1), "mm"))
+```
+
+## Interactive plotting
+
+::: {.callout-note}
+The interactive plots below (`interactive = TRUE`, and `LinkedDimPlot()`) open a
+Shiny session, which blocks a non-interactive render forever. Confirmed on
+2026-07-26: `quarto render` hung on `brain-interactive-dim` for over an hour
+before being killed. All three chunks are therefore `eval: false`, and the code
+is shown but not run.
+
+To see them work, run the three chunks by hand in an interactive R session.
+:::
+
+Both `SpatialDimPlot()` and `SpatialFeaturePlot()` have an `interactive`
+parameter that, when set to `TRUE`, opens an interactive Shiny environment.
+
+```{r}
+#| label: brain-interactive-dim
+#| eval: false
+SpatialDimPlot(brain, interactive = TRUE)
+```
+
+For `SpatialFeaturePlot()`, setting `interactive` to `TRUE` allows for adjusting
+the transparency of the spots, the point size, and the Assay and feature being
+plotted.
+
+```{r}
+#| label: brain-interactive-feature
+#| eval: false
+SpatialFeaturePlot(brain, features = "Ttr", interactive = TRUE)
+```
+
+`LinkedDimPlot()` links the UMAP representation to the tissue image
+representation and allows for interactive selection.
+
+```{r}
+#| label: brain-linked-dim
+#| eval: false
+LinkedDimPlot(brain)
+```
+
+## Identification of Spatially Variable Features
+
+The first approach is to perform differential expression based on pre-annotated
+anatomical regions within the tissue, which may be determined either from
+unsupervised clustering or prior knowledge.
+
+```{r}
+#| label: brain-de-markers
+de_markers <- FindMarkers(brain, ident.1 = 5, ident.2 = 7)
+
+SpatialFeaturePlot(object = brain, features = rownames(de_markers)[1:3], alpha = c(0.1, 1), ncol = 3)
+```
+
+An alternative approach, implemented in `FindSpatiallyVariableFeatures()`,
+searches for features exhibiting spatial patterning in the absence of
+pre-annotation. Here we specify `selection.method = "moransi"`, which uses
+Moran's I as a spatial autocorrelation metric.
+
+::: {.callout-warning}
+This `FindSpatiallyVariableFeatures()` call is one of the slow steps. Consider
+precomputing at staging time.
+:::
+
+```{r}
+#| label: brain-svf-moransi
+brain <- FindSpatiallyVariableFeatures(brain,
+                                       features = VariableFeatures(brain)[1:1000],
+                                       selection.method = "moransi")
+```
+
+Now we visualize the expression of the top 6 features identified by this
+measure.
+
+```{r}
+#| label: brain-svf-plot
+top.features <- head(SpatiallyVariableFeatures(brain, method = "moransi"), 6)
+
+SpatialFeaturePlot(brain, features = top.features, ncol = 3, alpha = c(0.1, 1)) &
+  theme(plot.margin = unit(c(1, 1, 1, 1), "mm"))
+```
+
+## Subset out anatomical regions
+
+Here we approximately subset the frontal cortex. First we take a subset of
+clusters, then further segment based on exact positions.
+
+```{r}
+#| label: brain-subset-clusters
+brain_sub <- subset(brain, idents = c(1, 2, 3, 4, 6, 7))
+
+SpatialDimPlot(brain_sub, label = T, crop = T, label.size = 3) + NoLegend() +
+  SpatialDimPlot(brain_sub, label = T, crop = F, label.size = 3)
+```
+
+Now we can examine approximately which region to subset to by plotting with the
+axes labeled.
+
+```{r}
+#| label: brain-subset-axes
+theme_axis_labels <- theme(axis.text.x = element_text(size = 10),
+                           axis.text.y = element_text(size = 10),
+                           axis.title.x = element_text(size = 10),
+                           axis.title.y = element_text(size = 10))
+
+SpatialDimPlot(brain_sub, label = T, label.size = 3, crop = T) + theme_axis_labels
+```
+
+We can zoom in to a particular region with `Crop()`.
+
+```{r}
+#| label: brain-crop
+brain_sub[["anterior1"]] <- Crop(brain_sub[["anterior1"]],
+                              x = c(150, 500),
+                              y = c(0, 425))
+
+SpatialDimPlot(brain_sub, label = T) + theme_axis_labels
+```
+
+Finally we subset out the cells in the lower right quadrant. Because our
+coordinates are in image space, we need to be careful when subsetting using a
+line. The y-coordinates in Cartesian space are negative, since the direction of
+our y-axis is downward.
+
+```{r}
+#| label: brain-subset-cortex
+m <- 0.6; b <- -550
+
+cortex_coords <- GetTissueCoordinates(brain_sub, scale = "lowres") %>%
+                  subset(-y >= (m * x + b))
+
+cortex <- subset(brain_sub,
+                 cells = cortex_coords$cell)
+SpatialDimPlot(cortex, label = T, label.size = 3, crop = F)
+```
+
+```{r}
+#| label: brain-cortex-crop-plots
+c1 <- SpatialDimPlot(cortex, images = "anterior1", crop = T, label = T)
+c2 <- SpatialDimPlot(cortex, images = "anterior1", crop = F, label = T, pt.size.factor = 1, label.size = 3)
+
+c1 + c2
+```
+
+## Integration with single-cell data
+
+At ~50um, spots from the Visium assay will encompass the expression profiles of
+multiple cells. We apply the anchor-based integration workflow to transfer
+annotations from a reference scRNA-seq dataset of ~14,000 adult mouse cortical
+cells (Allen Institute, SMART-Seq2 protocol) to the spatial query.
+
+Upstream reads the reference from
+`/brahms/shared/vignette-data/allen_cortex.rds`. Here we read the staged object.
+
+::: {.callout-warning}
+`SCTransform()` on the reference and the `FindTransferAnchors()` /
+`TransferData()` integration are slow steps. Consider precomputing.
+:::
+
+```{r}
+#| label: allen-reference
+allen_reference <- readRDS(file.path(data_root, "allen_cortex.rds"))
+# Note: setting ncells=3000 normalizes the full dataset, but learns noise models on 3k cells
+# This speeds up SCTransform dramatically with no loss in performance
+allen_reference <- SCTransform(allen_reference, ncells = 3000, verbose = FALSE) %>%
+                      RunPCA(verbose = FALSE) %>%
+                      RunUMAP(dims = 1:30)
+```
+
+```{r}
+#| label: allen-dimplot
+# The annotation is stored in the 'subclass' column of object metadata
+DimPlot(allen_reference, group.by = "subclass", label = TRUE)
+```
+
+```{r}
+#| label: brain-transfer-anchors
+anchors <- FindTransferAnchors(reference = allen_reference,
+                               query = cortex)
+
+predictions.assay <- TransferData(anchorset = anchors,
+                                  refdata = allen_reference$subclass,
+                                  prediction.assay = TRUE,
+                                  weight.reduction = cortex[["pca"]],
+                                  dims = 1:30)
+
+cortex[["predictions"]] <- predictions.assay
+```
+
+Now we get prediction scores for each spot for each class. Of particular
+interest in the frontal cortex region are the laminar excitatory neurons.
+
+```{r}
+#| label: cortex-prediction-plot
+DefaultAssay(cortex) <- "predictions"
+
+SpatialFeaturePlot(cortex, features = c("L2/3 IT", "L4"), ncol = 2, crop = TRUE) &
+  theme(plot.margin = unit(c(1, 1, 1, 1), "mm"))
+```
+
+Based on these prediction scores, we can also predict cell types whose location
+is spatially restricted, using the prediction scores as the "marks" rather than
+gene expression.
+
+::: {.callout-warning}
+Another slow `FindSpatiallyVariableFeatures()` call.
+:::
+
+```{r}
+#| label: cortex-svf
+cortex <- FindSpatiallyVariableFeatures(cortex,
+                                        assay = "predictions",
+                                        selection.method = "moransi",
+                                        features = rownames(cortex),
+                                        r.metric = 5,
+                                        layer = "data")
+
+top.clusters <- head(SpatiallyVariableFeatures(cortex, method = "moransi"), 4)
+
+SpatialFeaturePlot(object = cortex, features = top.clusters, ncol = 2) &
+  theme(plot.margin = unit(c(1, 1, 1, 1), "mm"))
+```
+
+Finally, we show that our integrative procedure can recover known spatial
+localization patterns of both neuronal and non-neuronal subsets.
+
+```{r}
+#| label: cortex-features-of-interest
+features_of_interest <- c("Astro", "L2/3 IT", "L4", "L5 PT", "L5 IT", "L6 CT", "L6 IT", "L6b", "Oligo")
+
+SpatialFeaturePlot(cortex,
+                   features = features_of_interest,
+                   pt.size.factor = 1,
+                   ncol = 2,
+                   crop = TRUE,
+                   alpha = c(0.1, 1)) & theme(plot.margin = unit(c(1, 1, 1, 1), "mm")) &
+                theme(plot.margin = unit(c(1, 1, 1, 1), "mm"))
+```
+
+## Working with multiple slices
+
+This dataset contains another slice corresponding to the other half of the
+brain. Upstream loads it with `LoadData("stxBrain", type = "posterior1")`. Here
+we read the staged object and perform the same initial normalization.
+
+```{r}
+#| label: load-brain2
+brain2 <- readRDS(file.path(data_dir, "stxBrain_posterior1.rds"))
+
+brain2 <- SCTransform(brain2, assay = "Spatial", verbose = FALSE)
+```
+
+To work with multiple slices in the same Seurat object, we use the `merge`
+function.
+
+```{r}
+#| label: brain-merge
+brain.merge <- merge(brain, brain2)
+```
+
+This enables joint dimensional reduction and clustering on the underlying RNA
+expression data.
+
+```{r}
+#| label: brain-merge-cluster
+DefaultAssay(brain.merge) <- "SCT"
+VariableFeatures(brain.merge) <- c(VariableFeatures(brain), VariableFeatures(brain2))
+brain.merge <- RunPCA(brain.merge, verbose = FALSE)
+brain.merge <- FindNeighbors(brain.merge, dims = 1:30)
+brain.merge <- FindClusters(brain.merge, verbose = FALSE)
+brain.merge <- RunUMAP(brain.merge, dims = 1:30)
+```
+
+The data can be jointly visualized in a single UMAP plot. `SpatialDimPlot()` and
+`SpatialFeaturePlot()` will by default plot all slices as columns and
+groupings/features as rows.
+
+```{r}
+#| label: brain-merge-dimplot
+DimPlot(brain.merge, reduction = "umap", group.by = c("ident", "orig.ident"))
+```
+
+```{r}
+#| label: brain-merge-spatial-dim
+SpatialDimPlot(brain.merge)
+```
+
+```{r}
+#| label: brain-merge-spatial-feature
+SpatialFeaturePlot(brain.merge, features = c("Hpca", "Plp1"))
+```
+
+## Acknowledgments
+
+We would like to thank Nigel Delaney and Stephen Williams for their helpful
+feedback and contributions to the code for Visium data loading and analysis.
+
+# Slide-seq
+
+## Dataset
+
+Here we analyze a dataset generated using Slide-seq v2 of the mouse hippocampus.
+Upstream loads it with `SeuratData::InstallData("ssHippo")` and
+`LoadData('ssHippo')`. Here we read the staged object.
+
+```{r}
+#| label: load-slideseq
+slide.seq <- readRDS(file.path(data_dir, "ssHippo.rds"))
+slide.seq
+```
+
+## Data preprocessing
+
+Many beads contain particularly low UMI counts, but we choose to keep all
+detected beads for downstream analysis.
+
+```{r}
+#| label: slideseq-qc-plots
+plot1 <- VlnPlot(slide.seq, features = 'nCount_Spatial', pt.size = 0, log = TRUE) + NoLegend()
+slide.seq$log_nCount_Spatial <- log(slide.seq$nCount_Spatial)
+plot2 <- SpatialFeaturePlot(slide.seq, features = 'log_nCount_Spatial') + theme(legend.position = "right")
+wrap_plots(plot1, plot2)
+```
+
+We then normalize the data using `sctransform` and perform a standard scRNA-seq
+dimensionality reduction and clustering workflow.
+
+```{r}
+#| label: slideseq-cluster
+slide.seq <- SCTransform(slide.seq, assay = "Spatial", ncells = 3000, verbose = FALSE)
+slide.seq <- RunPCA(slide.seq)
+slide.seq <- RunUMAP(slide.seq, dims = 1:30)
+slide.seq <- FindNeighbors(slide.seq, dims = 1:30)
+slide.seq <- FindClusters(slide.seq, resolution = 0.3, verbose = FALSE)
+```
+
+We can visualize the results of the clustering either in UMAP space (with
+`DimPlot()`) or in the bead coordinate space with `SpatialDimPlot()`.
+
+```{r}
+#| label: slideseq-dimplot
+plot1 <- DimPlot(slide.seq, reduction = "umap", label = TRUE)
+plot2 <- SpatialDimPlot(slide.seq, stroke = 0)
+plot1 + plot2
+```
+
+```{r}
+#| label: slideseq-cells-highlight
+SpatialDimPlot(slide.seq, cells.highlight = CellsByIdentities(object = slide.seq, idents = c(1, 6, 13)), facet.highlight = TRUE)
+```
+
+## Integration with a scRNA-seq reference
+
+To facilitate cell-type annotation of the Slide-seq dataset, we leverage an
+existing mouse single-cell RNA-seq hippocampus dataset, produced in Saunders,
+Macosko, et al. 2018, <https://doi.org/10.1016/j.cell.2018.07.028>. Upstream
+reads the processed Seurat object from
+`/brahms/shared/vignette-data/mouse_hippocampus_reference.rds`. Here we read the
+staged object.
+
+::: {.callout-warning}
+The `FindTransferAnchors()` / `TransferData()` integration is a slow step.
+:::
+
+```{r}
+#| label: load-hippo-reference
+ref <- readRDS(file.path(data_dir, "mouse_hippocampus_reference.rds"))
+ref <- UpdateSeuratObject(ref)
+```
+
+The original annotations are provided at several resolutions, from broad classes
+(`ref$class`) to subclusters within celltypes (`ref$subcluster`). For this
+vignette we work off of a modification of the celltype annotations
+(`ref$celltype`).
+
+```{r}
+#| label: slideseq-transfer-anchors
+anchors <- FindTransferAnchors(reference = ref,
+                               query = slide.seq,
+                               normalization.method = "SCT",
+                               npcs = 50)
+
+predictions.assay <- TransferData(anchorset = anchors,
+                                  refdata = ref$celltype,
+                                  prediction.assay = TRUE,
+                                  weight.reduction = slide.seq[["pca"]],
+                                  dims = 1:50)
+
+slide.seq[["predictions"]] <- predictions.assay
+```
+
+We can visualize the prediction scores for some of the major expected classes.
+
+```{r}
+#| label: slideseq-prediction-plot
+DefaultAssay(slide.seq) <- "predictions"
+
+cell.types.of.interest <- c("CA3 Principal cells", "Dentate Principal cells", "Endothelial tip", "Entorhinal cortex", "Ependymal", "Oligodendrocyte")
+
+SpatialFeaturePlot(slide.seq, features = cell.types.of.interest, alpha = c(0.1, 1))
+```
+
+```{r}
+#| label: slideseq-predicted-id
+slide.seq$predicted.id <- GetTransferPredictions(slide.seq)
+
+Idents(slide.seq) <- "predicted.id"
+
+cell.types.highlight <- CellsByIdentities(object = slide.seq, idents = cell.types.of.interest[1:3])
+
+SpatialDimPlot(slide.seq, cells.highlight = cell.types.highlight, facet.highlight = TRUE)
+```
+
+## Identification of Spatially Variable Features
+
+Here we demonstrate an implementation of Moran's I available via
+`FindSpatiallyVariableFeatures()` by setting `method = "moransi"`. Moran's I
+computes an overall spatial autocorrelation and gives a statistic (similar to a
+correlation coefficient) that measures the dependence of a feature on spatial
+location.
+
+A basic binning strategy draws a rectangular grid over a Slide-seq puck and
+averages the feature and location within each bin. The number of bins in the x
+and y direction are controlled by the `x.cuts` and `y.cuts` parameters. While
+not required, installing the optional `Rfast2` package will significantly
+decrease the runtime.
+
+::: {.callout-warning}
+This is the slowest `FindSpatiallyVariableFeatures()` call in the document. The
+optional `Rfast2` package speeds up the binning path. Consider precomputing.
+:::
+
+```{r}
+#| label: slideseq-svf
+DefaultAssay(slide.seq) <- "SCT"
+
+slide.seq <- FindSpatiallyVariableFeatures(slide.seq,
+                                           assay = "SCT",
+                                           layer = "scale.data",
+                                           features = VariableFeatures(slide.seq)[1:1000],
+                                           selection.method = "moransi",
+                                           x.cuts = 100, y.cuts = 100)
+```
+
+Now we visualize the expression of the top 6 features identified by Moran's I.
+
+```{r}
+#| label: slideseq-svf-plot
+spatially.variable.feats <- SpatiallyVariableFeatures(slide.seq, method = "moransi")
+
+SpatialFeaturePlot(slide.seq,
+                   features = head(spatially.variable.feats, 6),
+                   ncol = 3,
+                   alpha = c(0.1, 1),
+                   max.cutoff = "q95")
+```
+
+## Spatial deconvolution using RCTD
+
+Seurat v5 also includes support for Robust Cell Type Decomposition (RCTD,
+Cable et al. 2022, <https://doi.org/10.1038/s41587-021-00830-w>), a computational
+approach to deconvolve spot-level data when provided with an scRNA-seq reference.
+
+::: {.callout-important}
+## RCTD requires the `spacexr` package installed from GitHub
+
+Upstream installs it with
+`devtools::install_github("dmcable/spacexr", build_vignettes = FALSE)`. That is a
+network call and is **not** run here. This section assumes `spacexr` is already
+installed on the machine doing the render. If it is not, the `library(spacexr)`
+chunk below errors and, under `error: false`, stops the render.
+:::
+
+::: {.callout-warning}
+`create.RCTD()` / `run.RCTD()` are slow. RCTD parallelizes well, so `max_cores`
+can be raised. Consider precomputing the annotated object at staging time.
+:::
+
+```{r}
+#| label: rctd-library
+library(spacexr)
+```
+
+Counts, cluster, and spot information is extracted from the Seurat query and
+reference objects to construct `Reference` and `SpatialRNA` objects used by RCTD.
+
+```{r}
+#| label: rctd-reference
+# Set up reference
+ref <- readRDS(file.path(data_dir, "mouse_hippocampus_reference.rds"))
+ref <- UpdateSeuratObject(ref)
+Idents(ref) <- "celltype"
+
+# Extract information to pass to the RCTD Reference function
+counts <- ref[["RNA"]]$counts
+cluster <- as.factor(ref$celltype)
+names(cluster) <- colnames(ref)
+nUMI <- ref$nCount_RNA
+names(nUMI) <- colnames(ref)
+reference <- Reference(counts, cluster, nUMI)
+```
+
+```{r}
+#| label: rctd-query
+# Set up query with the RCTD function SpatialRNA
+slide.seq <- readRDS(file.path(data_dir, "ssHippo.rds"))
+counts <- slide.seq[["Spatial"]]$counts
+coords <- GetTissueCoordinates(slide.seq)
+colnames(coords) <- c("x", "y")
+coords[is.na(colnames(coords))] <- NULL
+query <- SpatialRNA(coords, counts, colSums(counts))
+```
+
+Using the reference and query object, we annotate the dataset and add the cell
+type labels to the query Seurat object.
+
+```{r}
+#| label: rctd-run
+RCTD <- create.RCTD(query, reference, max_cores = 8)
+RCTD <- run.RCTD(RCTD, doublet_mode = 'doublet')
+slide.seq <- AddMetaData(slide.seq, metadata = RCTD@results$results_df)
+```
+
+Next, plot the RCTD annotations. Because we ran RCTD in doublet mode, the
+algorithm assigns a `first_type` and `second_type` for each barcode or spot.
+
+```{r}
+#| label: rctd-plot
+p1 <- SpatialDimPlot(slide.seq, group.by = "first_type")
+p2 <- SpatialDimPlot(slide.seq, group.by = "second_type")
+
+p1 | p2
+```
+
+# Session Info
+
+```{r}
+#| label: session-info
+sessionInfo()
+```
+
