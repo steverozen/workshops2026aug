@@ -1,0 +1,1795 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.27">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>scATAC-seq vignette (Signac PBMC)</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="pbmc_vignette_atac_seq_files/libs/clipboard/clipboard.min.js"></script>
+<script src="pbmc_vignette_atac_seq_files/libs/quarto-html/quarto.js" type="module"></script>
+<script src="pbmc_vignette_atac_seq_files/libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="pbmc_vignette_atac_seq_files/libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="pbmc_vignette_atac_seq_files/libs/quarto-html/popper.min.js"></script>
+<script src="pbmc_vignette_atac_seq_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="pbmc_vignette_atac_seq_files/libs/quarto-html/anchor.min.js"></script>
+<link href="pbmc_vignette_atac_seq_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="pbmc_vignette_atac_seq_files/libs/quarto-html/quarto-syntax-highlighting-ed96de9b727972fe78a7b5d16c58bf87.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="pbmc_vignette_atac_seq_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="pbmc_vignette_atac_seq_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="pbmc_vignette_atac_seq_files/libs/bootstrap/bootstrap-a80d6bf78715921a7d1a4da328c3e0aa.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+
+
+</head>
+
+<body class="fullcontent quarto-light">
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">scATAC-seq vignette (Signac PBMC)</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>Adapted from <a href="https://stuartlab.org/signac/articles/pbmc_vignette.html" class="uri">https://stuartlab.org/signac/articles/pbmc_vignette.html</a>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Signac)</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Seurat)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: SeuratObject</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: sp</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'SeuratObject'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    intersect, t</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(GenomicRanges)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: stats4</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: BiocGenerics</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: generics</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'generics'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    as.difftime, as.factor, as.ordered, intersect, is.element, setdiff,
+    setequal, union</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'BiocGenerics'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:stats':
+
+    IQR, mad, sd, var, xtabs</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    anyDuplicated, aperm, append, as.data.frame, basename, cbind,
+    colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,
+    get, grep, grepl, is.unsorted, lapply, Map, mapply, match, mget,
+    order, paste, pmax, pmax.int, pmin, pmin.int, Position, rank,
+    rbind, Reduce, rownames, sapply, saveRDS, table, tapply, unique,
+    unsplit, which.max, which.min</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: S4Vectors</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'S4Vectors'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:utils':
+
+    findMatches</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    expand.grid, I, unname</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: IRanges</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'IRanges'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:sp':
+
+    %over%</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: Seqinfo</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
+<span id="cb23-2"><a href="#cb23-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(patchwork)</span>
+<span id="cb23-3"><a href="#cb23-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(GenomeInfoDb) <span class="co"># for standardChromosomes()</span></span>
+<span id="cb23-4"><a href="#cb23-4" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(biovizBase)   <span class="co"># required indirectly by Signac plotting</span></span>
+<span id="cb23-5"><a href="#cb23-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(AnnotationHub)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: BiocFileCache</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: dbplyr</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Where the pre-staged workshop data lives. See slides/find_data_dir.R.</span></span>
+<span id="cb26-2"><a href="#cb26-2" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(here<span class="sc">::</span><span class="fu">here</span>(<span class="st">"slides"</span>, <span class="st">"find_data_dir.R"</span>))</span>
+<span id="cb26-3"><a href="#cb26-3" aria-hidden="true" tabindex="-1"></a>data_dir <span class="ot">&lt;-</span> <span class="fu">find_data_dir</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<section id="checkpoint-files" class="level3">
+<h3 class="anchored" data-anchor-id="checkpoint-files">Checkpoint files</h3>
+<div class="callout callout-style-default callout-important callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+<span class="screen-reader-only">Important</span>Nothing here is recomputed during class
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Timed on 2026-07-26, on a 30 GB laptop. This tutorial cannot be run from scratch in a class slot, and it does not fit in 16 GB of RAM:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 24%">
+<col style="width: 76%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Step</th>
+<th>Cost from scratch</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>CreateChromatinAssay</code> + <code>NucleosomeSignal</code> + <code>TSSEnrichment</code></td>
+<td>tens of minutes, and it streams the 2.6 GB fragments file</td>
+</tr>
+<tr class="even">
+<td><code>GeneActivity</code></td>
+<td>tens of minutes</td>
+</tr>
+<tr class="odd">
+<td><code>FindTransferAnchors</code> / <code>TransferData</code></td>
+<td>tens of minutes</td>
+</tr>
+<tr class="even">
+<td><code>FindMarkers(test.use = "wilcox")</code> over ~100k peaks</td>
+<td><strong>hours without <code>presto</code></strong></td>
+</tr>
+<tr class="odd">
+<td><code>FindMarkers(test.use = "LR")</code> over ~100k peaks</td>
+<td><strong>hours, one logistic regression per peak</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Peak memory during the fragment and <code>GeneActivity</code> steps was about 15 GB, which will not survive on a 16 GB student machine alongside RStudio and a browser.</p>
+<p>So every expensive step is checkpointed to <code>.rds</code> in the workshop data directory, and in class each one is loaded, not computed. Loading is seconds and the loaded object is a few GB. The <code>eval: false</code> staging blocks are what produced those checkpoints, run once ahead of the workshop.</p>
+<p>Two things must be true before the session, or students will silently fall into the recompute path:</p>
+<ol type="1">
+<li>The four <code>pbmc_atac_ck*.rds</code> files are present in the data directory.</li>
+<li><code>presto</code> is installed. Without it <code>FindMarkers</code> falls back to a much slower implementation. <code>remotes::install_github("immunogenomics/presto")</code>.</li>
+</ol>
+</div>
+</div>
+<p>Checkpoints are read from the workshop data directory. If one is missing, the tutorial recomputes it and writes the result to <code>gitignore/</code> locally rather than to the shared data directory, which students will not have write access to.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Read checkpoints from the staged data directory, write any that have to be</span></span>
+<span id="cb27-2"><a href="#cb27-2" aria-hidden="true" tabindex="-1"></a><span class="co"># recomputed into the local gitignore/ directory.</span></span>
+<span id="cb27-3"><a href="#cb27-3" aria-hidden="true" tabindex="-1"></a>ck_read_dir <span class="ot">&lt;-</span> data_dir</span>
+<span id="cb27-4"><a href="#cb27-4" aria-hidden="true" tabindex="-1"></a>ck_write_dir <span class="ot">&lt;-</span> here<span class="sc">::</span><span class="fu">here</span>(<span class="st">"gitignore"</span>)</span>
+<span id="cb27-5"><a href="#cb27-5" aria-hidden="true" tabindex="-1"></a><span class="fu">dir.create</span>(ck_write_dir, <span class="at">showWarnings =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb27-6"><a href="#cb27-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-7"><a href="#cb27-7" aria-hidden="true" tabindex="-1"></a>ck_qc      <span class="ot">&lt;-</span> <span class="fu">in_data_dir</span>(<span class="st">"pbmc_atac_ck1_qc.rds"</span>)       <span class="co"># post-QC, pre-subset</span></span>
+<span id="cb27-8"><a href="#cb27-8" aria-hidden="true" tabindex="-1"></a>ck_dimred  <span class="ot">&lt;-</span> <span class="fu">in_data_dir</span>(<span class="st">"pbmc_atac_ck2_dimred.rds"</span>)   <span class="co"># post-UMAP + GeneActivity</span></span>
+<span id="cb27-9"><a href="#cb27-9" aria-hidden="true" tabindex="-1"></a>ck_labeled <span class="ot">&lt;-</span> <span class="fu">in_data_dir</span>(<span class="st">"pbmc_atac_ck3_labeled.rds"</span>)  <span class="co"># post-label-transfer + relabel</span></span>
+<span id="cb27-10"><a href="#cb27-10" aria-hidden="true" tabindex="-1"></a>ck_markers <span class="ot">&lt;-</span> <span class="fu">in_data_dir</span>(<span class="st">"pbmc_atac_ck4_markers.rds"</span>)  <span class="co"># da_peaks + lr_da_peaks</span></span>
+<span id="cb27-11"><a href="#cb27-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb27-12"><a href="#cb27-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Say plainly which of these will be loaded and which will be recomputed, so a</span></span>
+<span id="cb27-13"><a href="#cb27-13" aria-hidden="true" tabindex="-1"></a><span class="co"># slow run is diagnosed in the first seconds rather than an hour in.</span></span>
+<span id="cb27-14"><a href="#cb27-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (ck <span class="cf">in</span> <span class="fu">c</span>(ck_qc, ck_dimred, ck_labeled, ck_markers)) {</span>
+<span id="cb27-15"><a href="#cb27-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(</span>
+<span id="cb27-16"><a href="#cb27-16" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> (<span class="fu">file.exists</span>(ck)) <span class="st">"will LOAD      "</span> <span class="cf">else</span> <span class="st">"will RECOMPUTE "</span>,</span>
+<span id="cb27-17"><a href="#cb27-17" aria-hidden="true" tabindex="-1"></a>    <span class="fu">basename</span>(ck)</span>
+<span id="cb27-18"><a href="#cb27-18" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb27-19"><a href="#cb27-19" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>will LOAD      pbmc_atac_ck1_qc.rds</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>will LOAD      pbmc_atac_ck2_dimred.rds</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>will LOAD      pbmc_atac_ck3_labeled.rds</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>will LOAD      pbmc_atac_ck4_markers.rds</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="sc">!</span><span class="fu">requireNamespace</span>(<span class="st">"presto"</span>, <span class="at">quietly =</span> <span class="cn">TRUE</span>)) {</span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>    <span class="st">"presto is NOT installed. FindMarkers will be slow if it has to run."</span></span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<p>The large 10x Genomics ATAC files (h5 peak matrix, fragments.tsv.gz + index, ~3 GB total) and the reference scRNA-seq object (<code>pbmc_10k_v3.rds</code>) belong in the workshop data directory, not in this repository. As of 2026-07-26 only the h5 peak matrix and <code>singlecell.csv.gz</code> are staged there, so the block below is what stages the rest. Run it ahead of the workshop, never during a session.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Run once. ~3 GB total. Writes into the workshop data directory.</span></span>
+<span id="cb33-2"><a href="#cb33-2" aria-hidden="true" tabindex="-1"></a>base_url <span class="ot">&lt;-</span> <span class="st">"https://cf.10xgenomics.com/samples/cell-atac/2.1.0/10k_pbmc_ATACv2_nextgem_Chromium_Controller/"</span></span>
+<span id="cb33-3"><a href="#cb33-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (f <span class="cf">in</span> <span class="fu">c</span>(</span>
+<span id="cb33-4"><a href="#cb33-4" aria-hidden="true" tabindex="-1"></a>  <span class="st">"10k_pbmc_ATACv2_nextgem_Chromium_Controller_filtered_peak_bc_matrix.h5"</span>,</span>
+<span id="cb33-5"><a href="#cb33-5" aria-hidden="true" tabindex="-1"></a>  <span class="st">"10k_pbmc_ATACv2_nextgem_Chromium_Controller_singlecell.csv"</span>,</span>
+<span id="cb33-6"><a href="#cb33-6" aria-hidden="true" tabindex="-1"></a>  <span class="st">"10k_pbmc_ATACv2_nextgem_Chromium_Controller_fragments.tsv.gz"</span>,</span>
+<span id="cb33-7"><a href="#cb33-7" aria-hidden="true" tabindex="-1"></a>  <span class="st">"10k_pbmc_ATACv2_nextgem_Chromium_Controller_fragments.tsv.gz.tbi"</span></span>
+<span id="cb33-8"><a href="#cb33-8" aria-hidden="true" tabindex="-1"></a>)) {</span>
+<span id="cb33-9"><a href="#cb33-9" aria-hidden="true" tabindex="-1"></a>  curl<span class="sc">::</span><span class="fu">curl_download</span>(<span class="fu">paste0</span>(base_url, f), <span class="at">destfile =</span> <span class="fu">file.path</span>(data_dir, f))</span>
+<span id="cb33-10"><a href="#cb33-10" aria-hidden="true" tabindex="-1"></a>}</span>
+<span id="cb33-11"><a href="#cb33-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Pre-processed scRNA-seq Seurat object used for label transfer.</span></span>
+<span id="cb33-12"><a href="#cb33-12" aria-hidden="true" tabindex="-1"></a>curl<span class="sc">::</span><span class="fu">curl_download</span>(</span>
+<span id="cb33-13"><a href="#cb33-13" aria-hidden="true" tabindex="-1"></a>  <span class="st">"https://signac-objects.s3.amazonaws.com/pbmc_10k_v3.rds"</span>,</span>
+<span id="cb33-14"><a href="#cb33-14" aria-hidden="true" tabindex="-1"></a>  <span class="at">destfile =</span> <span class="fu">file.path</span>(data_dir, <span class="st">"pbmc_10k_v3.rds"</span>)</span>
+<span id="cb33-15"><a href="#cb33-15" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+<section id="build-the-signac-object-and-compute-qc-metrics" class="level3">
+<h3 class="anchored" data-anchor-id="build-the-signac-object-and-compute-qc-metrics">Build the Signac object and compute QC metrics</h3>
+<p>This block builds the Seurat/Signac object from the 10x outputs, keeps standard chromosomes only, attaches Ensembl 98 gene annotations, and computes the nucleosome signal, TSS enrichment, % reads in peaks, and blacklist ratio per cell. The resulting object is cached to <code>ck_qc</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">file.exists</span>(ck_qc)) {</span>
+<span id="cb34-2"><a href="#cb34-2" aria-hidden="true" tabindex="-1"></a>  pbmc <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(ck_qc)</span>
+<span id="cb34-3"><a href="#cb34-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">"Loaded pbmc from "</span>, ck_qc)</span>
+<span id="cb34-4"><a href="#cb34-4" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb34-5"><a href="#cb34-5" aria-hidden="true" tabindex="-1"></a>  counts <span class="ot">&lt;-</span> <span class="fu">Read10X_h5</span>(</span>
+<span id="cb34-6"><a href="#cb34-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">filename =</span> <span class="fu">file.path</span>(</span>
+<span id="cb34-7"><a href="#cb34-7" aria-hidden="true" tabindex="-1"></a>      data_dir,</span>
+<span id="cb34-8"><a href="#cb34-8" aria-hidden="true" tabindex="-1"></a>      <span class="st">"10k_pbmc_ATACv2_nextgem_Chromium_Controller_filtered_peak_bc_matrix.h5"</span></span>
+<span id="cb34-9"><a href="#cb34-9" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb34-10"><a href="#cb34-10" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb34-11"><a href="#cb34-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-12"><a href="#cb34-12" aria-hidden="true" tabindex="-1"></a>  metadata <span class="ot">&lt;-</span> <span class="fu">read.csv</span>(</span>
+<span id="cb34-13"><a href="#cb34-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">file =</span> <span class="fu">file.path</span>(</span>
+<span id="cb34-14"><a href="#cb34-14" aria-hidden="true" tabindex="-1"></a>      data_dir,</span>
+<span id="cb34-15"><a href="#cb34-15" aria-hidden="true" tabindex="-1"></a>      <span class="st">"10k_pbmc_ATACv2_nextgem_Chromium_Controller_singlecell.csv.gz"</span></span>
+<span id="cb34-16"><a href="#cb34-16" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb34-17"><a href="#cb34-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">header =</span> <span class="cn">TRUE</span>,</span>
+<span id="cb34-18"><a href="#cb34-18" aria-hidden="true" tabindex="-1"></a>    <span class="at">row.names =</span> <span class="dv">1</span></span>
+<span id="cb34-19"><a href="#cb34-19" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb34-20"><a href="#cb34-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-21"><a href="#cb34-21" aria-hidden="true" tabindex="-1"></a>  chrom_assay <span class="ot">&lt;-</span> <span class="fu">CreateChromatinAssay</span>(</span>
+<span id="cb34-22"><a href="#cb34-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">counts =</span> counts,</span>
+<span id="cb34-23"><a href="#cb34-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">sep =</span> <span class="fu">c</span>(<span class="st">":"</span>, <span class="st">"-"</span>),</span>
+<span id="cb34-24"><a href="#cb34-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">fragments =</span> <span class="fu">file.path</span>(</span>
+<span id="cb34-25"><a href="#cb34-25" aria-hidden="true" tabindex="-1"></a>      data_dir,</span>
+<span id="cb34-26"><a href="#cb34-26" aria-hidden="true" tabindex="-1"></a>      <span class="st">"10k_pbmc_ATACv2_nextgem_Chromium_Controller_fragments.tsv.gz"</span></span>
+<span id="cb34-27"><a href="#cb34-27" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb34-28"><a href="#cb34-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">min.cells =</span> <span class="dv">10</span>,</span>
+<span id="cb34-29"><a href="#cb34-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">min.features =</span> <span class="dv">200</span></span>
+<span id="cb34-30"><a href="#cb34-30" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb34-31"><a href="#cb34-31" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-32"><a href="#cb34-32" aria-hidden="true" tabindex="-1"></a>  pbmc <span class="ot">&lt;-</span> <span class="fu">CreateSeuratObject</span>(</span>
+<span id="cb34-33"><a href="#cb34-33" aria-hidden="true" tabindex="-1"></a>    <span class="at">counts =</span> chrom_assay,</span>
+<span id="cb34-34"><a href="#cb34-34" aria-hidden="true" tabindex="-1"></a>    <span class="at">assay =</span> <span class="st">"peaks"</span>,</span>
+<span id="cb34-35"><a href="#cb34-35" aria-hidden="true" tabindex="-1"></a>    <span class="at">meta.data =</span> metadata</span>
+<span id="cb34-36"><a href="#cb34-36" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb34-37"><a href="#cb34-37" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-38"><a href="#cb34-38" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Keep only standard chromosomes.</span></span>
+<span id="cb34-39"><a href="#cb34-39" aria-hidden="true" tabindex="-1"></a>  peaks.keep <span class="ot">&lt;-</span> <span class="fu">seqnames</span>(<span class="fu">granges</span>(pbmc)) <span class="sc">%in%</span> <span class="fu">standardChromosomes</span>(<span class="fu">granges</span>(pbmc))</span>
+<span id="cb34-40"><a href="#cb34-40" aria-hidden="true" tabindex="-1"></a>  pbmc <span class="ot">&lt;-</span> pbmc[<span class="fu">as.vector</span>(peaks.keep), ]</span>
+<span id="cb34-41"><a href="#cb34-41" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-42"><a href="#cb34-42" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Pull Ensembl 98 EnsDb (Homo sapiens) and the ENCODE hg38 blacklist</span></span>
+<span id="cb34-43"><a href="#cb34-43" aria-hidden="true" tabindex="-1"></a>  <span class="co"># from AnnotationHub. `AH75011` is the accession for the Ensembl 98</span></span>
+<span id="cb34-44"><a href="#cb34-44" aria-hidden="true" tabindex="-1"></a>  <span class="co"># EnsDb (a SQLite-backed Ensembl annotation database mapped to GRCh38).</span></span>
+<span id="cb34-45"><a href="#cb34-45" aria-hidden="true" tabindex="-1"></a>  ah <span class="ot">&lt;-</span> <span class="fu">AnnotationHub</span>()</span>
+<span id="cb34-46"><a href="#cb34-46" aria-hidden="true" tabindex="-1"></a>  ensdb_v98 <span class="ot">&lt;-</span> ah[[<span class="st">"AH75011"</span>]]</span>
+<span id="cb34-47"><a href="#cb34-47" aria-hidden="true" tabindex="-1"></a>  blacklist_regions <span class="ot">&lt;-</span> ah[[<span class="st">"AH107305"</span>]] <span class="co"># ENCODE blacklist for hg38</span></span>
+<span id="cb34-48"><a href="#cb34-48" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-49"><a href="#cb34-49" aria-hidden="true" tabindex="-1"></a>  annotations <span class="ot">&lt;-</span> <span class="fu">GetGRangesFromEnsDb</span>(<span class="at">ensdb =</span> ensdb_v98)</span>
+<span id="cb34-50"><a href="#cb34-50" aria-hidden="true" tabindex="-1"></a>  <span class="fu">seqlevels</span>(annotations) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"chr"</span>, <span class="fu">seqlevels</span>(annotations))</span>
+<span id="cb34-51"><a href="#cb34-51" aria-hidden="true" tabindex="-1"></a>  <span class="fu">genome</span>(annotations) <span class="ot">&lt;-</span> <span class="st">"hg38"</span></span>
+<span id="cb34-52"><a href="#cb34-52" aria-hidden="true" tabindex="-1"></a>  <span class="fu">Annotation</span>(pbmc) <span class="ot">&lt;-</span> annotations</span>
+<span id="cb34-53"><a href="#cb34-53" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-54"><a href="#cb34-54" aria-hidden="true" tabindex="-1"></a>  pbmc <span class="ot">&lt;-</span> <span class="fu">NucleosomeSignal</span>(<span class="at">object =</span> pbmc)</span>
+<span id="cb34-55"><a href="#cb34-55" aria-hidden="true" tabindex="-1"></a>  pbmc <span class="ot">&lt;-</span> <span class="fu">TSSEnrichment</span>(<span class="at">object =</span> pbmc)</span>
+<span id="cb34-56"><a href="#cb34-56" aria-hidden="true" tabindex="-1"></a>  pbmc<span class="sc">$</span>pct_reads_in_peaks <span class="ot">&lt;-</span> pbmc<span class="sc">$</span>peak_region_fragments <span class="sc">/</span> pbmc<span class="sc">$</span>passed_filters <span class="sc">*</span> <span class="dv">100</span></span>
+<span id="cb34-57"><a href="#cb34-57" aria-hidden="true" tabindex="-1"></a>  pbmc<span class="sc">$</span>blacklist_ratio <span class="ot">&lt;-</span> <span class="fu">FractionCountsInRegion</span>(</span>
+<span id="cb34-58"><a href="#cb34-58" aria-hidden="true" tabindex="-1"></a>    <span class="at">object =</span> pbmc, <span class="at">assay =</span> <span class="st">"peaks"</span>, <span class="at">regions =</span> blacklist_regions</span>
+<span id="cb34-59"><a href="#cb34-59" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb34-60"><a href="#cb34-60" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb34-61"><a href="#cb34-61" aria-hidden="true" tabindex="-1"></a>  <span class="fu">saveRDS</span>(pbmc, ck_qc)</span>
+<span id="cb34-62"><a href="#cb34-62" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">"Saved checkpoint "</span>, ck_qc)</span>
+<span id="cb34-63"><a href="#cb34-63" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loaded pbmc from /home/steve/MEGA/workshop_data/pbmc_atac_ck1_qc.rds</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a>pbmc</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>An object of class Seurat 
+165376 features across 10246 samples within 1 assay 
+Active assay: peaks (165376 features, 0 variable features)
+ 2 layers present: counts, data</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a>pbmc[[<span class="st">"peaks"</span>]]</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>ChromatinAssay data with 165376 features for 10246 cells
+Variable features: 0 
+Genome: 
+Annotation present: TRUE 
+Motifs present: FALSE 
+Fragment files: 1 </code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">granges</span>(pbmc)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>GRanges object with 165376 ranges and 0 metadata columns:
+           seqnames            ranges strand
+              &lt;Rle&gt;         &lt;IRanges&gt;  &lt;Rle&gt;
+       [1]     chr1        9772-10660      *
+       [2]     chr1     180712-181178      *
+       [3]     chr1     181200-181607      *
+       [4]     chr1     191183-192084      *
+       [5]     chr1     267576-268461      *
+       ...      ...               ...    ...
+  [165372]     chrY 21836169-21837044      *
+  [165373]     chrY 26408700-26409528      *
+  [165374]     chrY 26670683-26671627      *
+  [165375]     chrY 56734346-56735236      *
+  [165376]     chrY 56836407-56837286      *
+  -------
+  seqinfo: 35 sequences from an unspecified genome; no seqlengths</code></pre>
+</div>
+</div>
+</section>
+<section id="qc-plots" class="level3">
+<h3 class="anchored" data-anchor-id="qc-plots">QC plots</h3>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">DensityScatter</span>(pbmc, <span class="at">x =</span> <span class="st">"nCount_peaks"</span>, <span class="at">y =</span> <span class="st">"TSS.enrichment"</span>, <span class="at">log_x =</span> <span class="cn">TRUE</span>, <span class="at">quantiles =</span> <span class="cn">TRUE</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pbmc_vignette_atac_seq_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>pbmc<span class="sc">$</span>nucleosome_group <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(pbmc<span class="sc">$</span>nucleosome_signal <span class="sc">&gt;</span> <span class="dv">4</span>, <span class="st">"NS &gt; 4"</span>, <span class="st">"NS &lt; 4"</span>)</span>
+<span id="cb43-2"><a href="#cb43-2" aria-hidden="true" tabindex="-1"></a><span class="fu">FragmentHistogram</span>(<span class="at">object =</span> pbmc, <span class="at">group.by =</span> <span class="st">"nucleosome_group"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 63 rows containing non-finite outside the scale range
+(`stat_bin()`).</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 4 rows containing missing values or values outside the scale range
+(`geom_bar()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pbmc_vignette_atac_seq_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">VlnPlot</span>(</span>
+<span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">object =</span> pbmc,</span>
+<span id="cb46-3"><a href="#cb46-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"nCount_peaks"</span>, <span class="st">"TSS.enrichment"</span>, <span class="st">"blacklist_ratio"</span>, <span class="st">"nucleosome_signal"</span>, <span class="st">"pct_reads_in_peaks"</span>),</span>
+<span id="cb46-4"><a href="#cb46-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">pt.size =</span> <span class="fl">0.1</span>,</span>
+<span id="cb46-5"><a href="#cb46-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">ncol =</span> <span class="dv">5</span></span>
+<span id="cb46-6"><a href="#cb46-6" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pbmc_vignette_atac_seq_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="filter-low-quality-cells-normalize-dim-reduce-build-gene-activity-assay" class="level3">
+<h3 class="anchored" data-anchor-id="filter-low-quality-cells-normalize-dim-reduce-build-gene-activity-assay">Filter low-quality cells, normalize, dim-reduce, build gene-activity assay</h3>
+<p>Cached to <code>ck_dimred</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">file.exists</span>(ck_dimred)) {</span>
+<span id="cb47-2"><a href="#cb47-2" aria-hidden="true" tabindex="-1"></a>  pbmc <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(ck_dimred)</span>
+<span id="cb47-3"><a href="#cb47-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">"Loaded pbmc from "</span>, ck_dimred)</span>
+<span id="cb47-4"><a href="#cb47-4" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb47-5"><a href="#cb47-5" aria-hidden="true" tabindex="-1"></a>  pbmc <span class="ot">&lt;-</span> <span class="fu">subset</span>(</span>
+<span id="cb47-6"><a href="#cb47-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> pbmc,</span>
+<span id="cb47-7"><a href="#cb47-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">subset =</span> nCount_peaks <span class="sc">&gt;</span> <span class="dv">9000</span> <span class="sc">&amp;</span></span>
+<span id="cb47-8"><a href="#cb47-8" aria-hidden="true" tabindex="-1"></a>      nCount_peaks <span class="sc">&lt;</span> <span class="dv">100000</span> <span class="sc">&amp;</span></span>
+<span id="cb47-9"><a href="#cb47-9" aria-hidden="true" tabindex="-1"></a>      pct_reads_in_peaks <span class="sc">&gt;</span> <span class="dv">40</span> <span class="sc">&amp;</span></span>
+<span id="cb47-10"><a href="#cb47-10" aria-hidden="true" tabindex="-1"></a>      blacklist_ratio <span class="sc">&lt;</span> <span class="fl">0.01</span> <span class="sc">&amp;</span></span>
+<span id="cb47-11"><a href="#cb47-11" aria-hidden="true" tabindex="-1"></a>      nucleosome_signal <span class="sc">&lt;</span> <span class="dv">4</span> <span class="sc">&amp;</span></span>
+<span id="cb47-12"><a href="#cb47-12" aria-hidden="true" tabindex="-1"></a>      TSS.enrichment <span class="sc">&gt;</span> <span class="dv">4</span></span>
+<span id="cb47-13"><a href="#cb47-13" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb47-14"><a href="#cb47-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-15"><a href="#cb47-15" aria-hidden="true" tabindex="-1"></a>  pbmc <span class="ot">&lt;-</span> <span class="fu">RunTFIDF</span>(pbmc)</span>
+<span id="cb47-16"><a href="#cb47-16" aria-hidden="true" tabindex="-1"></a>  pbmc <span class="ot">&lt;-</span> <span class="fu">FindTopFeatures</span>(pbmc, <span class="at">min.cutoff =</span> <span class="st">"q0"</span>)</span>
+<span id="cb47-17"><a href="#cb47-17" aria-hidden="true" tabindex="-1"></a>  pbmc <span class="ot">&lt;-</span> <span class="fu">RunSVD</span>(pbmc)</span>
+<span id="cb47-18"><a href="#cb47-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-19"><a href="#cb47-19" aria-hidden="true" tabindex="-1"></a>  pbmc <span class="ot">&lt;-</span> <span class="fu">RunUMAP</span>(<span class="at">object =</span> pbmc, <span class="at">reduction =</span> <span class="st">"lsi"</span>, <span class="at">dims =</span> <span class="dv">2</span><span class="sc">:</span><span class="dv">30</span>)</span>
+<span id="cb47-20"><a href="#cb47-20" aria-hidden="true" tabindex="-1"></a>  pbmc <span class="ot">&lt;-</span> <span class="fu">FindNeighbors</span>(<span class="at">object =</span> pbmc, <span class="at">reduction =</span> <span class="st">"lsi"</span>, <span class="at">dims =</span> <span class="dv">2</span><span class="sc">:</span><span class="dv">30</span>)</span>
+<span id="cb47-21"><a href="#cb47-21" aria-hidden="true" tabindex="-1"></a>  pbmc <span class="ot">&lt;-</span> <span class="fu">FindClusters</span>(<span class="at">object =</span> pbmc, <span class="at">verbose =</span> <span class="cn">FALSE</span>, <span class="at">algorithm =</span> <span class="dv">3</span>)</span>
+<span id="cb47-22"><a href="#cb47-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-23"><a href="#cb47-23" aria-hidden="true" tabindex="-1"></a>  gene.activities <span class="ot">&lt;-</span> <span class="fu">GeneActivity</span>(pbmc)</span>
+<span id="cb47-24"><a href="#cb47-24" aria-hidden="true" tabindex="-1"></a>  pbmc[[<span class="st">"RNA"</span>]] <span class="ot">&lt;-</span> <span class="fu">CreateAssayObject</span>(<span class="at">counts =</span> gene.activities)</span>
+<span id="cb47-25"><a href="#cb47-25" aria-hidden="true" tabindex="-1"></a>  pbmc <span class="ot">&lt;-</span> <span class="fu">NormalizeData</span>(</span>
+<span id="cb47-26"><a href="#cb47-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">object =</span> pbmc, <span class="at">assay =</span> <span class="st">"RNA"</span>,</span>
+<span id="cb47-27"><a href="#cb47-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">normalization.method =</span> <span class="st">"LogNormalize"</span>,</span>
+<span id="cb47-28"><a href="#cb47-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">scale.factor =</span> <span class="fu">median</span>(pbmc<span class="sc">$</span>nCount_RNA)</span>
+<span id="cb47-29"><a href="#cb47-29" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb47-30"><a href="#cb47-30" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb47-31"><a href="#cb47-31" aria-hidden="true" tabindex="-1"></a>  <span class="fu">saveRDS</span>(pbmc, ck_dimred)</span>
+<span id="cb47-32"><a href="#cb47-32" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">"Saved checkpoint "</span>, ck_dimred)</span>
+<span id="cb47-33"><a href="#cb47-33" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loaded pbmc from /home/steve/MEGA/workshop_data/pbmc_atac_ck2_dimred.rds</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb49"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb49-1"><a href="#cb49-1" aria-hidden="true" tabindex="-1"></a>pbmc</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>An object of class Seurat 
+184991 features across 9651 samples within 2 assays 
+Active assay: peaks (165376 features, 165376 variable features)
+ 2 layers present: counts, data
+ 1 other assay present: RNA
+ 2 dimensional reductions calculated: lsi, umap</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb51"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb51-1"><a href="#cb51-1" aria-hidden="true" tabindex="-1"></a><span class="fu">DepthCor</span>(pbmc)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pbmc_vignette_atac_seq_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(<span class="at">object =</span> pbmc, <span class="at">label =</span> <span class="cn">TRUE</span>) <span class="sc">+</span> <span class="fu">NoLegend</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pbmc_vignette_atac_seq_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb53"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb53-1"><a href="#cb53-1" aria-hidden="true" tabindex="-1"></a><span class="fu">DefaultAssay</span>(pbmc) <span class="ot">&lt;-</span> <span class="st">"RNA"</span></span>
+<span id="cb53-2"><a href="#cb53-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb53-3"><a href="#cb53-3" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(</span>
+<span id="cb53-4"><a href="#cb53-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">object =</span> pbmc,</span>
+<span id="cb53-5"><a href="#cb53-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"MS4A1"</span>, <span class="st">"CD3D"</span>, <span class="st">"LEF1"</span>, <span class="st">"NKG7"</span>, <span class="st">"TREM1"</span>, <span class="st">"LYZ"</span>),</span>
+<span id="cb53-6"><a href="#cb53-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">pt.size =</span> <span class="fl">0.1</span>,</span>
+<span id="cb53-7"><a href="#cb53-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">max.cutoff =</span> <span class="st">"q95"</span>,</span>
+<span id="cb53-8"><a href="#cb53-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">ncol =</span> <span class="dv">3</span></span>
+<span id="cb53-9"><a href="#cb53-9" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pbmc_vignette_atac_seq_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="integrate-with-scrna-seq-via-label-transfer" class="level3">
+<h3 class="anchored" data-anchor-id="integrate-with-scrna-seq-via-label-transfer">Integrate with scRNA-seq via label transfer</h3>
+<p>Cached to <code>ck_labeled</code> (the relabeled <code>pbmc</code>). The reference <code>pbmc_rna</code> is loaded fresh because it is a separate object.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>pbmc_rna <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="fu">file.path</span>(data_dir, <span class="st">"pbmc_10k_v3.rds"</span>))</span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>pbmc_rna <span class="ot">&lt;-</span> <span class="fu">UpdateSeuratObject</span>(pbmc_rna)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Validating object structure</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Updating object slots</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Ensuring keys are in the proper structure</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Updating matrix keys for DimReduc 'pca'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Updating matrix keys for DimReduc 'tsne'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Updating matrix keys for DimReduc 'umap'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Assay RNA changing from Assay to Assay</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Graph RNA_nn changing from Graph to Graph</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Graph RNA_snn changing from Graph to Graph</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: DimReduc pca changing from DimReduc to DimReduc</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: DimReduc tsne changing from DimReduc to DimReduc</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: DimReduc umap changing from DimReduc to DimReduc</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Ensuring keys are in the proper structure</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Ensuring feature names don't have underscores or pipes</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Updating slots in RNA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Updating slots in RNA_nn</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Setting default assay of RNA_nn to RNA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Updating slots in RNA_snn</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Setting default assay of RNA_snn to RNA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Updating slots in pca</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Updating slots in tsne</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Setting tsne DimReduc to global</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Updating slots in umap</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Setting umap DimReduc to global</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Setting assay used for NormalizeData.RNA to RNA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Setting assay used for FindVariableFeatures.RNA to RNA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Setting assay used for ScaleData.RNA to RNA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Setting assay used for RunPCA.RNA to RNA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Setting assay used for RunTSNE.pca to RNA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Setting assay used for FindNeighbors.RNA.pca to RNA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>No assay information could be found for FindClusters</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Adding a command log without an assay associated with it</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Setting assay used for RunUMAP.RNA.pca to RNA</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Validating object structure for Assay 'RNA'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Validating object structure for Graph 'RNA_nn'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Validating object structure for Graph 'RNA_snn'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Validating object structure for DimReduc 'pca'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Validating object structure for DimReduc 'tsne'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Validating object structure for DimReduc 'umap'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Object representation is consistent with the most current Seurat version</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb95"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb95-1"><a href="#cb95-1" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">file.exists</span>(ck_labeled)) {</span>
+<span id="cb95-2"><a href="#cb95-2" aria-hidden="true" tabindex="-1"></a>  pbmc <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(ck_labeled)</span>
+<span id="cb95-3"><a href="#cb95-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">"Loaded pbmc from "</span>, ck_labeled)</span>
+<span id="cb95-4"><a href="#cb95-4" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb95-5"><a href="#cb95-5" aria-hidden="true" tabindex="-1"></a>  transfer.anchors <span class="ot">&lt;-</span> <span class="fu">FindTransferAnchors</span>(</span>
+<span id="cb95-6"><a href="#cb95-6" aria-hidden="true" tabindex="-1"></a>    <span class="at">reference =</span> pbmc_rna,</span>
+<span id="cb95-7"><a href="#cb95-7" aria-hidden="true" tabindex="-1"></a>    <span class="at">query =</span> pbmc,</span>
+<span id="cb95-8"><a href="#cb95-8" aria-hidden="true" tabindex="-1"></a>    <span class="at">reduction =</span> <span class="st">"cca"</span></span>
+<span id="cb95-9"><a href="#cb95-9" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb95-10"><a href="#cb95-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb95-11"><a href="#cb95-11" aria-hidden="true" tabindex="-1"></a>  predicted.labels <span class="ot">&lt;-</span> <span class="fu">TransferData</span>(</span>
+<span id="cb95-12"><a href="#cb95-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">anchorset =</span> transfer.anchors,</span>
+<span id="cb95-13"><a href="#cb95-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">refdata =</span> pbmc_rna<span class="sc">$</span>celltype,</span>
+<span id="cb95-14"><a href="#cb95-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">weight.reduction =</span> pbmc[[<span class="st">"lsi"</span>]],</span>
+<span id="cb95-15"><a href="#cb95-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">dims =</span> <span class="dv">2</span><span class="sc">:</span><span class="dv">30</span></span>
+<span id="cb95-16"><a href="#cb95-16" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb95-17"><a href="#cb95-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb95-18"><a href="#cb95-18" aria-hidden="true" tabindex="-1"></a>  pbmc <span class="ot">&lt;-</span> <span class="fu">AddMetaData</span>(<span class="at">object =</span> pbmc, <span class="at">metadata =</span> predicted.labels)</span>
+<span id="cb95-19"><a href="#cb95-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb95-20"><a href="#cb95-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">saveRDS</span>(pbmc, ck_labeled)</span>
+<span id="cb95-21"><a href="#cb95-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">"Saved checkpoint "</span>, ck_labeled)</span>
+<span id="cb95-22"><a href="#cb95-22" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loaded pbmc from /home/steve/MEGA/workshop_data/pbmc_atac_ck3_labeled.rds</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb97"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb97-1"><a href="#cb97-1" aria-hidden="true" tabindex="-1"></a>plot1 <span class="ot">&lt;-</span> <span class="fu">DimPlot</span>(</span>
+<span id="cb97-2"><a href="#cb97-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">object =</span> pbmc_rna, <span class="at">group.by =</span> <span class="st">"celltype"</span>,</span>
+<span id="cb97-3"><a href="#cb97-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">label =</span> <span class="cn">TRUE</span>, <span class="at">repel =</span> <span class="cn">TRUE</span></span>
+<span id="cb97-4"><a href="#cb97-4" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span> <span class="fu">NoLegend</span>() <span class="sc">+</span> <span class="fu">ggtitle</span>(<span class="st">"scRNA-seq"</span>)</span>
+<span id="cb97-5"><a href="#cb97-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb97-6"><a href="#cb97-6" aria-hidden="true" tabindex="-1"></a>plot2 <span class="ot">&lt;-</span> <span class="fu">DimPlot</span>(</span>
+<span id="cb97-7"><a href="#cb97-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">object =</span> pbmc, <span class="at">group.by =</span> <span class="st">"predicted.id"</span>,</span>
+<span id="cb97-8"><a href="#cb97-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">label =</span> <span class="cn">TRUE</span>, <span class="at">repel =</span> <span class="cn">TRUE</span></span>
+<span id="cb97-9"><a href="#cb97-9" aria-hidden="true" tabindex="-1"></a>) <span class="sc">+</span> <span class="fu">NoLegend</span>() <span class="sc">+</span> <span class="fu">ggtitle</span>(<span class="st">"scATAC-seq"</span>)</span>
+<span id="cb97-10"><a href="#cb97-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb97-11"><a href="#cb97-11" aria-hidden="true" tabindex="-1"></a>plot1 <span class="sc">+</span> plot2</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pbmc_vignette_atac_seq_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<section id="how-confident-are-the-predicted-labels" class="level4">
+<h4 class="anchored" data-anchor-id="how-confident-are-the-predicted-labels">How confident are the predicted labels?</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb98"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb98-1"><a href="#cb98-1" aria-hidden="true" tabindex="-1"></a><span class="fu">VlnPlot</span>(pbmc, <span class="st">"prediction.score.max"</span>, <span class="at">group.by =</span> <span class="st">"predicted.id"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pbmc_vignette_atac_seq_files/figure-html/unnamed-chunk-17-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<p>Cells called as platelets are suspect, since platelets are anucleate and should not have an ATAC signal. The block below pulls every <code>prediction.score.*</code> column for these cells and orders them by mean score.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb99"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb99-1"><a href="#cb99-1" aria-hidden="true" tabindex="-1"></a>metadata_attributes <span class="ot">&lt;-</span> <span class="fu">colnames</span>(pbmc[[]])</span>
+<span id="cb99-2"><a href="#cb99-2" aria-hidden="true" tabindex="-1"></a>prediction_score_attributes <span class="ot">&lt;-</span> <span class="fu">grep</span>(<span class="st">"^prediction.score."</span>, metadata_attributes, <span class="at">value =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb99-3"><a href="#cb99-3" aria-hidden="true" tabindex="-1"></a>prediction_score_attributes <span class="ot">&lt;-</span> <span class="fu">setdiff</span>(prediction_score_attributes, <span class="st">"prediction.score.max"</span>)</span>
+<span id="cb99-4"><a href="#cb99-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb99-5"><a href="#cb99-5" aria-hidden="true" tabindex="-1"></a>predicted_platelets <span class="ot">&lt;-</span> <span class="fu">which</span>(pbmc<span class="sc">$</span>predicted.id <span class="sc">==</span> <span class="st">"Platelet"</span>)</span>
+<span id="cb99-6"><a href="#cb99-6" aria-hidden="true" tabindex="-1"></a>platelet_scores <span class="ot">&lt;-</span> pbmc[[]][predicted_platelets, prediction_score_attributes]</span>
+<span id="cb99-7"><a href="#cb99-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb99-8"><a href="#cb99-8" aria-hidden="true" tabindex="-1"></a>ordered_columns <span class="ot">&lt;-</span> <span class="fu">names</span>(<span class="fu">sort</span>(<span class="fu">colMeans</span>(platelet_scores, <span class="at">na.rm =</span> <span class="cn">TRUE</span>), <span class="at">decreasing =</span> <span class="cn">TRUE</span>))</span>
+<span id="cb99-9"><a href="#cb99-9" aria-hidden="true" tabindex="-1"></a>ordered_platelet_scores_df <span class="ot">&lt;-</span> platelet_scores[, ordered_columns]</span>
+<span id="cb99-10"><a href="#cb99-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb99-11"><a href="#cb99-11" aria-hidden="true" tabindex="-1"></a><span class="fu">print</span>(ordered_platelet_scores_df)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                   prediction.score.Platelet prediction.score.CD4.Naive
+ACAAAGAAGACACGGT-1                 0.6222254                0.319207769
+CACTAAGGTAATGTAG-1                 0.5549893                0.259720477
+CTCAACCAGCGAGCTA-1                 0.6504557                0.290298251
+GAATCTGCATAGTCCA-1                 0.6712954                0.274459805
+GCTTAAGCAAAGGTCG-1                 0.6622047                0.266693936
+GTCACCTGTCAGGCTC-1                 0.6492378                0.281080593
+TAATCGGTCGTAGCGC-1                 0.6811130                0.258802302
+TACTAGGGTATGGATA-1                 0.6546561                0.285384179
+TCCAGAAGTAGCGTTT-1                 0.4779870                0.004982416
+TCGATTTGTGTGTGCC-1                 0.6279424                0.300598221
+                   prediction.score.CD4.Memory prediction.score.pre.B.cell
+ACAAAGAAGACACGGT-1                  0.03478506                  0.02197890
+CACTAAGGTAATGTAG-1                  0.02257896                  0.06636103
+CTCAACCAGCGAGCTA-1                  0.03159164                  0.01841532
+GAATCTGCATAGTCCA-1                  0.02332096                  0.01674671
+GCTTAAGCAAAGGTCG-1                  0.02683953                  0.02013567
+GTCACCTGTCAGGCTC-1                  0.03179005                  0.02575226
+TAATCGGTCGTAGCGC-1                  0.02756234                  0.02303250
+TACTAGGGTATGGATA-1                  0.03006757                  0.02175723
+TCCAGAAGTAGCGTTT-1                  0.38042603                  0.01261528
+TCGATTTGTGTGTGCC-1                  0.03997723                  0.01987387
+                   prediction.score.CD14..Monocytes prediction.score.CD8.Naive
+ACAAAGAAGACACGGT-1                      0.001802845                0.000000000
+CACTAAGGTAATGTAG-1                      0.041829206                0.036187534
+CTCAACCAGCGAGCTA-1                      0.009239107                0.000000000
+GAATCTGCATAGTCCA-1                      0.008620452                0.005556678
+GCTTAAGCAAAGGTCG-1                      0.024126184                0.000000000
+GTCACCTGTCAGGCTC-1                      0.012139333                0.000000000
+TAATCGGTCGTAGCGC-1                      0.009489885                0.000000000
+TACTAGGGTATGGATA-1                      0.008134948                0.000000000
+TCCAGAAGTAGCGTTT-1                      0.000000000                0.052467516
+TCGATTTGTGTGTGCC-1                      0.011608328                0.000000000
+                   prediction.score.CD8.effector
+ACAAAGAAGACACGGT-1                   0.000000000
+CACTAAGGTAATGTAG-1                   0.008140396
+CTCAACCAGCGAGCTA-1                   0.000000000
+GAATCTGCATAGTCCA-1                   0.000000000
+GCTTAAGCAAAGGTCG-1                   0.000000000
+GTCACCTGTCAGGCTC-1                   0.000000000
+TAATCGGTCGTAGCGC-1                   0.000000000
+TACTAGGGTATGGATA-1                   0.000000000
+TCCAGAAGTAGCGTTT-1                   0.033892833
+TCGATTTGTGTGTGCC-1                   0.000000000
+                   prediction.score.Double.negative.T.cell
+ACAAAGAAGACACGGT-1                              0.00000000
+CACTAAGGTAATGTAG-1                              0.00000000
+CTCAACCAGCGAGCTA-1                              0.00000000
+GAATCTGCATAGTCCA-1                              0.00000000
+GCTTAAGCAAAGGTCG-1                              0.00000000
+GTCACCTGTCAGGCTC-1                              0.00000000
+TAATCGGTCGTAGCGC-1                              0.00000000
+TACTAGGGTATGGATA-1                              0.00000000
+TCCAGAAGTAGCGTTT-1                              0.03762892
+TCGATTTGTGTGTGCC-1                              0.00000000
+                   prediction.score.NK.dim prediction.score.NK.bright
+ACAAAGAAGACACGGT-1              0.00000000                          0
+CACTAAGGTAATGTAG-1              0.01019306                          0
+CTCAACCAGCGAGCTA-1              0.00000000                          0
+GAATCTGCATAGTCCA-1              0.00000000                          0
+GCTTAAGCAAAGGTCG-1              0.00000000                          0
+GTCACCTGTCAGGCTC-1              0.00000000                          0
+TAATCGGTCGTAGCGC-1              0.00000000                          0
+TACTAGGGTATGGATA-1              0.00000000                          0
+TCCAGAAGTAGCGTTT-1              0.00000000                          0
+TCGATTTGTGTGTGCC-1              0.00000000                          0
+                   prediction.score.pDC prediction.score.CD16..Monocytes
+ACAAAGAAGACACGGT-1                    0                                0
+CACTAAGGTAATGTAG-1                    0                                0
+CTCAACCAGCGAGCTA-1                    0                                0
+GAATCTGCATAGTCCA-1                    0                                0
+GCTTAAGCAAAGGTCG-1                    0                                0
+GTCACCTGTCAGGCTC-1                    0                                0
+TAATCGGTCGTAGCGC-1                    0                                0
+TACTAGGGTATGGATA-1                    0                                0
+TCCAGAAGTAGCGTTT-1                    0                                0
+TCGATTTGTGTGTGCC-1                    0                                0
+                   prediction.score.B.cell.progenitor
+ACAAAGAAGACACGGT-1                                  0
+CACTAAGGTAATGTAG-1                                  0
+CTCAACCAGCGAGCTA-1                                  0
+GAATCTGCATAGTCCA-1                                  0
+GCTTAAGCAAAGGTCG-1                                  0
+GTCACCTGTCAGGCTC-1                                  0
+TAATCGGTCGTAGCGC-1                                  0
+TACTAGGGTATGGATA-1                                  0
+TCCAGAAGTAGCGTTT-1                                  0
+TCGATTTGTGTGTGCC-1                                  0
+                   prediction.score.Dendritic.cell
+ACAAAGAAGACACGGT-1                               0
+CACTAAGGTAATGTAG-1                               0
+CTCAACCAGCGAGCTA-1                               0
+GAATCTGCATAGTCCA-1                               0
+GCTTAAGCAAAGGTCG-1                               0
+GTCACCTGTCAGGCTC-1                               0
+TAATCGGTCGTAGCGC-1                               0
+TACTAGGGTATGGATA-1                               0
+TCCAGAAGTAGCGTTT-1                               0
+TCGATTTGTGTGTGCC-1                               0</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb101"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb101-1"><a href="#cb101-1" aria-hidden="true" tabindex="-1"></a>predicted_id_counts <span class="ot">&lt;-</span> <span class="fu">table</span>(pbmc<span class="sc">$</span>predicted.id)</span>
+<span id="cb101-2"><a href="#cb101-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb101-3"><a href="#cb101-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Keep only predicted.id values with more than 20 cells.</span></span>
+<span id="cb101-4"><a href="#cb101-4" aria-hidden="true" tabindex="-1"></a>major_predicted_ids <span class="ot">&lt;-</span> <span class="fu">names</span>(predicted_id_counts[predicted_id_counts <span class="sc">&gt;</span> <span class="dv">20</span>])</span>
+<span id="cb101-5"><a href="#cb101-5" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> pbmc[, pbmc<span class="sc">$</span>predicted.id <span class="sc">%in%</span> major_predicted_ids]</span>
+<span id="cb101-6"><a href="#cb101-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb101-7"><a href="#cb101-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Set cell identities to the per-cell predicted labels.</span></span>
+<span id="cb101-8"><a href="#cb101-8" aria-hidden="true" tabindex="-1"></a><span class="fu">Idents</span>(pbmc) <span class="ot">&lt;-</span> pbmc<span class="sc">$</span>predicted.id</span>
+<span id="cb101-9"><a href="#cb101-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb101-10"><a href="#cb101-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Replace each cluster label with its most likely predicted label.</span></span>
+<span id="cb101-11"><a href="#cb101-11" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> (i <span class="cf">in</span> <span class="fu">levels</span>(pbmc)) {</span>
+<span id="cb101-12"><a href="#cb101-12" aria-hidden="true" tabindex="-1"></a>  cells_to_reid <span class="ot">&lt;-</span> <span class="fu">WhichCells</span>(pbmc, <span class="at">idents =</span> i)</span>
+<span id="cb101-13"><a href="#cb101-13" aria-hidden="true" tabindex="-1"></a>  newid <span class="ot">&lt;-</span> <span class="fu">names</span>(<span class="fu">which.max</span>(<span class="fu">table</span>(pbmc<span class="sc">$</span>predicted.id[cells_to_reid])))</span>
+<span id="cb101-14"><a href="#cb101-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">Idents</span>(pbmc, <span class="at">cells =</span> cells_to_reid) <span class="ot">&lt;-</span> newid</span>
+<span id="cb101-15"><a href="#cb101-15" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</section>
+</section>
+<section id="find-differentially-accessible-peaks-between-cell-types" class="level3">
+<h3 class="anchored" data-anchor-id="find-differentially-accessible-peaks-between-cell-types">Find differentially accessible peaks between cell types</h3>
+<p><code>presto</code> greatly accelerates <code>FindMarkers</code>. It comes from GitHub (<a href="https://github.com/immunogenomics/presto" class="uri">https://github.com/immunogenomics/presto</a>) and must be installed before the workshop, never during a session. The setup chunk at the top of this document reports whether it is present.</p>
+<p>Both differential-accessibility tests below are checkpointed together into <code>ck_markers</code>. They are the single most expensive part of this tutorial: the Wilcoxon test scans roughly 100k peaks, and the logistic-regression test fits one model per peak. In class these load from the <code>.rds</code>.</p>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb102"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb102-1"><a href="#cb102-1" aria-hidden="true" tabindex="-1"></a><span class="fu">DefaultAssay</span>(pbmc) <span class="ot">&lt;-</span> <span class="st">"peaks"</span></span>
+<span id="cb102-2"><a href="#cb102-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb102-3"><a href="#cb102-3" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> (<span class="fu">file.exists</span>(ck_markers)) {</span>
+<span id="cb102-4"><a href="#cb102-4" aria-hidden="true" tabindex="-1"></a>  marker_results <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(ck_markers)</span>
+<span id="cb102-5"><a href="#cb102-5" aria-hidden="true" tabindex="-1"></a>  da_peaks <span class="ot">&lt;-</span> marker_results<span class="sc">$</span>da_peaks</span>
+<span id="cb102-6"><a href="#cb102-6" aria-hidden="true" tabindex="-1"></a>  lr_da_peaks <span class="ot">&lt;-</span> marker_results<span class="sc">$</span>lr_da_peaks</span>
+<span id="cb102-7"><a href="#cb102-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">"Loaded differential accessibility results from "</span>, ck_markers)</span>
+<span id="cb102-8"><a href="#cb102-8" aria-hidden="true" tabindex="-1"></a>} <span class="cf">else</span> {</span>
+<span id="cb102-9"><a href="#cb102-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># wilcox is the default option for test.use. This is the step that needs</span></span>
+<span id="cb102-10"><a href="#cb102-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># presto. Without it, expect hours rather than minutes.</span></span>
+<span id="cb102-11"><a href="#cb102-11" aria-hidden="true" tabindex="-1"></a>  da_peaks <span class="ot">&lt;-</span> <span class="fu">FindMarkers</span>(</span>
+<span id="cb102-12"><a href="#cb102-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">object =</span> pbmc,</span>
+<span id="cb102-13"><a href="#cb102-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">ident.1 =</span> <span class="st">"CD4 Naive"</span>,</span>
+<span id="cb102-14"><a href="#cb102-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">ident.2 =</span> <span class="st">"CD14+ Monocytes"</span>,</span>
+<span id="cb102-15"><a href="#cb102-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">test.use =</span> <span class="st">"wilcox"</span>,</span>
+<span id="cb102-16"><a href="#cb102-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">min.pct =</span> <span class="fl">0.1</span></span>
+<span id="cb102-17"><a href="#cb102-17" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb102-18"><a href="#cb102-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb102-19"><a href="#cb102-19" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Logistic regression with total fragment count as a latent variable. LR</span></span>
+<span id="cb102-20"><a href="#cb102-20" aria-hidden="true" tabindex="-1"></a>  <span class="co"># fits a model per peak and gets no benefit from presto, so it is restricted</span></span>
+<span id="cb102-21"><a href="#cb102-21" aria-hidden="true" tabindex="-1"></a>  <span class="co"># to the peaks the Wilcoxon test already flagged. Running it genome-wide</span></span>
+<span id="cb102-22"><a href="#cb102-22" aria-hidden="true" tabindex="-1"></a>  <span class="co"># takes hours and changes none of the conclusions drawn below.</span></span>
+<span id="cb102-23"><a href="#cb102-23" aria-hidden="true" tabindex="-1"></a>  lr_features <span class="ot">&lt;-</span> <span class="fu">head</span>(<span class="fu">rownames</span>(da_peaks[<span class="fu">order</span>(da_peaks<span class="sc">$</span>p_val), ]), <span class="dv">500</span>)</span>
+<span id="cb102-24"><a href="#cb102-24" aria-hidden="true" tabindex="-1"></a>  lr_da_peaks <span class="ot">&lt;-</span> <span class="fu">FindMarkers</span>(</span>
+<span id="cb102-25"><a href="#cb102-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">object =</span> pbmc,</span>
+<span id="cb102-26"><a href="#cb102-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">ident.1 =</span> <span class="st">"CD4 Naive"</span>,</span>
+<span id="cb102-27"><a href="#cb102-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">ident.2 =</span> <span class="st">"CD14+ Monocytes"</span>,</span>
+<span id="cb102-28"><a href="#cb102-28" aria-hidden="true" tabindex="-1"></a>    <span class="at">test.use =</span> <span class="st">"LR"</span>,</span>
+<span id="cb102-29"><a href="#cb102-29" aria-hidden="true" tabindex="-1"></a>    <span class="at">latent.vars =</span> <span class="st">"nCount_peaks"</span>,</span>
+<span id="cb102-30"><a href="#cb102-30" aria-hidden="true" tabindex="-1"></a>    <span class="at">features =</span> lr_features,</span>
+<span id="cb102-31"><a href="#cb102-31" aria-hidden="true" tabindex="-1"></a>    <span class="at">min.pct =</span> <span class="fl">0.1</span></span>
+<span id="cb102-32"><a href="#cb102-32" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb102-33"><a href="#cb102-33" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb102-34"><a href="#cb102-34" aria-hidden="true" tabindex="-1"></a>  <span class="fu">saveRDS</span>(</span>
+<span id="cb102-35"><a href="#cb102-35" aria-hidden="true" tabindex="-1"></a>    <span class="fu">list</span>(<span class="at">da_peaks =</span> da_peaks, <span class="at">lr_da_peaks =</span> lr_da_peaks),</span>
+<span id="cb102-36"><a href="#cb102-36" aria-hidden="true" tabindex="-1"></a>    <span class="fu">file.path</span>(ck_write_dir, <span class="st">"pbmc_atac_ck4_markers.rds"</span>)</span>
+<span id="cb102-37"><a href="#cb102-37" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb102-38"><a href="#cb102-38" aria-hidden="true" tabindex="-1"></a>  <span class="fu">message</span>(<span class="st">"Saved checkpoint pbmc_atac_ck4_markers.rds"</span>)</span>
+<span id="cb102-39"><a href="#cb102-39" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loaded differential accessibility results from /home/steve/MEGA/workshop_data/pbmc_atac_ck4_markers.rds</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb104"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb104-1"><a href="#cb104-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(da_peaks)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                          p_val avg_log2FC pct.1 pct.2 p_val_adj
+chr12-119988511-119989430     0   4.153581 0.782 0.089         0
+chr7-142808530-142809435      0   3.663154 0.758 0.087         0
+chr17-82126458-82127377       0   4.997442 0.704 0.043         0
+chr7-138752283-138753197      0   4.890042 0.685 0.045         0
+chr11-60985909-60986801       0   4.526380 0.658 0.061         0
+chr4-152100248-152101142      0   5.000948 0.620 0.038         0</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb106"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb106-1"><a href="#cb106-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(lr_da_peaks)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                                  p_val avg_log2FC pct.1 pct.2     p_val_adj
+chr12-119988511-119989430  0.000000e+00   4.153581 0.782 0.089  0.000000e+00
+chr17-82126458-82127377    0.000000e+00   4.997442 0.704 0.043  0.000000e+00
+chr7-138752283-138753197   0.000000e+00   4.890042 0.685 0.045  0.000000e+00
+chr11-60985909-60986801    0.000000e+00   4.526380 0.658 0.061  0.000000e+00
+chr11-85752610-85753518   4.266359e-312   4.829685 0.603 0.044 7.055533e-307
+chr4-152100248-152101142  2.172534e-308   5.000948 0.620 0.038 3.592850e-303</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb108"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb108-1"><a href="#cb108-1" aria-hidden="true" tabindex="-1"></a>plot1 <span class="ot">&lt;-</span> <span class="fu">VlnPlot</span>(</span>
+<span id="cb108-2"><a href="#cb108-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">object =</span> pbmc,</span>
+<span id="cb108-3"><a href="#cb108-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">features =</span> <span class="fu">rownames</span>(da_peaks)[<span class="dv">1</span>],</span>
+<span id="cb108-4"><a href="#cb108-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">pt.size =</span> <span class="fl">0.1</span>,</span>
+<span id="cb108-5"><a href="#cb108-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">idents =</span> <span class="fu">c</span>(<span class="st">"CD4 Naive"</span>, <span class="st">"CD14+ Monocytes"</span>)</span>
+<span id="cb108-6"><a href="#cb108-6" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb108-7"><a href="#cb108-7" aria-hidden="true" tabindex="-1"></a>plot2 <span class="ot">&lt;-</span> <span class="fu">FeaturePlot</span>(</span>
+<span id="cb108-8"><a href="#cb108-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">object =</span> pbmc,</span>
+<span id="cb108-9"><a href="#cb108-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">features =</span> <span class="fu">rownames</span>(da_peaks)[<span class="dv">1</span>],</span>
+<span id="cb108-10"><a href="#cb108-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">pt.size =</span> <span class="fl">0.1</span></span>
+<span id="cb108-11"><a href="#cb108-11" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb108-12"><a href="#cb108-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb108-13"><a href="#cb108-13" aria-hidden="true" tabindex="-1"></a>plot1 <span class="sc">|</span> plot2</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pbmc_vignette_atac_seq_files/figure-html/unnamed-chunk-22-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb109"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb109-1"><a href="#cb109-1" aria-hidden="true" tabindex="-1"></a>open_cd4naive <span class="ot">&lt;-</span> <span class="fu">rownames</span>(da_peaks[da_peaks<span class="sc">$</span>avg_log2FC <span class="sc">&gt;</span> <span class="dv">3</span>, ])</span>
+<span id="cb109-2"><a href="#cb109-2" aria-hidden="true" tabindex="-1"></a>open_cd14mono <span class="ot">&lt;-</span> <span class="fu">rownames</span>(da_peaks[da_peaks<span class="sc">$</span>avg_log2FC <span class="sc">&lt;</span> <span class="sc">-</span><span class="dv">3</span>, ])</span>
+<span id="cb109-3"><a href="#cb109-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb109-4"><a href="#cb109-4" aria-hidden="true" tabindex="-1"></a>closest_genes_cd4naive <span class="ot">&lt;-</span> <span class="fu">ClosestFeature</span>(pbmc, <span class="at">regions =</span> open_cd4naive)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: `ClosestFeature()` was deprecated in Signac 1.17.0.</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb111"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb111-1"><a href="#cb111-1" aria-hidden="true" tabindex="-1"></a>closest_genes_cd14mono <span class="ot">&lt;-</span> <span class="fu">ClosestFeature</span>(pbmc, <span class="at">regions =</span> open_cd14mono)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb112"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb112-1"><a href="#cb112-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(closest_genes_cd4naive)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                          tx_id gene_name         gene_id   gene_biotype type
+ENSE00002206071 ENST00000397558    BICDL1 ENSG00000135127 protein_coding exon
+ENST00000632998 ENST00000632998     PRSS2 ENSG00000275896 protein_coding  utr
+ENST00000665763 ENST00000665763    CCDC57 ENSG00000176155 protein_coding  gap
+ENST00000645515 ENST00000645515  ATP6V0A4 ENSG00000105929 protein_coding  cds
+ENST00000545320 ENST00000545320       CD6 ENSG00000013725 protein_coding  gap
+ENST00000603548 ENST00000603548     FBXW7 ENSG00000109670 protein_coding  utr
+                           closest_region              query_region distance
+ENSE00002206071 chr12-119989869-119990297 chr12-119988511-119989430      438
+ENST00000632998  chr7-142774509-142774564  chr7-142808530-142809435    33965
+ENST00000665763   chr17-82101867-82127691   chr17-82126458-82127377        0
+ENST00000645515  chr7-138752625-138752837  chr7-138752283-138753197        0
+ENST00000545320   chr11-60971915-60987907   chr11-60985909-60986801        0
+ENST00000603548  chr4-152320544-152322880  chr4-152100248-152101142   219401</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb114"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb114-1"><a href="#cb114-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(closest_genes_cd14mono)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>                          tx_id gene_name         gene_id   gene_biotype type
+ENST00000606214 ENST00000606214    TBC1D7 ENSG00000145979 protein_coding  gap
+ENST00000448962 ENST00000448962      RPS9 ENSG00000170889 protein_coding  gap
+ENST00000592988 ENST00000592988     AFMID ENSG00000183077 protein_coding  gap
+ENST00000336600 ENST00000336600  C6orf223 ENSG00000181577 protein_coding  utr
+ENSE00002618192 ENST00000569518    VCPKMT ENSG00000100483 protein_coding exon
+ENSE00001389095 ENST00000340607     PTGES ENSG00000148344 protein_coding exon
+                          closest_region             query_region distance
+ENST00000606214   chr6-13267836-13305061   chr6-13302533-13303459        0
+ENST00000448962  chr19-54201610-54231740  chr19-54207815-54208728        0
+ENST00000592988  chr17-78191061-78202498  chr17-78198651-78199583        0
+ENST00000336600   chr6-44003127-44007612   chr6-44058439-44059230    50826
+ENSE00002618192  chr14-50108632-50109713  chr14-50038381-50039286    69345
+ENSE00001389095 chr9-129752887-129753042 chr9-129776928-129777838    23885</code></pre>
+</div>
+</div>
+<section id="go-enrichment-of-nearest-genes" class="level4">
+<h4 class="anchored" data-anchor-id="go-enrichment-of-nearest-genes">GO enrichment of nearest genes</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb116"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb116-1"><a href="#cb116-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(clusterProfiler)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>clusterProfiler v4.20.0 Learn more at https://yulab-smu.top/contribution-knowledge-mining/
+
+Please cite:
+
+S Xu, E Hu, Y Cai, Z Xie, X Luo, L Zhan, W Tang, Q Wang, B Liu, R Wang,
+W Xie, T Wu, L Xie, G Yu. Using clusterProfiler to characterize
+multiomics data. Nature Protocols. 2024, 19(11):3292-3320</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'clusterProfiler'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:IRanges':
+
+    slice</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:S4Vectors':
+
+    rename</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:stats':
+
+    filter</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb123"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb123-1"><a href="#cb123-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(org.Hs.eg.db)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: AnnotationDbi</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: Biobase</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Welcome to Bioconductor
+
+    Vignettes contain introductory material; view with
+    'browseVignettes()'. To cite Bioconductor, see
+    'citation("Biobase")', and for packages 'citation("pkgname")'.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'Biobase'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:AnnotationHub':
+
+    cache</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'AnnotationDbi'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following object is masked from 'package:clusterProfiler':
+
+    select</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code></code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb132"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb132-1"><a href="#cb132-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(enrichplot)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>enrichplot v1.32.0 Learn more at https://yulab-smu.top/contribution-knowledge-mining/
+
+Please cite:
+
+G Yu. Thirteen years of clusterProfiler. The Innovation. 2024,
+5(6):100722</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb134"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb134-1"><a href="#cb134-1" aria-hidden="true" tabindex="-1"></a>cd4naive_ego <span class="ot">&lt;-</span> <span class="fu">enrichGO</span>(</span>
+<span id="cb134-2"><a href="#cb134-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">gene =</span> closest_genes_cd4naive<span class="sc">$</span>gene_id,</span>
+<span id="cb134-3"><a href="#cb134-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">keyType =</span> <span class="st">"ENSEMBL"</span>,</span>
+<span id="cb134-4"><a href="#cb134-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">OrgDb =</span> org.Hs.eg.db,</span>
+<span id="cb134-5"><a href="#cb134-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">ont =</span> <span class="st">"BP"</span>,</span>
+<span id="cb134-6"><a href="#cb134-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">pAdjustMethod =</span> <span class="st">"BH"</span>,</span>
+<span id="cb134-7"><a href="#cb134-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">pvalueCutoff =</span> <span class="fl">0.05</span>,</span>
+<span id="cb134-8"><a href="#cb134-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">qvalueCutoff =</span> <span class="fl">0.05</span>,</span>
+<span id="cb134-9"><a href="#cb134-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">readable =</span> <span class="cn">TRUE</span></span>
+<span id="cb134-10"><a href="#cb134-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>'select()' returned 1:many mapping between keys and columns</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in bitr(gene, fromType = fromType, toType = "ENTREZID", OrgDb = OrgDb):
+1.82% of input gene IDs are fail to map...</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb137"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb137-1"><a href="#cb137-1" aria-hidden="true" tabindex="-1"></a><span class="fu">barplot</span>(cd4naive_ego, <span class="at">showCategory =</span> <span class="dv">20</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pbmc_vignette_atac_seq_files/figure-html/unnamed-chunk-27-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb138"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb138-1"><a href="#cb138-1" aria-hidden="true" tabindex="-1"></a>cd14mono_ego <span class="ot">&lt;-</span> <span class="fu">enrichGO</span>(</span>
+<span id="cb138-2"><a href="#cb138-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">gene =</span> closest_genes_cd14mono<span class="sc">$</span>gene_id,</span>
+<span id="cb138-3"><a href="#cb138-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">keyType =</span> <span class="st">"ENSEMBL"</span>,</span>
+<span id="cb138-4"><a href="#cb138-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">OrgDb =</span> org.Hs.eg.db,</span>
+<span id="cb138-5"><a href="#cb138-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">ont =</span> <span class="st">"BP"</span>,</span>
+<span id="cb138-6"><a href="#cb138-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">pAdjustMethod =</span> <span class="st">"BH"</span>,</span>
+<span id="cb138-7"><a href="#cb138-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">pvalueCutoff =</span> <span class="fl">0.05</span>,</span>
+<span id="cb138-8"><a href="#cb138-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">qvalueCutoff =</span> <span class="fl">0.05</span>,</span>
+<span id="cb138-9"><a href="#cb138-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">readable =</span> <span class="cn">TRUE</span></span>
+<span id="cb138-10"><a href="#cb138-10" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>'select()' returned 1:many mapping between keys and columns</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning in bitr(gene, fromType = fromType, toType = "ENTREZID", OrgDb = OrgDb):
+1.76% of input gene IDs are fail to map...</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb141"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb141-1"><a href="#cb141-1" aria-hidden="true" tabindex="-1"></a><span class="fu">barplot</span>(cd14mono_ego, <span class="at">showCategory =</span> <span class="dv">20</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pbmc_vignette_atac_seq_files/figure-html/unnamed-chunk-28-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="plotting-genomic-regions" class="level4">
+<h4 class="anchored" data-anchor-id="plotting-genomic-regions">Plotting genomic regions</h4>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb142"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb142-1"><a href="#cb142-1" aria-hidden="true" tabindex="-1"></a>pbmc <span class="ot">&lt;-</span> <span class="fu">SortIdents</span>(pbmc)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Creating pseudobulk profiles for 13 variables across 165376 features</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Computing euclidean distance between pseudobulk profiles</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Clustering distance matrix</code></pre>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb146"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb146-1"><a href="#cb146-1" aria-hidden="true" tabindex="-1"></a>regions_highlight <span class="ot">&lt;-</span> <span class="fu">subsetByOverlaps</span>(</span>
+<span id="cb146-2"><a href="#cb146-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">StringToGRanges</span>(open_cd4naive),</span>
+<span id="cb146-3"><a href="#cb146-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">LookupGeneCoords</span>(pbmc, <span class="st">"CD4"</span>)</span>
+<span id="cb146-4"><a href="#cb146-4" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: `StringToGRanges()` was deprecated in Signac 1.17.0.</code></pre>
+</div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb148"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb148-1"><a href="#cb148-1" aria-hidden="true" tabindex="-1"></a><span class="fu">CoveragePlot</span>(</span>
+<span id="cb148-2"><a href="#cb148-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">object =</span> pbmc,</span>
+<span id="cb148-3"><a href="#cb148-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">region =</span> <span class="st">"CD4"</span>,</span>
+<span id="cb148-4"><a href="#cb148-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">region.highlight =</span> regions_highlight,</span>
+<span id="cb148-5"><a href="#cb148-5" aria-hidden="true" tabindex="-1"></a>  <span class="at">extend.upstream =</span> <span class="dv">1000</span>,</span>
+<span id="cb148-6"><a href="#cb148-6" aria-hidden="true" tabindex="-1"></a>  <span class="at">extend.downstream =</span> <span class="dv">1000</span></span>
+<span id="cb148-7"><a href="#cb148-7" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
+ℹ Please use `linewidth` instead.
+ℹ The deprecated feature was likely used in the Signac package.
+  Please report the issue at &lt;https://github.com/stuart-lab/signac/issues&gt;.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: `aes_string()` was deprecated in ggplot2 3.0.0.
+ℹ Please use tidy evaluation idioms with `aes()`.
+ℹ See also `vignette("ggplot2-in-packages")` for more information.
+ℹ The deprecated feature was likely used in the Signac package.
+  Please report the issue at &lt;https://github.com/stuart-lab/signac/issues&gt;.</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 23 rows containing missing values or values outside the scale range
+(`geom_segment()`).</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 2 rows containing missing values or values outside the scale range
+(`geom_segment()`).</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Removed 1 row containing missing values or values outside the scale range
+(`geom_segment()`).</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pbmc_vignette_atac_seq_files/figure-html/unnamed-chunk-30-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb154"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb154-1"><a href="#cb154-1" aria-hidden="true" tabindex="-1"></a>regions_highlight <span class="ot">&lt;-</span> <span class="fu">subsetByOverlaps</span>(</span>
+<span id="cb154-2"><a href="#cb154-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">StringToGRanges</span>(open_cd14mono),</span>
+<span id="cb154-3"><a href="#cb154-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">LookupGeneCoords</span>(pbmc, <span class="st">"LYZ"</span>)</span>
+<span id="cb154-4"><a href="#cb154-4" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb154-5"><a href="#cb154-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb154-6"><a href="#cb154-6" aria-hidden="true" tabindex="-1"></a><span class="fu">CoveragePlot</span>(</span>
+<span id="cb154-7"><a href="#cb154-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">object =</span> pbmc,</span>
+<span id="cb154-8"><a href="#cb154-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">region =</span> <span class="st">"LYZ"</span>,</span>
+<span id="cb154-9"><a href="#cb154-9" aria-hidden="true" tabindex="-1"></a>  <span class="at">region.highlight =</span> regions_highlight,</span>
+<span id="cb154-10"><a href="#cb154-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">extend.upstream =</span> <span class="dv">1000</span>,</span>
+<span id="cb154-11"><a href="#cb154-11" aria-hidden="true" tabindex="-1"></a>  <span class="at">extend.downstream =</span> <span class="dv">5000</span></span>
+<span id="cb154-12"><a href="#cb154-12" aria-hidden="true" tabindex="-1"></a>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="pbmc_vignette_atac_seq_files/figure-html/unnamed-chunk-31-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="code-copy-outer-scaffold"><div class="sourceCode cell-code" id="cb155"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb155-1"><a href="#cb155-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>R version 4.6.0 (2026-04-24)
+Platform: x86_64-pc-linux-gnu
+Running under: Zorin OS 18.1
+
+Matrix products: default
+BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
+LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so;  LAPACK version 3.12.0
+
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+ [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: America/New_York
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats4    stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] enrichplot_1.32.0      org.Hs.eg.db_3.23.1    AnnotationDbi_1.74.0  
+ [4] Biobase_2.72.0         clusterProfiler_4.20.0 AnnotationHub_4.2.2   
+ [7] BiocFileCache_3.2.0    dbplyr_2.6.0           biovizBase_1.60.0     
+[10] GenomeInfoDb_1.48.0    patchwork_1.3.2        ggplot2_4.0.3         
+[13] GenomicRanges_1.64.0   Seqinfo_1.2.0          IRanges_2.46.0        
+[16] S4Vectors_0.50.1       BiocGenerics_0.58.1    generics_0.1.4        
+[19] Seurat_5.5.1           SeuratObject_5.4.0     sp_2.2-3              
+[22] Signac_1.17.1         
+
+loaded via a namespace (and not attached):
+  [1] fs_2.1.0                    ProtGenerics_1.44.0        
+  [3] matrixStats_1.5.0           spatstat.sparse_3.2-0      
+  [5] bitops_1.0-9                httr_1.4.8                 
+  [7] RColorBrewer_1.1-3          tools_4.6.0                
+  [9] sctransform_0.4.3           backports_1.5.1            
+ [11] R6_2.6.1                    lazyeval_0.2.3             
+ [13] uwot_0.2.4                  withr_3.0.3                
+ [15] gridExtra_2.3.1             progressr_1.0.0            
+ [17] cli_3.6.6                   spatstat.explore_3.8-1     
+ [19] fastDummies_1.7.6           scatterpie_0.2.6           
+ [21] labeling_0.4.3              S7_0.2.2                   
+ [23] spatstat.data_3.1-9         ggridges_0.5.7             
+ [25] pbapply_1.7-4               systemfonts_1.3.2          
+ [27] Rsamtools_2.28.0            yulab.utils_0.2.4          
+ [29] gson_0.2.0                  foreign_0.8-91             
+ [31] DOSE_4.6.0                  dichromat_2.0-1            
+ [33] parallelly_1.48.0           BSgenome_1.80.0            
+ [35] rstudioapi_0.19.0           RSQLite_3.53.3             
+ [37] gridGraphics_0.5-1          BiocIO_1.22.0              
+ [39] ica_1.0-3                   spatstat.random_3.5-0      
+ [41] dplyr_1.2.1                 GO.db_3.23.1               
+ [43] Matrix_1.7-5                ggbeeswarm_0.7.3           
+ [45] abind_1.4-8                 lifecycle_1.0.5            
+ [47] yaml_2.3.12                 SummarizedExperiment_1.42.0
+ [49] qvalue_2.44.0               SparseArray_1.12.2         
+ [51] Rtsne_0.17                  grid_4.6.0                 
+ [53] blob_1.3.0                  promises_1.5.0             
+ [55] crayon_1.5.3                ggtangle_0.1.2             
+ [57] miniUI_0.1.2                lattice_0.22-9             
+ [59] cowplot_1.2.0               GenomicFeatures_1.64.0     
+ [61] cigarillo_1.2.1             KEGGREST_1.52.2            
+ [63] pillar_1.11.1               knitr_1.51                 
+ [65] rjson_0.2.23                future.apply_1.20.2        
+ [67] codetools_0.2-20            fastmatch_1.1-8            
+ [69] glue_1.8.1                  ggiraph_0.9.6              
+ [71] fontLiberation_0.1.0        ggfun_0.2.1                
+ [73] spatstat.univar_3.2-0       data.table_1.18.4          
+ [75] treeio_1.36.1               vctrs_0.7.3                
+ [77] png_0.1-9                   spam_2.11-4                
+ [79] gtable_0.3.6                cachem_1.1.0               
+ [81] xfun_0.60                   S4Arrays_1.12.0            
+ [83] mime_0.13                   survival_3.8-9             
+ [85] aisdk_1.4.12                RcppRoll_0.3.2             
+ [87] fitdistrplus_1.2-6          ROCR_1.0-12                
+ [89] nlme_3.1-170                ggtree_4.2.0               
+ [91] fontquiver_0.2.1            bit64_4.8.2                
+ [93] filelock_1.0.3              RcppAnnoy_0.0.23           
+ [95] rprojroot_2.1.1             irlba_2.3.7                
+ [97] vipor_0.4.7                 KernSmooth_2.23-26         
+ [99] otel_0.2.0                  rpart_4.1.27               
+[101] colorspace_2.1-3            DBI_1.3.0                  
+[103] Hmisc_5.2-6                 nnet_7.3-20                
+[105] processx_3.9.0              ggrastr_1.0.2              
+[107] tidyselect_1.2.1            bit_4.6.0                  
+[109] compiler_4.6.0              curl_7.1.0                 
+[111] httr2_1.3.0                 htmlTable_2.5.0            
+[113] fontBitstreamVera_0.1.1     DelayedArray_0.38.2        
+[115] plotly_4.12.1               rtracklayer_1.72.0         
+[117] checkmate_2.3.4             scales_1.4.0               
+[119] lmtest_0.9-40               callr_3.8.0                
+[121] rappdirs_0.3.4              stringr_1.6.0              
+[123] digest_0.6.39               goftest_1.2-3              
+[125] spatstat.utils_3.2-4        presto_1.0.0               
+[127] rmarkdown_2.31              XVector_0.52.0             
+[129] htmltools_0.5.9             pkgconfig_2.0.3            
+[131] base64enc_0.1-6             sparseMatrixStats_1.24.0   
+[133] MatrixGenerics_1.24.0       fastmap_1.2.0              
+[135] ensembldb_2.36.1            rlang_1.3.0                
+[137] htmlwidgets_1.6.4           UCSC.utils_1.8.0           
+[139] shiny_1.14.0                farver_2.1.2               
+[141] zoo_1.8-15                  jsonlite_2.0.0             
+[143] BiocParallel_1.46.0         GOSemSim_2.38.3            
+[145] VariantAnnotation_1.58.0    RCurl_1.98-1.19            
+[147] magrittr_2.0.5              ggplotify_0.1.3            
+[149] Formula_1.2-5               dotCall64_1.2              
+[151] Rcpp_1.1.2                  gdtools_0.5.1              
+[153] ape_5.8-1                   ggnewscale_0.5.2           
+[155] reticulate_1.46.0           stringi_1.8.7              
+[157] MASS_7.3-66                 plyr_1.8.9                 
+[159] parallel_4.6.0              listenv_1.0.0              
+[161] ggrepel_0.9.8               deldir_2.0-4               
+[163] Biostrings_2.80.1           splines_4.6.0              
+[165] tensor_1.5.1                ps_1.9.3                   
+[167] igraph_2.3.3                spatstat.geom_3.8-2        
+[169] enrichit_0.2.0              RcppHNSW_0.7.0             
+[171] reshape2_1.4.5              BiocVersion_3.23.1         
+[173] XML_3.99-0.23               evaluate_1.0.5             
+[175] BiocManager_1.30.27         tweenr_2.0.3               
+[177] httpuv_1.6.17               RANN_2.6.2                 
+[179] tidyr_1.3.2                 purrr_1.2.2                
+[181] polyclip_1.10-7             future_1.75.0              
+[183] scattermore_1.2             ggforce_0.5.0              
+[185] xtable_1.8-8                restfulr_0.0.17            
+[187] AnnotationFilter_1.36.0     tidytree_0.4.8             
+[189] RSpectra_0.16-2             tidydr_0.0.6               
+[191] later_1.4.8                 viridisLite_0.4.3          
+[193] tibble_3.3.1                aplot_0.3.1                
+[195] memoise_2.0.1               beeswarm_0.4.0             
+[197] GenomicAlignments_1.48.0    cluster_2.1.8.2            
+[199] globals_0.19.1              here_1.0.2                 </code></pre>
+</div>
+</div>
+</section>
+</section>
+
+</main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

@@ -161,3 +161,7 @@ report_data_dir <- function(subdir = NULL) {
   }
   invisible(path)
 }
+
+in_data_dir <- function(basename) {
+  return(file.path(find_data_dir(), basename))
+}

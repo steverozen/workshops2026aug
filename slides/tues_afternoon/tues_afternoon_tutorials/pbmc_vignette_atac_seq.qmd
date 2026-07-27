@@ -65,19 +65,10 @@ ck_read_dir <- data_dir
 ck_write_dir <- here::here("gitignore")
 dir.create(ck_write_dir, showWarnings = FALSE)
 
-#' Resolve a checkpoint path, preferring the staged copy
-#'
-#' @param file Bare checkpoint filename.
-#' @return The staged path when that file exists, otherwise the local path.
-ck_path <- function(file) {
-  staged <- file.path(ck_read_dir, file)
-  if (file.exists(staged)) staged else file.path(ck_write_dir, file)
-}
-
-ck_qc      <- ck_path("pbmc_atac_ck1_qc.rds")       # post-QC, pre-subset
-ck_dimred  <- ck_path("pbmc_atac_ck2_dimred.rds")   # post-UMAP + GeneActivity
-ck_labeled <- ck_path("pbmc_atac_ck3_labeled.rds")  # post-label-transfer + relabel
-ck_markers <- ck_path("pbmc_atac_ck4_markers.rds")  # da_peaks + lr_da_peaks
+ck_qc      <- in_data_dir("pbmc_atac_ck1_qc.rds")       # post-QC, pre-subset
+ck_dimred  <- in_data_dir("pbmc_atac_ck2_dimred.rds")   # post-UMAP + GeneActivity
+ck_labeled <- in_data_dir("pbmc_atac_ck3_labeled.rds")  # post-label-transfer + relabel
+ck_markers <- in_data_dir("pbmc_atac_ck4_markers.rds")  # da_peaks + lr_da_peaks
 
 # Say plainly which of these will be loaded and which will be recomputed, so a
 # slow run is diagnosed in the first seconds rather than an hour in.
