@@ -685,8 +685,24 @@ chunk below errors and, under `error: false`, stops the render.
 :::
 
 ::: {.callout-warning}
-`create.RCTD()` / `run.RCTD()` are slow. RCTD parallelizes well, so `max_cores`
-can be raised. Consider precomputing the annotated object at staging time.
+## Do not raise `max_cores` on a workshop machine
+
+`create.RCTD()` / `run.RCTD()` are slow, and RCTD does parallelize, but each
+worker is a separate R process holding its own copy of the reference. The
+hippocampus reference alone is 1.8 GB.
+
+Measured 2026-07-26 on a 30 GB laptop: `max_cores = 8` spawned eight workers of
+1.1 to 1.9 GB each, on top of a 5.5 GB parent, filling memory, pushing 39 GB
+into swap, and driving load average to 34 on four physical cores. It made no
+progress for over an hour and had to be killed.
+
+`max_cores = 2` matches the worker cap in
+`seurat5_spatial_vignette_2_local.qmd`, which carries the same reasoning for
+`future` workers. Students have 16 GB, so treat 2 as a ceiling, not a default
+to tune upward.
+
+Precomputing the annotated object at staging time is the better answer if this
+step is still too slow.
 :::
 
 ```{r}
@@ -729,7 +745,9 @@ type labels to the query Seurat object.
 
 ```{r}
 #| label: rctd-run
-RCTD <- create.RCTD(query, reference, max_cores = 8)
+# max_cores = 2, not 8. Each worker is a full copy of the reference. See the
+# callout above: 8 workers filled 30 GB and 39 GB of swap without finishing.
+RCTD <- create.RCTD(query, reference, max_cores = 2)
 RCTD <- run.RCTD(RCTD, doublet_mode = 'doublet')
 slide.seq <- AddMetaData(slide.seq, metadata = RCTD@results$results_df)
 ```

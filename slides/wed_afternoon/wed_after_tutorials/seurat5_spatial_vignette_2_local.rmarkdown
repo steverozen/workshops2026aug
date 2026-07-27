@@ -349,15 +349,6 @@ ImageDimPlot(vizgen.obj, fov = "hippo", molecules = rownames(markers.14)[1:4], c
     mols.size = 1, alpha = 0.5, mols.cols = c("red", "blue", "yellow", "green"))
 ```
 
-```{r}
-#| label: free-vizgen-objects
-# The Vizgen section is done and nothing below refers to these. Each platform
-# section here loads a multi-GB object, so without this the session ends up
-# holding all three at once. See the memory callout at the top of the document.
-rm(list = intersect(c("vizgen.obj", "cropped.coords", "markers.14"), ls()))
-invisible(gc())
-```
-
 ## Mouse Brain: 10x Genomics Xenium In Situ
 
 This section analyzes data from the Xenium platform. `LoadXenium()` reads the
@@ -578,18 +569,6 @@ Each niche is enriched for distinct cell types:
 table(xenium.obj$predicted.celltype, xenium.obj$niches)
 ```
 
-```{r}
-#| label: free-xenium-objects
-# Same again: the Xenium section and its RCTD deconvolution are done. The RCTD
-# reference and query are the largest items here.
-rm(list = intersect(
-  c("xenium.obj", "crop", "cropped.coords", "query", "reference", "RCTD",
-    "allen.cortex.ref", "counts", "cluster", "nUMI", "annotations"),
-  ls()
-))
-invisible(gc())
-```
-
 ## Human Lung: Nanostring CosMx Spatial Molecular Imager
 
 This dataset comes from the Nanostring CosMx Spatial Molecular Imager (SMI),
@@ -770,3 +749,4 @@ ImageDimPlot(nano.obj, fov = "zoom1", cols = "polychrome", alpha = 0.3, molecule
 #| label: sessioninfo
 sessionInfo()
 ```
+

@@ -36,6 +36,22 @@ moved or pre-built by hand, that is fine and does not need fixing.
 rearranged by hand, append to `SOURCE.md`. That record, not the script, is what
 makes the data reproducible.
 
+## Size every tutorial for 4 threads and 16 GB
+
+That is what each student gets on the workshop machines. Upstream Seurat
+vignettes are written for lab servers and will not fit.
+
+- `create.RCTD(..., max_cores = 2)`. Upstream uses 8, and in one case 28. Every
+  RCTD worker is a separate R process holding its own copy of the reference.
+- `plan("multisession", workers = 2)` at most. Run `SCTransform()` under
+  `plan("sequential")`, it ships a multi-GB closure to each worker.
+- Free large objects with `rm()` and `gc()` at section boundaries. Tutorials
+  accumulate several GB of dead objects otherwise.
+- Precompute what still does not fit and stage it as an `.rds`, as
+  `stage_vizgen_hippo_fov.R` and `stage_nanostring_object.R` do.
+- A clean render on a 30 GB laptop does not prove it fits in 16 GB. To check,
+  run under `systemd-run --user --scope -p MemoryMax=16G -p CPUQuota=400%`.
+
 ## Workshop tutorials must not download during a session
 The `*_local.qmd` tutorials read pre-staged data through `find_data_dir()` in
 `slides/find_data_dir.R`. Never reintroduce an upstream download call into one

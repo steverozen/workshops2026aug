@@ -355,8 +355,41 @@ Before running BANKSY, there are two important model parameters to consider.
 spatially coherent domains. The `RunBanksy` function creates a new BANKSY assay,
 which can be used for dimensional reduction and clustering.
 
+::: {.callout-important}
+## BANKSY does not run against any released Matrix, so this section is skipped
+
+`RunBanksy()` fails inside `Banksy:::computeHarmonics()` with
+
+```
+Error in getClass(): "zgeMatrix" is not a defined class
+```
+
+BANKSY multiplies a `Matrix`-class chunk by complex Fourier terms, and released
+`Matrix` has no complex dense class to dispatch to. Reduced to three lines with
+Matrix 1.7.5 on 2026-07-26:
+
+```r
+m <- Matrix(as.numeric(1:4), 2, 2)
+z <- matrix(complex(real = 1:2, imaginary = 1:2), 2, 1)
+m %*% z            # Error: "zgeMatrix" is not a defined class
+as.matrix(m) %*% z # ok
+```
+
+This is not a Banksy version problem. Banksy 1.9.1 from the `devel` branch and
+1.8.1 from Bioconductor fail identically, and CRAN's newest `Matrix`, 1.7-6,
+lists no complex-matrix work. It would need a `Matrix` that defines
+`zgeMatrix`, which is not released, and swapping out a core package on every
+workshop machine is not worth one section.
+
+The BANKSY chunks below are therefore `eval: false`. Everything else in this
+tutorial, the sketch clustering, the anatomical subsetting, and the RCTD
+deconvolution, is unaffected. Re-enable these chunks once `Matrix` ships
+complex dense matrices.
+:::
+
 ```{r}
 #| label: run-banksy
+#| eval: false
 object <- RunBanksy(object, lambda = 0.8, verbose = TRUE,
                     assay = "Spatial.008um", slot = "data", features = "variable",
                     k_geom = 50)
@@ -368,6 +401,7 @@ object <- FindClusters(object, cluster.name = "banksy_cluster", resolution = 0.5
 
 ```{r}
 #| label: banksy-spatial
+#| eval: false
 Idents(object) <- "banksy_cluster"
 p <- SpatialDimPlot(object, images = "slice1.008um", group.by = "banksy_cluster", label = T, repel = T, label.size = 4)
 p
@@ -378,6 +412,7 @@ tissue domain individually.
 
 ```{r}
 #| label: banksy-highlight
+#| eval: false
 banksy_cells <- CellsByIdentities(object)
 p <- SpatialDimPlot(object, cells.highlight = banksy_cells[setdiff(names(banksy_cells), "NA")], cols.highlight = c("#FFFF00", "grey50"), facet.highlight = T, combine = T) + NoLegend()
 p
@@ -493,8 +528,11 @@ query <- SpatialRNA(coords, counts_hd, colSums(counts_hd))
 
 ```{r}
 #| label: run-rctd
-# run RCTD
-RCTD <- create.RCTD(query, reference, max_cores = 28)
+# max_cores = 2, not the 28 upstream uses. Upstream runs on a server; each RCTD
+# worker is a separate R process holding its own copy of the reference, and
+# students have 16 GB. Measured 2026-07-27 in the sibling spatial tutorials:
+# max_cores = 8 alone saturated 16 threads and pushed 24 GB into swap.
+RCTD <- create.RCTD(query, reference, max_cores = 2)
 RCTD <- run.RCTD(RCTD, doublet_mode = "doublet")
 # add results back to Seurat object
 cortex <- AddMetaData(cortex, metadata = RCTD@results$results_df)
@@ -542,6 +580,7 @@ layers.
 
 ```{r}
 #| label: celltype-banksy-barplot
+#| eval: false
 plot_cell_types <- function(data, label) {
   p <- ggplot(data, aes(x = get(label), y = n, fill = full_first_type)) +
     geom_bar(stat = "identity", position = "stack") +
@@ -567,6 +606,7 @@ neurons) to individual neuronal layers.
 
 ```{r}
 #| label: assign-layers
+#| eval: false
 Idents(object) <- "banksy_cluster"
 object$layer_id <- "Unknown"
 object$layer_id[WhichCells(object, idents = c(5))] <- "Layer 2/3"

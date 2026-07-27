@@ -38,10 +38,28 @@ data_dir <- find_data_dir("spatial_imaging")
 
 in_dir <- file.path(data_dir, "nanostring_lung5_rep1")
 final <- file.path(data_dir, "nanostring_lung5_rep1.rds")
-tmp <- paste0(final, ".writing")
+zoom_final <- file.path(data_dir, "nanostring_lung5_rep1_zoom1_fov.rds")
 
 if (!dir.exists(in_dir)) {
   stop("CosMx flat files not found: ", in_dir)
+}
+
+#' Save an object through a temporary file
+#'
+#' An interrupted saveRDS() leaves a truncated .rds where a good one was, which
+#' happened to the hippocampus reference on 2026-07-26. Writing to a temporary
+#' name and renaming makes the replacement atomic.
+#'
+#' @param object Object to save.
+#' @param path Final path.
+#' @return Invisibly, `path`.
+save_atomic <- function(object, path) {
+  tmp <- paste0(path, ".writing")
+  message("Writing ", tmp)
+  saveRDS(object, tmp)
+  if (!file.rename(tmp, path)) stop("Could not rename ", tmp, " to ", path)
+  message("Staged ", path, ", bytes: ", file.size(path))
+  invisible(path)
 }
 
 message("Loading ", in_dir)
@@ -50,13 +68,15 @@ message("  ", nrow(nano.obj), " features x ", ncol(nano.obj), " cells")
 message("  assays: ", paste(names(nano.obj@assays), collapse = ", "))
 message("  FOVs: ", paste(Images(nano.obj), collapse = ", "))
 
-# Write to a temporary name and rename, so an interrupted run cannot leave a
-# truncated .rds where a good one was.
-message("Writing ", tmp)
-saveRDS(nano.obj, tmp)
-if (!file.rename(tmp, final)) {
-  stop("Could not rename ", tmp, " to ", final)
-}
+save_atomic(nano.obj, final)
 
-message("Staged ", final)
-message("  bytes: ", file.size(final))
+# The zoom1 crop overflows the protection stack for the same reason the load
+# does, so it is built here too. Window is the one from the upstream vignette.
+message("Cropping the basal-rich zoom1 region")
+basal.crop <- Crop(
+  nano.obj[["lung5.rep1"]],
+  x = c(159500, 164000),
+  y = c(8700, 10500)
+)
+DefaultBoundary(basal.crop) <- "segmentation"
+save_atomic(basal.crop, zoom_final)

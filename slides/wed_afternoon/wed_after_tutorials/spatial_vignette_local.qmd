@@ -510,6 +510,30 @@ feedback and contributions to the code for Visium data loading and analysis.
 
 # Slide-seq
 
+::: {.callout-note}
+## Freeing the Visium objects first
+
+Nothing from the Visium half of this document is used again below, and leaving
+it resident is what makes the Slide-seq section run out of memory on a 16 GB
+machine. Measured 2026-07-26: the render was killed during `slideseq-cluster`
+with the Visium working set still held, even though that chunk needs only a few
+GB on its own. The largest item is `allen_reference`, 990 MB on disk and
+several GB in memory once SCT-normalized.
+:::
+
+```{r}
+#| label: free-visium-objects
+# Everything here was last used above, in the Visium sections. The `anchors` and
+# `predictions.assay` names are reused further down for Slide-seq, so drop the
+# Visium versions rather than letting them sit until they are overwritten.
+rm(list = intersect(
+  c("allen_reference", "anchors", "predictions.assay",
+    "brain", "brain2", "brain.merge", "cortex"),
+  ls()
+))
+invisible(gc())
+```
+
 ## Dataset
 
 Here we analyze a dataset generated using Slide-seq v2 of the mouse hippocampus.
@@ -540,7 +564,10 @@ dimensionality reduction and clustering workflow.
 
 ```{r}
 #| label: slideseq-cluster
-slide.seq <- SCTransform(slide.seq, assay = "Spatial", ncells = 3000, verbose = FALSE)
+# conserve.memory = TRUE keeps SCTransform from materializing the full residual
+# matrix at once. Slower, but this is 53,173 beads and students have 16 GB.
+slide.seq <- SCTransform(slide.seq, assay = "Spatial", ncells = 3000,
+                         conserve.memory = TRUE, verbose = FALSE)
 slide.seq <- RunPCA(slide.seq)
 slide.seq <- RunUMAP(slide.seq, dims = 1:30)
 slide.seq <- FindNeighbors(slide.seq, dims = 1:30)
@@ -647,12 +674,16 @@ optional `Rfast2` package speeds up the binning path. Consider precomputing.
 #| label: slideseq-svf
 DefaultAssay(slide.seq) <- "SCT"
 
+# Upstream uses 1000 features on a 100 x 100 grid. Measured 2026-07-26, that
+# combination held 20.4 GB with nothing else running, which no 16 GB machine
+# survives. 200 features on a 50 x 50 grid finds the same kind of result at a
+# fraction of the cost. Raise these only on a machine you know can take it.
 slide.seq <- FindSpatiallyVariableFeatures(slide.seq,
                                            assay = "SCT",
                                            layer = "scale.data",
-                                           features = VariableFeatures(slide.seq)[1:1000],
+                                           features = VariableFeatures(slide.seq)[1:200],
                                            selection.method = "moransi",
-                                           x.cuts = 100, y.cuts = 100)
+                                           x.cuts = 50, y.cuts = 50)
 ```
 
 Now we visualize the expression of the top 6 features identified by Moran's I.
@@ -685,8 +716,24 @@ chunk below errors and, under `error: false`, stops the render.
 :::
 
 ::: {.callout-warning}
-`create.RCTD()` / `run.RCTD()` are slow. RCTD parallelizes well, so `max_cores`
-can be raised. Consider precomputing the annotated object at staging time.
+## Do not raise `max_cores` on a workshop machine
+
+`create.RCTD()` / `run.RCTD()` are slow, and RCTD does parallelize, but each
+worker is a separate R process holding its own copy of the reference. The
+hippocampus reference alone is 1.8 GB.
+
+Measured 2026-07-26 on a 30 GB laptop: `max_cores = 8` spawned eight workers of
+1.1 to 1.9 GB each, on top of a 5.5 GB parent, filling memory, pushing 39 GB
+into swap, and driving load average to 34 on four physical cores. It made no
+progress for over an hour and had to be killed.
+
+`max_cores = 2` matches the worker cap in
+`seurat5_spatial_vignette_2_local.qmd`, which carries the same reasoning for
+`future` workers. Students have 16 GB, so treat 2 as a ceiling, not a default
+to tune upward.
+
+Precomputing the annotated object at staging time is the better answer if this
+step is still too slow.
 :::
 
 ```{r}
@@ -729,7 +776,9 @@ type labels to the query Seurat object.
 
 ```{r}
 #| label: rctd-run
-RCTD <- create.RCTD(query, reference, max_cores = 8)
+# max_cores = 2, not 8. Each worker is a full copy of the reference. See the
+# callout above: 8 workers filled 30 GB and 39 GB of swap without finishing.
+RCTD <- create.RCTD(query, reference, max_cores = 2)
 RCTD <- run.RCTD(RCTD, doublet_mode = 'doublet')
 slide.seq <- AddMetaData(slide.seq, metadata = RCTD@results$results_df)
 ```
