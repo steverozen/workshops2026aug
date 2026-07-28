@@ -2594,6 +2594,133 @@ input:    aaaaaaaaaaaaaaaaaa!</code></pre>
 </ol>
 <p><strong>Cloudflare, 2 July 2019:</strong> a new WAF rule with a nested <code>(?:.*=.*)</code>-style quantifier hit catastrophic backtracking on an ordinary request body. Every edge CPU worldwide pegged at 100%, global traffic through Cloudflare stopped for ~30 minutes. Postmortem: <a href="https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/" class="uri">https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/</a>. Cloudflare then migrated their WAF off PCRE onto <strong>RE2</strong>, making that class of bug impossible by construction.</p>
 <p>The lesson: a slow security pattern is itself a DoS vector against the thing it is supposed to protect.</p>
+</section></section>
+<section>
+<section id="how-a-.qmd-becomes-a-slide" class="title-slide slide level1 center">
+<h1>How a <code>.qmd</code> becomes a slide</h1>
+
+</section>
+<section id="the-quarto-rendering-pipeline" class="slide level2">
+<h2>The Quarto rendering pipeline</h2>
+<style>
+.pipe {
+display: grid;
+grid-template-columns: auto 1fr auto 1fr auto 1fr auto;
+align-items: center;
+gap: 0.35em 0.5em;
+font-size: 0.46em;
+margin: 0.6em 0 0.4em 0;
+}
+.pipe .box {
+border: 2px solid #4338ca;
+background: #eef2ff;
+color: #1e1b4b;
+border-radius: 8px;
+padding: 0.55em 0.7em;
+text-align: center;
+line-height: 1.25;
+}
+.pipe .box b { display: block; font-size: 1.15em; }
+.pipe .box span { display: block; color: #4b5563; font-size: 0.85em; }
+.pipe .ast { border-color: #c2410c; background: #fff7ed; color: #431407; }
+.pipe .out { border-color: #047857; background: #ecfdf5; color: #022c22; }
+.pipe .out div { padding: 0.12em 0; }
+.pipe .arr { text-align: center; color: #374151; line-height: 1.2; }
+.pipe .arr .lab { display: block; font-size: 0.8em; color: #4b5563; }
+.pipe .arr .gly { display: block; font-size: 1.5em; margin-top: -0.1em; }
+.pipe .lua {
+grid-column: 5; text-align: center; font-size: 0.85em; color: #9a3412;
+}
+.pipe .lua .gly { display: block; font-size: 1.4em; line-height: 1; }
+.pipe .lua b { display: block; }
+</style>
+
+<div class="pipe">
+  <div class="box"><b>.qmd</b><span>prose + R chunks</span></div>
+  <div class="arr"><span class="lab">knitr<br>runs the R code</span><span class="gly">⟶</span></div>
+  <div class="box"><b>.md</b><span>plain markdown<br>plots are now .png</span></div>
+  <div class="arr"><span class="lab">pandoc<br>reader</span><span class="gly">⟶</span></div>
+  <div class="box ast"><b>AST</b><span>format-neutral<br>document tree</span></div>
+  <div class="arr"><span class="lab">pandoc<br>writer</span><span class="gly">⟶</span></div>
+  <div class="box out">
+    <div><b>HTML / revealjs</b></div>
+    <div><b>PDF via LaTeX</b></div>
+    <div><b>.docx</b></div>
+  </div>
+
+  <div class="lua"><span class="gly">↑</span><b>Lua filters</b>rewrite the tree here</div>
+</div>
+<div style="font-size: 0.66em;">
+<p>Two separate programs do the work. <strong>knitr</strong> runs your R chunks and writes plain markdown, with every plot already saved as a <code>.png</code>. <strong>pandoc</strong> then parses that markdown into an AST (abstract syntax tree) and writes it out.</p>
+<p>The AST is the whole point. It is format-neutral, so one source file reaches every output format, and it is the only place a <strong>Lua filter</strong> can reach in and rewrite the document. That is how Quarto itself implements callouts, columns, and cross-references.</p>
+</div>
+</section>
+<section id="div-fences-in-action" class="slide level2">
+<h2>Div fences in action</h2>
+<div style="font-size: 0.7em;">
+<p>A <strong>fence</strong> is a delimiter line marking where a block starts and ends, exactly like the <code>```</code> around an R chunk. A <code>:::</code> fence delimits a <strong>div</strong>, a generic container you can hang classes and styles on.</p>
+</div>
+<div class="columns">
+<div class="column" style="width:47%;">
+<div style="font-size: 0.6em;">
+<p><strong>What you write</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb88"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb88-1"><a href aria-hidden="true" tabindex="-1"></a>::: {.columns}</span>
+<span id="cb88-2"><a href aria-hidden="true" tabindex="-1"></a>::: {.column width=&quot;47%&quot;}</span>
+<span id="cb88-3"><a href aria-hidden="true" tabindex="-1"></a>Left-hand content.</span>
+<span id="cb88-4"><a href aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb88-5"><a href aria-hidden="true" tabindex="-1"></a>::: {.column width=&quot;53%&quot;}</span>
+<span id="cb88-6"><a href aria-hidden="true" tabindex="-1"></a>Right-hand content.</span>
+<span id="cb88-7"><a href aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb88-8"><a href aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</div>
+</div><div class="column" style="width:53%;">
+<div style="font-size: 0.6em;">
+<p><strong>What the attributes do</strong></p>
+<ul>
+<li><code>{.columns}</code> and <code>{.column width=&quot;47%&quot;}</code> are classes that revealjs already has CSS for, so you get a two-column slide for free.</li>
+<li><code>{style=&quot;font-size: 0.7em;&quot;}</code> is raw CSS, the escape hatch for the one slide whose content will not fit.</li>
+<li><code>{.smaller}</code> is revealjs’s built-in shrink, no CSS of your own needed.</li>
+</ul>
+<p>This slide is built from exactly the fences shown on the left.</p>
+</div>
+</div></div>
+</section>
+<section id="the-bare-fence-trap" class="slide level2">
+<h2>The bare fence trap</h2>
+<div style="font-size: 0.68em;">
+<p>Pandoc does <strong>not</strong> pair fences by length. A fence <strong>with attributes</strong> opens a div, and a <strong>bare</strong> fence closes the innermost open div. So a fence you meant as an opener, but gave no attributes, is silently read as a closer.</p>
+</div>
+<div class="columns">
+<div class="column" style="width:50%;">
+<div style="font-size: 0.58em;">
+<p><strong>Broken</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb89"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb89-1"><a href aria-hidden="true" tabindex="-1"></a>::: {.columns}</span>
+<span id="cb89-2"><a href aria-hidden="true" tabindex="-1"></a>::: {.column width=&quot;50%&quot;}</span>
+<span id="cb89-3"><a href aria-hidden="true" tabindex="-1"></a>Left.</span>
+<span id="cb89-4"><a href aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb89-5"><a href aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb89-6"><a href aria-hidden="true" tabindex="-1"></a>Right.</span>
+<span id="cb89-7"><a href aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb89-8"><a href aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The fourth fence closes the first column, then the bare fifth one closes <code>.columns</code> instead of opening the second column. <code>Right.</code> spills out of the layout and the two leftover fences print as literal <code>:::</code> on the slide.</p>
+</div>
+</div><div class="column" style="width:50%;">
+<div style="font-size: 0.58em;">
+<p><strong>Fixed</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb90"><pre class="sourceCode markdown code-with-copy"><code class="sourceCode markdown"><span id="cb90-1"><a href aria-hidden="true" tabindex="-1"></a>::: {.columns}</span>
+<span id="cb90-2"><a href aria-hidden="true" tabindex="-1"></a>::: {.column width=&quot;50%&quot;}</span>
+<span id="cb90-3"><a href aria-hidden="true" tabindex="-1"></a>Left.</span>
+<span id="cb90-4"><a href aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb90-5"><a href aria-hidden="true" tabindex="-1"></a>::: {.column width=&quot;50%&quot;}</span>
+<span id="cb90-6"><a href aria-hidden="true" tabindex="-1"></a>Right.</span>
+<span id="cb90-7"><a href aria-hidden="true" tabindex="-1"></a>:::</span>
+<span id="cb90-8"><a href aria-hidden="true" tabindex="-1"></a>:::</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Every opening fence carries an attribute, so pandoc can tell openers from closers and the nesting is unambiguous.</p>
+</div>
+</div></div>
+<div style="font-size: 0.62em;">
+<p>Writing the outer fence longer (<code>::::</code>) is a readability habit, not a fix. It helps <em>you</em> see the pairing in a long slide, but it does not rescue a bare opener. The rule that matters: <strong>give every opening fence a class or a style.</strong></p>
+</div>
 
 </section></section>
     </div>

@@ -1,0 +1,95 @@
+## Div fences in action
+
+::: {style="font-size: 0.7em;"}
+A **fence** is a delimiter line marking where a block starts and ends, exactly
+like the ` ``` ` around an R chunk. A `:::` fence delimits a **div**, a generic
+container you can hang classes and styles on.
+:::
+
+::: {.columns}
+::: {.column width="47%"}
+::: {style="font-size: 0.6em;"}
+**What you write**
+
+````markdown
+::: {.columns}
+::: {.column width="47%"}
+Left-hand content.
+:::
+::: {.column width="53%"}
+Right-hand content.
+:::
+:::
+````
+:::
+:::
+::: {.column width="53%"}
+::: {style="font-size: 0.6em;"}
+**What the attributes do**
+
+- `{.columns}` and `{.column width="47%"}` are classes that revealjs already
+  has CSS for, so you get a two-column slide for free.
+- `{style="font-size: 0.7em;"}` is raw CSS, the escape hatch for the one
+  slide whose content will not fit.
+- `{.smaller}` is revealjs's built-in shrink, no CSS of your own needed.
+
+This slide is built from exactly the fences shown on the left.
+:::
+:::
+:::
+
+## The bare fence trap
+
+::: {style="font-size: 0.68em;"}
+Pandoc does **not** pair fences by length. A fence **with attributes** opens a
+div, and a **bare** fence closes the innermost open div. So a fence you meant
+as an opener, but gave no attributes, is silently read as a closer.
+:::
+
+::: {.columns}
+::: {.column width="50%"}
+::: {style="font-size: 0.58em;"}
+**Broken**
+
+````markdown
+::: {.columns}
+::: {.column width="50%"}
+Left.
+:::
+:::
+Right.
+:::
+:::
+````
+
+The fourth fence closes the first column, then the bare fifth one closes
+`.columns` instead of opening the second column. `Right.` spills out of the
+layout and the two leftover fences print as literal `:::` on the slide.
+:::
+:::
+::: {.column width="50%"}
+::: {style="font-size: 0.58em;"}
+**Fixed**
+
+````markdown
+::: {.columns}
+::: {.column width="50%"}
+Left.
+:::
+::: {.column width="50%"}
+Right.
+:::
+:::
+````
+
+Every opening fence carries an attribute, so pandoc can tell openers from
+closers and the nesting is unambiguous.
+:::
+:::
+:::
+
+::: {style="font-size: 0.62em;"}
+Writing the outer fence longer (`::::`) is a readability habit, not a fix. It
+helps *you* see the pairing in a long slide, but it does not rescue a bare
+opener. The rule that matters: **give every opening fence a class or a style.**
+:::
