@@ -292,11 +292,15 @@ tidyplot(diamonds, carat, price, height = NA, width = NA) |>
     adjust_font(fontsize = 14)
 ```
 
-## Coding agents seem to often get figure sizes and placement and text sizes wrong at first; skills and SOPs can help
+## Coding agents have problems with figures in Quarto
 
-Guide to work arounds: can it be codified as an agent skill:
+Often get figure sizes and placement wrong at first
 
-Different ways to specify font sizes in different parts of `ggplot2` and
+Guide to work arounds: can it be codified as an agent skill: https://github.com/steverozen/quarto-bioinfo
+
+
+
+Beware of different ways to specify font sizes in different parts of `ggplot2` and
 different interactions with scaling in the output.
 
 https://tidyverse.org/blog/2020/08/taking-control-of-plot-scaling/
@@ -488,7 +492,7 @@ Demo how one does this, executing code blocks in quarto and then a copy of the c
 
 ## Exercises, code chunks
 
-
+::: {style="font-size: 0.66em;"}
 
 1.  Add a section that explores how diamond sizes vary by `cut`,
     `color`, and `clarity`. Assume the reader does not know R, so
@@ -502,12 +506,11 @@ Demo how one does this, executing code blocks in quarto and then a copy of the c
     formatted output. Include the percentage of diamonds larger than 2.5
     carats.
 
-
+:::
 
 ## Exercises, figures
 
-
-
+::: {style="font-size: 0.66em;"}
 
 1.  Find an image of a diamond, paste it into `diamond-sizes.qmd`, add a
     caption, resize it, and render. Note where the image is saved.
@@ -521,7 +524,7 @@ Demo how one does this, executing code blocks in quarto and then a copy of the c
     c.  `out-width: "100%"`
     d.  `out-width: "20%"`
 
-
+:::
 
 ## Exercises, tables
 
@@ -534,14 +537,13 @@ Demo how one does this, executing code blocks in quarto and then a copy of the c
 ## Quarto drawbacks / pain points
 
 - Debugging
+- Multiple re-renderings while makeing adjustments
+- Silent errors
 - Figure sizes and text sizes in figures
 - Different output formats not all that uniform at the quarto level, e.g. embedded html, css files, 
 - Caching
 - Passing in parameters to the whole document
 - Managing sub-documents 
-
-
-# How a `.qmd` becomes a slide
 
 ## The Quarto rendering pipeline
 
@@ -584,7 +586,7 @@ Demo how one does this, executing code blocks in quarto and then a copy of the c
   <div class="arr"><span class="lab">knitr<br>runs the R code</span><span class="gly">&#10230;</span></div>
   <div class="box"><b>.md</b><span>plain markdown<br>plots are now .png</span></div>
   <div class="arr"><span class="lab">pandoc<br>reader</span><span class="gly">&#10230;</span></div>
-  <div class="box ast"><b>AST</b><span>format-neutral<br>document tree</span></div>
+  <div class="box ast"><b>AST</b><span>format-neutral<br>syntax tree</span></div>
   <div class="arr"><span class="lab">pandoc<br>writer</span><span class="gly">&#10230;</span></div>
   <div class="box out">
     <div><b>HTML / revealjs</b></div>
@@ -597,12 +599,18 @@ Demo how one does this, executing code blocks in quarto and then a copy of the c
 ```
 
 ::: {style="font-size: 0.66em;"}
-Two separate programs do the work. **knitr** runs your R chunks and writes
-plain markdown, with every plot already saved as a `.png`. **pandoc** then
+Two separate programs:
+
+**knitr** runs your R chunks and writes
+plain markdown, with every plot already saved as a `.png`.
+
+**pandoc** 
 parses that markdown into an AST (abstract syntax tree) and writes it out.
 
-The AST is the whole point. It is format-neutral, so one source file reaches
-every output format, and it is the only place a **Lua filter** can reach in
+The AST is format-neutral, so one source file reaches
+every output format.
+
+It is the only place a **Lua filter** can reach in
 and rewrite the document. That is how Quarto itself implements callouts,
 columns, and cross-references.
 :::
@@ -706,6 +714,8 @@ opener. The rule that matters: **give every opening fence a class or a style.**
 
 ## Summary
 
+::: {style="font-size: 0.66em;"}
+
 - A `.qmd` is YAML header + Markdown formatting + code chunks.
 - Render with `quarto render` to keep prose, code, and output in sync.
 - Chunk options control what is shown and what is run.
@@ -721,3 +731,17 @@ Why:
 - **Plain text.** Diffs cleanly in git, easy to review, easy to share.
 
 Reference: <https://r4ds.hadley.nz/quarto.html>
+
+:::
+
+## Questions?
+
+```{r}
+#| fig-width: 4
+#| fig-height: 4
+library(tidyplots)
+tidyplot(diamonds, carat, price, height = NA, width = NA) |>
+    add(geom_hex(aes(fill = after_stat(count)), bins = 40)) |>
+    add(scale_fill_viridis_c()) |>
+    adjust_font(fontsize = 14)
+```
