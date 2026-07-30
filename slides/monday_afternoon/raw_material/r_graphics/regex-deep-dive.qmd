@@ -1,0 +1,184 @@
+---
+title: "Regular expressions: a deep dive"
+author: "Steve Rozen<br>Duke Medical School<br>sr110@duke.edu, steverozen@pm.me"
+date: "2026-08-03"
+date-format: "YYYY-MM-DD"
+format:
+  revealjs:
+    embed-resources: true
+    slide-number: true
+    incremental: false
+    code-fold: false
+    code-line-numbers: false
+    fig-width: 6
+    fig-height: 4
+    theme: simple
+    width: 1123
+    height: 794
+    center: false
+execute:
+  warning: false
+  message: false
+  echo: true
+---
+
+# Material for another lecture
+
+## The three regex engines you keep running into
+
+Almost every language's regex support sits on top of one of three C/C++
+libraries.
+
+::: {style="font-size: 0.72em;"}
+| Engine    | Origin                          | Algorithm           | Distinctive trait                                             | Used by                                    |
+|-----------|---------------------------------|---------------------|----------------------------------------------------------------|--------------------------------------------|
+| **PCRE**  | Philip Hazel, 1997 (PCRE2 now)  | Backtracking NFA    | Perl-flavour kitchen sink: lookaround, backrefs, recursion     | PHP, nginx, Git, many C/C++ projects       |
+| **ICU**   | IBM Unicode toolkit             | Backtracking        | PCRE-ish syntax **plus** first-class Unicode (`\p{L}`, scripts, locale-aware folding) | R `stringr`/`stringi`, Java, macOS, Swift |
+| **RE2**   | Russ Cox, Google, 2010          | Thompson NFA / DFA  | **Linear time guarantee**, drops lookaround and backrefs       | Go `regexp`, Rust `regex`, Code Search     |
+:::
+
+- **Backtracking** (PCRE, ICU): expressive, can be exponential on pathological
+  patterns (ReDoS).
+- **Thompson NFA** (RE2): walks all states in parallel, linear in input length,
+  but can't express anything beyond a *regular* language, so no lookaround,
+  no backreferences.
+- Languages like Python `re`, JavaScript, .NET, and C++ `std::regex` ship
+  their own backtracking engines in the same family as PCRE.
+
+## Aside: not all regex engines are the same
+
+The lookahead trick `(?=...)` is not universal. The question is **which
+regex engine** the library uses.
+
+::: {style="font-size: 0.75em;"}
+| Family             | Examples                                              | Lookaround? | Worst case |
+|--------------------|-------------------------------------------------------|-------------|------------|
+| **RE2-style** (NFA) | Go `regexp`, Rust `regex` crate, Google RE2          | **no**      | linear     |
+| **Backtracking**   | PCRE, ICU (R `stringr`), Python `re`, JS, C++ `std::regex`, .NET | yes | can be exponential (ReDoS) |
+:::
+
+- **RE2-style** trades expressiveness (no lookaround, no backreferences) for
+  a guaranteed linear-time match. Built for serving untrusted patterns at
+  scale.
+- **Backtracking** engines are more expressive but pathological patterns
+  (`(a+)+$` on `"aaaa…!"`) can blow up.
+- So in Go and Rust, the overlap-counting one-liner doesn't compile. You
+  either write the explicit loop, or pull in `regexp2` (Go) or `fancy-regex`
+  (Rust), which add lookaround at the cost of the linear-time guarantee.
+- The designer's question is *"do I need lookaround?"* and *"do I care
+  about adversarial inputs?"*. The agent picks the crate.
+
+## What is ReDoS?
+
+**Regular Expression Denial of Service.** A short input can make a
+backtracking engine take astronomically long to decide a match.
+
+The textbook example:
+
+```
+pattern:  ^(a+)+$
+input:    aaaaaaaaaaaaaaaaaa!
+```
+
+`(a+)+` can split N `a`s into groups in $2^{N-1}$ ways. The trailing `!`
+forces failure, so the engine has to try **every** split before giving up.
+
+::: {style="font-size: 0.8em;"}
+| `a`s | Time (Python `re`) |
+|------|---------------------|
+| 20   | ~0.05 s             |
+| 25   | ~1.5 s              |
+| 30   | ~45 s               |
+| 35   | hours               |
+:::
+
+Real-world hits: **Cloudflare global outage (2 July 2019)**, a WAF regex
+pegged every edge CPU and took the network down for ~30 minutes.
+**Stack Overflow outage (20 July 2016)**, a whitespace-stripping regex
+on one ~20,000-char post took the site down for 34 minutes.
+
+## Catastrophic backtracking: the mechanism
+
+A backtracking engine tries one branch, fails, backs up, tries another.
+Catastrophic backtracking happens when the same input can be matched in
+**exponentially many** ways, and the overall match ultimately fails.
+
+The Cloudflare 2019 outage's villain was `.*(?:.*=.*)`, three nested
+greedy `.*` quantifiers competing for the same characters.
+
+Walking `abcdefg` (no `=`, so it must fail):
+
+1. The outer `.*` gobbles everything, cursor at end. Need `=`. Not there.
+2. Back up one char. Need `=`. Not there. Back up again. Repeat to start.
+3. Now the **inner** `.*` tries each split point. For each, the engine
+   again searches for `=`. Repeat.
+4. Multiply across three nested `.*`s with no anchor between them, and the
+   number of partitions to try is on the order of $N^3$.
+
+A few thousand bytes of body with no `=` to anchor on becomes billions of
+state transitions. One CPU core, pinned, minutes per request.
+
+## The "evil regex" family
+
+All of these match the same characters in exponentially many ways:
+
+```
+.*.*.*          (a+)+          (.*)*
+(a|a)+          (\w+\s?)+      ^(a+)+$
+```
+
+The fix for `.*=.*` is to **kill the ambiguity** by anchoring:
+
+```
+[^=]*=.*        characters-that-aren't-= , then = , then anything
+```
+
+Now there is **exactly one** way to split. The engine walks the input
+once, in linear time. Same meaning, no backtracking.
+
+This kind of audit is tedious and easy to miss. Which is why Cloudflare
+ultimately switched the WAF engine itself to **RE2**, where the bug
+class cannot exist.
+
+## Defending against ReDoS
+
+- Avoid nested quantifiers (`(a+)+`, `(.*)*`, `(a|a)+`).
+- Anchor and constrain, use character classes instead of `.*` where possible.
+- Use **atomic groups** `(?>...)` or **possessive quantifiers** `a++` to
+  disable backtracking inside a sub-expression (PCRE, Java, .NET).
+- Set a **match timeout** (.NET's `Regex.MatchTimeout`; Go and Rust don't
+  need one).
+- Bound the length of any user input you feed to a regex.
+- For untrusted patterns **or** untrusted input at scale, just use an
+  RE2-family engine. That's the whole reason RE2 exists, see
+  Russ Cox, *"Regular Expression Matching Can Be Simple And Fast"*,
+  <https://swtch.com/~rsc/regexp/regexp1.html>.
+
+## WAFs: where ReDoS gets really painful
+
+A **Web Application Firewall** sits in front of a web app and inspects
+every request for attack signatures (SQL injection, XSS, path traversal,
+known-CVE payloads). Each signature is a regex. A real rule set
+(OWASP Core Rule Set, ModSecurity, Cloudflare Managed Rules) is hundreds
+to thousands of regexes, run against every URL, header, cookie, and body.
+
+WAFs are the worst possible place for a backtracking-pathological regex:
+
+1. **Every request** is matched against **every rule**.
+2. The subject is **fully attacker-controlled** (URL, headers, body).
+3. Patterns are complex (alternations, nested quantifiers, `.*` everywhere)
+   because they have to catch many attack variants.
+4. WAFs run on **shared edge infrastructure**, so one bad regex can take
+   down many customers at once.
+
+**Cloudflare, 2 July 2019:** a new WAF rule with a nested `(?:.*=.*)`-style
+quantifier hit catastrophic backtracking on an ordinary request body.
+Every edge CPU worldwide pegged at 100%, global traffic through Cloudflare
+stopped for ~30 minutes. Postmortem:
+<https://blog.cloudflare.com/details-of-the-cloudflare-outage-on-july-2-2019/>.
+Cloudflare then migrated their WAF off PCRE onto **RE2**, making that
+class of bug impossible by construction.
+
+The lesson: a slow security pattern is itself a DoS vector against the
+thing it is supposed to protect.
+
