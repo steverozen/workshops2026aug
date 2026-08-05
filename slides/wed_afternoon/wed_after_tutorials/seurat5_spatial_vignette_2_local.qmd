@@ -56,12 +56,14 @@ layouts are stated in callouts in each section below.
 
 ```{r}
 #| label: setup
-source(here::here("slides", "find_data_dir.R"))
-data_dir <- find_data_dir("spatial_imaging")
-# allen_cortex.rds is shared with the Visium tutorial and staged once at the
+
+data_dir <- "~/MEGA/workshop_data/spatial_imaging"
+in_data_dir <- function(basename) {
+  return(file.path(data_dir, basename))
+}
+# allen_cortex.rds is shared with the imaging tutorial and staged once at the
 # top level of the data dir, so read it from the root rather than data_dir.
-data_root <- find_data_dir()
-report_data_dir("spatial_imaging")
+data_root <- "~/MEGA/workshop_data"
 ```
 
 ```{r}

@@ -70,9 +70,10 @@ The current best practice is a pseudobulk approach:
 
 ```{r}
 #| label: setup
-source(here::here("slides", "find_data_dir.R"))
-data_dir <- find_data_dir("2_a_pseudobulk_de")
-report_data_dir("2_a_pseudobulk_de")
+data_dir <- "~/MEGA/workshop_data/2_a_pseudobulk_de"
+in_data_dir <- function(basename) {
+  return(file.path(data_dir, basename))
+}
 ```
 
 ### Where the data came from

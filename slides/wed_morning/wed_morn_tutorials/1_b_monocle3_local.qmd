@@ -57,9 +57,10 @@ several partitions, not that the parameters are wrong. That is what the
 
 ```{r}
 #| label: setup
-source(here::here("slides", "find_data_dir.R"))
-data_dir <- find_data_dir("1_b_monocle3")
-report_data_dir("1_b_monocle3")
+data_dir <- "~/MEGA/workshop_data/1_b_monocle3"
+in_data_dir <- function(basename) {
+  return(file.path(data_dir, basename))
+}
 ```
 
 ```{r}
@@ -72,7 +73,7 @@ library(ggplot2)
 
 ## Upload, view and modify the files
 
-Upstream at this point runs
+We previously ran this
 
 ```r
 download.file('https://zenodo.org/record/7455590/files/AnnData_filtered.h5ad',
@@ -87,7 +88,7 @@ colnames(gene_metadata)[2] <- 'gene_short_name'
 cds <- new_cell_data_set(expression_matrix, cell_metadata, gene_metadata)
 ```
 
-All of that has been done once at staging time. We read the result.
+We put the data in an RDS previously, so we read it back here
 
 ```{r}
 #| label: load-cds

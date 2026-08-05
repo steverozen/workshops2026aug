@@ -71,9 +71,10 @@ Staged under `find_data_dir("3_a_composition_covid")` by
 
 ```{r}
 #| label: setup
-source(here::here("slides", "find_data_dir.R"))
-data_dir <- find_data_dir("3_a_composition_covid")
-report_data_dir("3_a_composition_covid")
+data_dir <- "~/workshop_data/3_a_composition_covid"
+in_data_dir <- function(basename) {
+  return(file.path(data_dir, basename))
+}
 ```
 
 ```{r}

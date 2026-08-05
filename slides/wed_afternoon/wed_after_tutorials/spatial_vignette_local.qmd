@@ -76,12 +76,13 @@ on a staging machine and stage the resulting objects instead:
 
 ```{r}
 #| label: setup
-source(here::here("slides", "find_data_dir.R"))
-data_dir <- find_data_dir("spatial_visium")
+data_dir <- "~/MEGA/workshop_data/spatial_visium"
+in_data_dir <- function(basename) {
+  return(file.path(data_dir, basename))
+}
 # allen_cortex.rds is shared with the imaging tutorial and staged once at the
 # top level of the data dir, so read it from the root rather than data_dir.
-data_root <- find_data_dir()
-report_data_dir("spatial_visium")
+data_root <- "~/MEGA/workshop_data"
 ```
 
 ```{r}
@@ -774,10 +775,17 @@ query <- SpatialRNA(coords, counts, colSums(counts))
 Using the reference and query object, we annotate the dataset and add the cell
 type labels to the query Seurat object.
 
+This step did not finish after 40 minutes on my laptop. 
+We need to skip it.
+
+Set `max_cores = 2`, not 8. Each worker is a full copy of the reference;
+8 workers filled 30 GB and 39 GB of swap without finishing.
+Even 2 workers used most 29 GB RAM and 17 GB swap.
+
 ```{r}
 #| label: rctd-run
-# max_cores = 2, not 8. Each worker is a full copy of the reference. See the
-# callout above: 8 workers filled 30 GB and 39 GB of swap without finishing.
+#| eval: false
+
 RCTD <- create.RCTD(query, reference, max_cores = 2)
 RCTD <- run.RCTD(RCTD, doublet_mode = 'doublet')
 slide.seq <- AddMetaData(slide.seq, metadata = RCTD@results$results_df)
@@ -788,6 +796,8 @@ algorithm assigns a `first_type` and `second_type` for each barcode or spot.
 
 ```{r}
 #| label: rctd-plot
+#| eval: false
+
 p1 <- SpatialDimPlot(slide.seq, group.by = "first_type")
 p2 <- SpatialDimPlot(slide.seq, group.by = "second_type")
 

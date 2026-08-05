@@ -39,9 +39,10 @@ base-graphics `lines()` calls.
 
 ```{r}
 #| label: setup
-source(here::here("slides", "find_data_dir.R"))
-data_dir <- find_data_dir("1_a_slingshot")
-report_data_dir("1_a_slingshot")
+data_dir <- "~/MEGA/workshop_data/1_a_slingshot"
+in_data_dir <- function(basename) {
+  return(file.path(data_dir, basename))
+}
 ```
 
 ```{r}
